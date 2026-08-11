@@ -27,3 +27,4 @@ zopfli==0.4.1
 gunicorn==21.2.0
 dj-database-url==2.1.0
 psycopg2-binary==2.9.9
+requests
