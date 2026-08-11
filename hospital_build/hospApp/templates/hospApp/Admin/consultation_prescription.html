@@ -1,0 +1,326 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Prescription Print</title>
+   <script src="{% static 'js/jsbarcode.min.js' %}"></script>
+<script src="{% static 'js/qrcode.min.js' %}"></script>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Times New Roman", serif;
+            font-size: 12px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* ===== OUTER WRAPPER ===== */
+        .print-wrapper {
+            width: 210mm;
+            height: 297mm;
+            padding: 5mm 6mm;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== HEADER ===== */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 3px;
+            margin-bottom: 3px;
+        }
+
+        .hospital-header {
+            flex: 1;
+            text-align: center;
+        }
+
+        .hospital-name {
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hospital-sub {
+            font-size: 10px;
+            margin-top: 1px;
+            color: #333;
+        }
+
+        #header-qrcode {
+            border: 1px solid #000;
+            padding: 2px;
+            flex-shrink: 0;
+        }
+
+        .qr-spacer {
+            width: 46px;
+            flex-shrink: 0;
+        }
+
+        /* ===== PATIENT INFO TABLE ===== */
+        .patient-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2px;
+        }
+
+        .patient-table td {
+            padding: 1px 3px;
+            vertical-align: top;
+            font-size: 11.5px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #003366;
+            white-space: nowrap;
+            width: 70px;
+        }
+
+        .value {
+            color: #111;
+            width: 200px;
+        }
+
+        .label-right {
+            font-weight: bold;
+            color: #003366;
+            white-space: nowrap;
+            width: 70px;
+            padding-left: 10px;
+        }
+
+        /* ===== BARCODE ROW ===== */
+        .barcode-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 2px 0;
+        }
+
+        .barcode-box {
+            text-align: center;
+        }
+
+        /* ===== VITALS ===== */
+        .vitals-row {
+            display: flex;
+            justify-content: space-between;
+            
+            padding: 2px 0;
+            margin-bottom: 3px;
+            font-size: 11px;
+        }
+
+        .vitals-row span {
+            flex: 1;
+            text-align: center;
+        }
+
+        /* ===== RX BOX ===== */
+        .rx-label {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+
+        .rx-box {
+            border: 1px solid #000;
+            flex: 1;
+            padding: 4mm 5mm;
+            position: relative;
+            min-height: 0;
+        }
+
+        .rx-symbol {
+            font-size: 28px;
+            font-weight: bold;
+            color: #003366;
+            line-height: 1;
+        }
+
+        .signature {
+            position: absolute;
+            right: 8mm;
+            bottom: 8mm;
+            font-weight: bold;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        /* ===== FOOTER NOTE ===== */
+        .footer-note {
+            text-align: center;
+            font-size: 10.5px;
+            font-style: italic;
+            padding-top: 3px;
+            border-top: 1px dashed #555;
+            margin-top: 3px;
+            color: #333;
+        }
+
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="print-wrapper">
+
+    <!-- ===== HEADER ===== -->
+    <div class="header-section">
+        <div class="qr-spacer"></div>
+
+        <div class="hospital-header">
+            <div class="hospital-name">{{ hospital.name }}</div>
+            <div class="hospital-sub">{{ hospital.address }}</div>
+        </div>
+
+        <div id="header-qrcode"></div>
+    </div>
+
+    <!-- ===== PATIENT DETAILS ===== -->
+    <table class="patient-table">
+        <tr>
+            <td class="label">PT NAME</td>
+            <td class="value">: <strong>{{ patient.patname|upper }}</strong> ./<b>{{ patient.age }}/{{ patient.gender|upper }}</b></td>
+            <td class="label-right">UHID</td>
+            <td class="value">: {{ consult.uhid }}</td>
+        </tr>
+        <tr>
+            <td class="label">PHONE</td>
+            <td class="value">: {{ patient.phone }}</td>
+            <td class="label-right">ADDRESS</td>
+            <td class="value">: {{ patient.area|upper }}</td>
+        </tr>
+        <tr>
+            <td class="label">BILL NO</td>
+            <td class="value">: {{ consult.billno }}</td>
+            <td class="label-right">DATE</td>
+            <td class="value">: {{ consult.regdt|date:"d-m-Y h:i:s A" }}</td>
+        </tr>
+        <tr>
+            <td class="label">DOCTOR</td>
+            <td class="value" colspan="3">
+                <b>: {{ doctorname.docname|upper }}</b>, {{ speciality.speciality|upper }},<br>
+                <span style="margin-left:15px;">{{ doctorname.qualification|upper }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ===== BARCODE ROW ===== -->
+    <div class="barcode-row">
+        <div class="barcode-box">
+            <svg id="uhid-barcode"></svg>
+        </div>
+        <div class="barcode-box">
+            <svg id="bill-barcode"></svg>
+        </div>
+    </div>
+
+    <!-- ===== VITALS ===== -->
+    <div class="vitals-row">
+        <span><b>TEMP</b> : ________</span>
+        <span><b>BP</b> : ________</span>
+        <span><b>PR</b> : ________</span>
+        <span><b>SPO2</b> : ________</span>
+        <span><b>WEIGHT</b> : ________</span>
+    </div>
+
+    <!-- ===== RX BOX ===== -->
+    <div class="rx-box">
+        <div class="rx-symbol">&#8478;</div>
+
+        <div class="signature">
+            ______________________<br>
+            {{ doctorname.docname|upper }}<br>
+            <span style="font-weight:normal; font-size:10px;">{{ doctorname.qualification|upper }}</span>
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <div class="footer-note">
+        Valid upto {{valid_upto|date:"d-m-Y h:i:s A"}} &nbsp;&mdash;&nbsp; (or) &nbsp; 1 Visit &nbsp;&mdash;&nbsp; whichever is earliest
+    </div>
+
+</div>
+
+<script>
+    const uhid   = "{{ consult.uhid }}";
+    const billno = "{{ consult.billno }}";
+
+    new QRCode(document.getElementById("header-qrcode"), {
+        text: uhid,
+        width: 44,
+        height: 44
+    });
+
+    JsBarcode("#uhid-barcode", uhid, {
+        format: "CODE128",
+        width: 0.9,
+        height: 28,
+        displayValue: false
+    });
+
+    JsBarcode("#bill-barcode", billno, {
+        format: "CODE128",
+        width: 0.9,
+        height: 28,
+        displayValue: false
+    });
+
+    window.onafterprint = function () {
+        window.close();
+    };
+</script>
+{% if is_cancelled %}
+<style>
+.receipt-wrapper, .print-wrapper {
+    position: relative;
+}
+.receipt-wrapper::before, .print-wrapper::before {
+    content: "CANCELLED";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 96px;
+    font-weight: 900;
+    color: rgba(220, 38, 38, 0.18);
+    letter-spacing: 8px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 9999;
+    font-family: Arial, sans-serif;
+}
+@media print {
+    .receipt-wrapper::before, .print-wrapper::before {
+        position: fixed;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: rgba(220, 38, 38, 0.18) !important;
+    }
+}
+</style>
+{% endif %}
+</body>
+</html>

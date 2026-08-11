@@ -1,0 +1,160 @@
+{% load static %}
+
+<script src="{% static 'js/jquery.min.js' %}"></script>
+
+  <!-- Google Font --> 
+<script src="{% static 'js/payment-mode-validation.js' %}"></script>
+<link href="{% static 'css/poppins.css' %}" rel="stylesheet">
+  <!-- Bootstrap CSS (keep your CDN version if desired) -->
+  
+ <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'css/forms.css' %}" rel="stylesheet">
+
+<div class="popup-page">
+<div class="container-fluid">
+  <div class="card form-card">
+     <div class="form-header">
+      <h6 class="mb-0">Print Consultation</h6>
+    </div>
+    <div class="card-body">
+      <p class="mb-2">
+        <strong>PT NAME:</strong> {{ consult.patname |upper}} ({{ consult.uhid }})<br>
+        <strong>DOCTOR :</strong> {{ doctorname.docname |upper}}<br>
+        <strong>BILL NO:</strong> {{ consult.billno }} &nbsp; 
+        <strong>FEE:</strong> {{ consult.consulfee|default:"0" |floatformat:2 }}
+      </p>
+      <hr>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="mt-3">
+          <label class="form-label fw-semibold">Print Type :</label><br>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="print_type" id="ptype_receipt" value="receipt" checked>
+            <label class="form-check-label" for="ptype_receipt">Receipt</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="print_type" id="ptype_prescription" value="prescription">
+            <label class="form-check-label" for="ptype_prescription">Prescription</label>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-center mt-3">
+            <button type="submit" class="btn btn-primary btn-sm me-2">Continue</button>
+        <a href="javascript:void(0);"
+   class="btn btn-secondary btn-sm"
+   onclick="window.close();">
+   Close
+</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+</div>
+<script>
+ 
+document.querySelector("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const printType = document.querySelector('input[name="print_type"]:checked').value;
+    const consultId = "{{ consult.pk }}";
+
+    let url = "";
+
+    if (printType === "receipt") {
+        url = "/doctor-consultation/receipt/" + consultId + "/";
+    } else {
+        url = "/doctor-consultation/prescription/" + consultId + "/";
+    }
+
+
+        window.open(
+    url,
+    "ReceiptWindow",
+    "width=900,height=650,left=200,top=100,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes"
+);
+   
+});
+</script>
+<style> 
+/* Page background */
+body {
+    background: linear-gradient(135deg, #eef2f7, #f9fbfd);
+    font-family: "Segoe UI", Arial, sans-serif;
+    margin: 0;
+    padding: 15px;
+}
+
+/* Center card in popup */
+
+
+/* Card styling */
+.form-card {
+    width: 100%;
+    max-width: 520px;
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Header */
+.form-header {
+    background: #0d6efd;
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 10px 10px 0 0;
+}
+
+.form-header h6 {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 15px;
+}
+
+/* Patient info */
+.card-body p {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* Radio buttons */
+.form-check-input {
+    cursor: pointer;
+    border: 1px solid #0d6efd;
+}
+
+.form-check-label {
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Buttons */
+.btn-primary {
+    padding: 6px 18px;
+    font-size: 14px;
+    border-radius: 5px;
+}
+
+.btn-secondary {
+    padding: 6px 18px;
+    font-size: 14px;
+    border-radius: 5px;
+}
+
+/* Popup-safe spacing */
+hr {
+    margin: 12px 0;
+}
+
+/* Optional: hide back button in popup */
+.popup-only-hide {
+    display: none;
+}
+</style>  
+
+

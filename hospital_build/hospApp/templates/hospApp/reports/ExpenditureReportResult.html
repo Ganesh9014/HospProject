@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Expenditure Report</title>
+
+    <style>
+        body {
+            font-family: "Times New Roman", serif;
+            font-size: 11px;
+        }
+
+        /* 🔲 OUTER BORDER */
+        .report-container {
+            border: 2px solid black;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        /* 🏥 HEADER */
+        .header {
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .header p {
+            margin: 2px 0;
+        }
+
+        /* 🔽 SECTION TITLE */
+        .title {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* 📅 FILTER INFO */
+        .filters {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        /* 📊 TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 5px;
+            border-bottom: 1px solid black;
+        }
+
+        td {
+            padding: 1px 4px;
+        }
+
+        /* ❌ REMOVE ALL INNER LINES */
+        table, th, td {
+            border: none;
+        }
+
+        /* TOTAL */
+        .total {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="report-container">
+
+    <!-- 🏥 HEADER (you can replace with DB later) -->
+    <div class="header">
+        <h2>{{ hospital.name }}</h2>
+        <p>{{ hospital.address }}</p>
+        
+    </div>
+
+    <hr style="border: 1px solid #333; margin: 10px 0;">
+
+    <!-- 📄 TITLE -->
+    <div class="title">
+    {{ selected_expenditure_name|upper }} EXPENDITURE REPORT
+</div>
+
+    <!-- 📅 FILTER -->
+    <div class="filters">
+        From Date : {{ from_date | date:"d-m-Y" }},
+        To Date : {{ to_date | date:"d-m-Y" }} ,
+        User Name : {{ selected_user|default:"All" }}
+    </div>
+
+    <hr style="border: 1px solid #333; margin: 10px 0;">
+
+    <!-- 📊 TABLE -->
+    {% if report_type == "SUMMARY" %}
+
+<!-- ✅ SUMMARY TABLE -->
+<table style="width:50%; margin:auto;">
+
+    <thead>
+        <tr>
+            <th style="width:60%; text-align:left; padding-bottom:5px;">
+                User
+            </th>
+            <th style="width:40%; text-align:right; padding-bottom:5px;">
+                Amount
+            </th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for exp in expenditures %}
+        <tr>
+            <td style="padding-top:6px;">
+                {{ exp.username }}
+            </td>
+
+            <td style="text-align:right; padding-top:6px;">
+                {{ exp.total_amount }}
+            </td>
+        </tr>
+        {% endfor %}
+
+        <!-- 🔥 TOTAL ROW -->
+        
+
+    </tbody>
+
+</table>
+<div style="width:50%; margin:auto;text-align:right; margin-top:10px; ">
+  <span style="margin-right:10px;">Total Amount :</span>
+  <strong>{{ total_amount|floatformat:2 }}</strong>
+</div>
+{% else %}
+
+<!-- ✅ DETAILED TABLE (your existing one) -->
+<table>
+    <thead>
+        <tr style="border-bottom: 2px solid #000; ">
+            <th>SNO</th>
+            <th>V.NO</th>
+            
+            
+            <th>ITEM</th>
+            
+            <th>TOWARDS</th>
+            <th>USER</th>
+            <th>BILL DATE</th>
+            <th style="text-align:right;">AMT</th>
+        </tr>
+    </thead>
+
+    <tbody >
+        {% for exp in expenditures %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ exp.bill_no }}</td>
+           
+            
+            <td>{{ exp.expenditure | default:"-"|upper }}</td>
+           
+            <td>{{ exp.towards | default:"-"|upper }}</td>
+            <td>{{ exp.username | default:"-"|upper}}</td>
+             <td>{{ exp.created_at|date:"d-m-Y H:i:s" }}</td>
+             <td style="text-align:right;">{{ exp.amount }}</td>
+        </tr>
+        {% endfor %}
+
+        <!-- TOTAL -->
+        <tr style="border-top: 2px solid #000;">
+            <td colspan="6" style="text-align:right; font-weight:bold;">Total </td>
+            <td style="text-align:right; font-weight:bold;">
+                {{ total_amount }}
+            </td>
+            <td colspan="2"></td>
+        </tr>
+    </tbody>
+</table>
+
+{% endif %}
+    <!-- 💰 TOTAL -->
+    
+</div>
+<div style="width:50%; margin:auto; margin-top:20px;">
+  <div style="display:flex; justify-content:space-between; font-size:12px;">
+    
+    <div>
+      <strong>Print By:</strong> {{logged_user | upper}}
+    </div>
+
+    <div>
+      <strong>Print Time:</strong> {{ print_time|date:"d-m-Y H:i:s" }}
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

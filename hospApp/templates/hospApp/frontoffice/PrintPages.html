@@ -1,0 +1,472 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header py-2">
+      <h6 class="mb-0">Print Pages</h6>
+    </div>
+
+    <div class="card-body">
+      <form method="post" autocomplete="off">
+        {% csrf_token %}
+
+        <input type="hidden" id="billno_hidden" name="bill_no">
+{% if type != "EXPENDITURE" %}
+
+        <!-- ================= PATIENT DETAILS ================= -->
+        <fieldset class="custom-fieldset mb-3">
+          <legend class="custom-legend">
+  <span class="legend-text">Patient Details</span>
+</legend>
+
+
+          <!-- Row 1 -->
+          <div class="row g-2 mb-1">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Enter Bill No</label>
+               <input type="text"
+       class="form-control"
+       id="enter_billno"
+       name="enter_billno"
+       maxlength="10"
+       inputmode="numeric"
+       oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+              </div>
+            </div>
+
+            <div class="col-md-1"></div>
+
+               <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Type</label>
+
+                <select class="form-select" id="patient_type" name="patient_type">
+                  <option value="">--Select--</option>
+                  <option value="Consultation">Consultation</option>
+                  <option value="Procedure">Procedures</option>
+                  <option value="Investigation">Investigation</option>
+                  <option value="OPPayment">OP Payment</option>
+                  <option value="Expenditure">Expenditure</option>
+
+                </select>
+
+                      <button type="button"
+                              id="getBillsBtn"
+                              class="btn btn-primary btn-sm ms-2">
+                        Get
+                      </button>
+</div>
+
+            </div>
+
+
+
+
+            
+          </div>
+
+          <!-- Row 2 -->
+          <div class="row g-2 mb-1">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">UHID</label>
+                <input type="text" class="form-control readonly-field" id="uhid" name="uhid" readonly>
+              </div>
+            </div>
+
+            <div class="col-md-1"></div>
+
+           <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Bill Date</label>
+                <input type="date" class="form-control readonly-field" id="bill_date" name="bill_date" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 3 -->
+          <div class="row g-2 mb-1">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Patient Name</label>
+                <input type="text" class="form-control readonly-field" id="patient_name" name="patient_name" readonly>
+              </div>
+            </div>
+
+            <div class="col-md-1"></div>
+
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Bill No</label>
+                <input type="text" class="form-control readonly-field" id="bill_no" name="bill_no_display" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 4 -->
+          <div class="row g-2 mb-1">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Age</label>
+                <input type="number" class="form-control readonly-field" id="age" name="age" readonly>
+              </div>
+            </div>
+
+            <div class="col-md-1"></div>
+
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Phone No</label>
+                <input type="text" class="form-control readonly-field" id="phone_no" name="phone_no" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 5 -->
+          <div class="row g-2">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Gender</label>
+                <select class="form-select readonly-field" id="gender" name="gender" disabled>
+                  <option value="">--Select--</option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                  <option value="O">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+{% endif %}
+
+{% if type != "EXPENDITURE" %}
+        <!-- ================= AMOUNT DETAILS ================= -->
+        <fieldset class="custom-fieldset mb-3">
+        <legend class="custom-legend">
+  <span class="legend-text">Amount Details</span>
+</legend>
+
+
+          <div class="row g-2 mb-1">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Total Amount</label>
+                <input type="number" step="0.01" class="form-control readonly-field" id="total_amount" name="total_amount" readonly>
+              </div>
+            </div>
+
+            <div class="col-md-1"></div>
+
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Paid Amount</label>
+                <input type="number" step="0.01" class="form-control readonly-field" id="paid_amount" name="paid_amount" readonly>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Due Amount</label>
+                <input type="number" step="0.01" class="form-control readonly-field" id="due_amount" name="due_amount" readonly>
+              </div>
+            </div>
+
+            <div class="col-md-1"></div>
+
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-4">Concession</label>
+                <input type="number" step="0.01" class="form-control readonly-field" id="concession" name="concession" readonly>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+        {% endif %}
+        <!-- Expenditure Name -->
+{% if type == "EXPENDITURE" %}
+<input type="hidden" name="patient_type" value="EXPENDITURE">
+<input type="hidden" name="bill_no" value="{{ bill_no }}">
+
+<!-- Expenditure Name -->
+<div class="d-flex align-items-center mb-2">
+  <label style="width:150px;">Expenditure</label>
+  <input type="text" class="form-control" value="{{ expenditure_name }}" readonly style="max-width:220px;">
+</div>
+
+<!-- Amount -->
+<div class="d-flex align-items-center mb-2">
+  <label style="width:150px;">Amount</label>
+  <input type="text" class="form-control" value="{{ amount }}" style="max-width:220px;" readonly>
+</div>
+<div class="d-flex align-items-center mb-2">
+  <label style="width:150px;">Date</label>
+  <input type="text" class="form-control" value="{{ bill_date|date:'d-m-Y H:i:s' }}" style="max-width:220px;" readonly>
+</div>
+<!-- Towards -->
+<div class="d-flex align-items-center mb-2">
+  <label style="width:150px;">Towards</label>
+  <textarea class="form-control" readonly style="max-width:220px; height:50px;">{{ towards }}</textarea>
+</div>
+
+<!-- Date -->
+
+
+{% endif %}
+        <!-- ================= ACTIONS ================= -->
+        <div class="row align-items-center mt-2">
+  <div class="col-md-3">
+    <input type="password"
+           id="usercode"
+           name="usercode"
+           class="form-control"
+           placeholder="Enter User Code"
+           required
+           style="background-color: yellow; max-width:150px;">
+  </div>
+
+  <div class="col-md-4 text-center">
+    <button type="submit" class="btn btn-success btn-sm me-2">Submit</button>
+    <button type="button" class="btn btn-secondary btn-sm" id="cancelBtn">Clear</button>
+  </div>
+</div>
+
+      </form>
+    </div>
+    
+  </div>
+</div>
+
+<!-- ================= STYLES ================= -->
+<style>
+.form-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0;
+}
+
+.form-control, .form-select {
+  padding: .4rem .5rem;
+  border-radius: .45rem;
+  border: 1px solid black;
+  font-size: .68rem;
+}
+
+.readonly-field {
+  background-color: #f3f6fb;
+  color: #374151;
+}
+
+.custom-fieldset {
+  border: 1px solid #9ca3af;
+  border-radius: .5rem;
+  padding: .45rem 1rem 1rem;
+}
+
+.custom-legend {
+  font-size: .9rem;
+  font-weight: 700;
+  padding: 0 .5rem;
+  color: green;
+}
+.legend-text {
+  font-size: .8rem;
+  font-weight: 700;
+  display: inline-block;          /* important */
+  border-bottom: 2px solid #111827;
+  line-height: 1.2;
+}
+</style>
+
+<!-- ================= SCRIPTS ================= -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("input[readonly], textarea[readonly], select[readonly]")
+    .forEach(el => el.setAttribute("tabindex", "-1"));
+});
+</script>
+<script>
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    document.cookie.split(';').forEach(cookie => {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+      }
+    });
+  }
+  return cookieValue;
+}
+</script>
+
+<script>
+document.getElementById("enter_billno").addEventListener("blur", function () {
+
+  const type = new URLSearchParams(window.location.search).get("type");
+
+  // ❌ STOP for expenditure
+  if (type === "EXPENDITURE") return;
+
+  const billno = this.value.trim();
+  if (!billno) return;
+
+  fetch(`/ajax/get-bill-details/?billno=${billno}`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) {
+        alert(data.message || "Bill not found");
+        this.value = "";
+        this.focus();
+        return;
+      }
+
+      const d = data.data;
+
+      billno_hidden.value = d.bill_no;
+      bill_date.value = d.bill_date;
+      uhid.value = d.uhid;
+      patient_name.value = d.patient_name;
+      bill_no.value = d.bill_no;
+      age.value = d.age;
+      phone_no.value = d.phone;
+
+      const genderMap = {
+        "MALE": "M", "FEMALE": "F", "OTHER": "O",
+        "M": "M", "F": "F", "O": "O"
+      };
+
+      gender.value = genderMap[d.gender?.toUpperCase()] || "";
+
+      const typeMap = {
+        CONSULTATION: "Consultation",
+        PROCEDURE: "Procedure",
+        INVESTIGATION: "Investigation",
+        OPPAYMENT: "OPPayment",
+        OPPAYMENTS: "OPPayment"
+      };
+
+      patient_type.value = typeMap[d.patient_type?.trim()] || "";
+
+      total_amount.value = d.total_amount || 0;
+      paid_amount.value = d.paid_amount || 0;
+      concession.value = d.concession || 0;
+      due_amount.value = d.due_amount || 0;
+    });
+});
+</script>
+<script>
+document.querySelector("form").addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const usercode = document.getElementById("usercode")?.value.trim();
+
+  if (!usercode) {
+    alert("Please enter User Code");
+    document.getElementById("usercode").focus();
+    return;
+  }
+
+  fetch("{% url 'save_print_page' %}", {
+    method: "POST",
+    headers: { "X-CSRFToken": getCookie("csrftoken") },
+    body: new FormData(this)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (!data.success) {
+      alert(data.message || "Error");
+      document.getElementById("usercode").value = "";
+      document.getElementById("usercode").focus();
+      return;
+    }
+
+    window.open(
+      data.redirect_url,
+      "_blank",
+      "width=900,height=650,left=200,top=100"
+    );
+
+    setTimeout(() => {
+      window.location.href = window.location.pathname;
+    }, 500);
+  })
+  .catch(err => {
+    alert("Network error: " + err.message);
+  });
+});
+// ✅ NEW FUNCTION TO CLEAR FORM (fresh state)
+function clearForm() {
+  const ids = [
+    "enter_billno",
+    "billno_hidden",
+    "bill_date",
+    "uhid",
+    "patient_name",
+    "bill_no",
+    "age",
+    "phone_no",
+    "gender",
+    "patient_type",
+    "total_amount",
+    "paid_amount",
+    "concession",
+    "due_amount"
+  ];
+
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (el.tagName === "SELECT") {
+        el.selectedIndex = 0;
+      } else {
+        el.value = "";
+      }
+    }
+  });
+}
+</script>
+<script>
+document.getElementById("getBillsBtn").addEventListener("click", function () {
+  const type = document.getElementById("patient_type").value;
+
+  if (!type) {
+    alert("Please select Type");
+    return;
+  }
+
+  // Navigate to bill lookup page
+window.location.href = `/bill-lookup/?type=${type}&source=print`;
+
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const billno = new URLSearchParams(window.location.search).get("billno");
+  if (billno) {
+    const billInput = document.getElementById("enter_billno");
+    billInput.value = billno;
+    billInput.dispatchEvent(new Event("blur"));
+  }
+});
+
+
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'printpages' %}";
+});
+document.addEventListener("DOMContentLoaded", function () {
+    const first = document.querySelector(
+        'input:not([type="hidden"]):not([readonly]):not([disabled]):not([tabindex="-1"]), ' +
+        'select:not([disabled]):not([tabindex="-1"])'
+    );
+    if (first) first.focus();
+});
+</script>
+
+
+{% endblock %}

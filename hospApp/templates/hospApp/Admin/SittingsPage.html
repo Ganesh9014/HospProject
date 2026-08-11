@@ -1,0 +1,666 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+  /* Flex layout to fit main container exactly without scrolling main */
+  .sittings-page-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--header-h) - var(--footer-h) - 40px);
+    overflow: hidden;
+  }
+  .sittings-page-wrapper .form-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  .sittings-page-wrapper .card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    padding: 8px 12px;
+  }
+  .sittings-page-wrapper form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  .sittings-fieldset-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0; /* Crucial for inner flex scroll */
+    margin-bottom: 0 !important;
+  }
+
+  /* Only sittings section scrolls */
+  #sittingsScrollArea {
+    flex: 1;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: #b0c4de transparent;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+  }
+  #sittingsScrollArea::-webkit-scrollbar { width: 5px; }
+  #sittingsScrollArea::-webkit-scrollbar-thumb { background: #b0c4de; border-radius: 4px; }
+
+  /* Compact row styling */
+  .sitting-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 12px;
+  }
+  .sitting-row:last-child { border-bottom: none; }
+  .sitting-row:hover { background: #f8f9fa; }
+
+  .sitting-label {
+    width: 90px;
+    font-weight: 600;
+    font-size: 12px;
+    color: #0d6efd;
+    flex-shrink: 0;
+  }
+  .sitting-date-input {
+    width: 130px;
+    flex-shrink: 0;
+    font-size: 11px;
+    height: 26px;
+    padding: 2px 6px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    outline: none;
+  }
+  .sitting-date-input:focus { border-color: #0d6efd; }
+
+  .sitting-remarks-input {
+    flex: 1;
+    font-size: 11px;
+    height: 26px;
+    padding: 2px 6px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    outline: none;
+    min-width: 0;
+  }
+  .sitting-remarks-input:focus { border-color: #0d6efd; }
+
+  .sitting-save-btn, .sitting-update-btn {
+    font-size: 11px;
+    padding: 2px 10px;
+    height: 26px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .sitting-save-btn {
+    background: #198754;
+    color: #fff;
+  }
+  .sitting-save-btn:disabled {
+    background: #6c757d;
+    cursor: default;
+  }
+  .sitting-update-btn {
+    background: #0d6efd;
+    color: #fff;
+  }
+  .sitting-update-btn:disabled {
+    background: #6c757d;
+    cursor: default;
+  }
+
+  /* Compact patient info labels */
+  .pat-info-label {
+    font-size: 12px;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap;
+  }
+  /* Print styling */
+  @media print {
+    .sidebar-left, .sidebar-right, nav, header, footer, #printBtn, #getBtn, .sitting-save-btn {
+      display: none !important;
+    }
+    main {
+      margin: 0 !important;
+      padding: 0 !important;
+      height: auto !important;
+      overflow: visible !important;
+      border: none !important;
+      box-shadow: none !important;
+      background: white !important;
+    }
+    .sittings-page-wrapper {
+      height: auto !important;
+      overflow: visible !important;
+    }
+    .sittings-fieldset-section {
+      overflow: visible !important;
+    }
+    #sittingsScrollArea {
+      max-height: none !important;
+      overflow: visible !important;
+      border: none !important;
+    }
+    .sitting-row {
+      border-bottom: 1px solid #ddd !important;
+      page-break-inside: avoid;
+    }
+  }
+</style>
+
+<div class="sittings-page-wrapper">
+  <div class="card form-card">
+    <div class="form-header py-2 px-3 d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">Sittings Page</h6>
+      <button type="button" id="printBtn" class="btn btn-light btn-sm fw-bold shadow-sm d-flex align-items-center gap-1" style="font-size:12px; padding:2px 10px; border:1px solid #ced4da;">
+        🖨️ Print
+      </button>
+    </div>
+
+
+    <div class="card-body">
+      <form id="sittingsForm" autocomplete="off" onsubmit="return false;">
+        {% csrf_token %}
+
+        <!-- ====== Patient Information ====== -->
+      <!-- ====== Patient Information ====== -->
+<fieldset class="custom-fieldset mb-2 flex-shrink-0">
+  <legend class="float-none w-auto px-1 fs-6 fw-bold">
+    Patient Information
+  </legend>
+
+  <!-- Row 1 -->
+  <div class="row mb-1">
+
+    <!-- UHID -->
+    <div class="col-md-4">
+      <div class="d-flex align-items-center gap-1">
+        <label class="form-label col-4 mb-0">UHID</label>
+
+        <input type="text"
+               id="uhid"
+               name="uhid"
+               class="form-control form-control-sm"
+               placeholder="Enter UHID"
+               autocomplete="off"
+               required>
+
+        <button type="button"
+                id="getBtn"
+                class="btn btn-primary btn-sm">
+          Get
+        </button>
+      </div>
+    </div>
+
+    <!-- Bill No -->
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4 mb-0">Bill No.</label>
+
+        <select id="billno"
+                name="billno"
+                class="form-select form-select-sm">
+          <option value="">-- Select Bill No --</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Patient Name -->
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4 mb-0">Patient Name</label>
+
+        <input type="text"
+               id="patname"
+               name="patname"
+               class="form-control form-control-sm"
+               readonly>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- Row 2 -->
+  <div class="row mb-1">
+
+    <!-- Age + Gender -->
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+
+        <label class="form-label col-4 mb-0">Age / Gender</label>
+
+        <input type="text"
+               id="age"
+               name="age"
+               class="form-control form-control-sm me-1"
+               placeholder="Age"
+               readonly>
+
+        <input type="text"
+               id="gender"
+               name="gender"
+               class="form-control form-control-sm"
+               placeholder="Gender"
+               readonly>
+
+      </div>
+    </div>
+
+    <!-- Phone -->
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+
+        <label class="form-label col-4 mb-0">Phone No.</label>
+
+        <input type="text"
+               id="phone"
+               name="phone"
+               class="form-control form-control-sm"
+               readonly>
+
+      </div>
+    </div>
+
+    <!-- Ref Doctor -->
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+
+        <label class="form-label col-4 mb-0">Ref Doctor</label>
+
+        <input type="text"
+               id="doctor"
+               name="doctor"
+               class="form-control form-control-sm"
+               readonly>
+
+      </div>
+    </div>
+
+  </div>
+
+</fieldset>
+
+        <!-- ====== Sittings Information (Scrolls inside) ====== -->
+        <fieldset class="custom-fieldset sittings-fieldset-section">
+          <legend class="float-none w-auto px-1 fs-6 fw-bold">
+            Sittings Information
+            <span id="totalQtyBadge" class="badge bg-secondary ms-2 d-none" style="font-size:11px;"></span>
+          </legend>
+
+          <!-- Column headers -->
+          <div class="d-flex align-items-center px-2 pb-1 border-bottom flex-shrink-0" style="gap:8px; font-size:11px; font-weight:600; color:#6c757d;">
+            <div style="width:90px; flex-shrink:0;">Sitting</div>
+            <div style="width:130px; flex-shrink:0;">Date</div>
+            <div style="flex:1;">Remarks</div>
+            <div style="width:130px; flex-shrink:0;">Next Sitting Date</div>
+            <div style="width:75px; flex-shrink:0; text-align:center;">Action</div>
+          </div>
+
+          <!-- Scrollable sittings rows -->
+          <div id="sittingsScrollArea">
+            <div id="sittingsContainer">
+              <div class="text-muted text-center py-3" style="font-size:12px;">
+                Enter UHID and click <strong>'Get'</strong> to load sittings.
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const getBtn       = document.getElementById("getBtn");
+  const printBtn     = document.getElementById("printBtn");
+  const uhidInput    = document.getElementById("uhid");
+  const billSelect   = document.getElementById("billno");
+  const sittingsCont = document.getElementById("sittingsContainer");
+  const totalBadge   = document.getElementById("totalQtyBadge");
+  const csrfToken    = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  // Print button opens Sittings Receipt window
+  if (printBtn) {
+    printBtn.addEventListener("click", function () {
+      const uhid = uhidInput.value.trim();
+      const billno = billSelect.value;
+      if (!uhid || !billno) {
+        alert("Please enter UHID and select a Bill No before printing receipt.");
+        return;
+      }
+      const receiptUrl = `{% url 'sittings_receipt' %}?uhid=${encodeURIComponent(uhid)}&billno=${encodeURIComponent(billno)}`;
+      window.open(receiptUrl, "_blank", "width=900,height=750");
+    });
+  }
+
+
+  // GET button redirects to Search UHID page (filtered by Procedures)
+  getBtn.addEventListener("click", function() {
+    window.location.href = `/search-uhid/?return=SittingsPage&towards=${encodeURIComponent('Procedures')}`;
+  });
+
+  // Blur event on UHID input field automatically fetches patient data
+  uhidInput.addEventListener("blur", function () {
+    if (this.value.trim()) {
+      fetchPatientData();
+    }
+  });
+
+  // Press Enter inside UHID input
+  uhidInput.addEventListener("keypress", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); fetchPatientData(); }
+  });
+
+  // Auto-fetch if UHID is passed in URL query parameters (e.g. from Search UHID page)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlUhid = urlParams.get("uhid");
+  if (urlUhid) {
+    uhidInput.value = urlUhid;
+    fetchPatientData();
+  }
+
+
+  // Bill change
+  billSelect.addEventListener("change", function () {
+    const uhid = uhidInput.value.trim();
+    const bill = this.value;
+    if (!uhid || !bill) { showEmpty("Please select a valid bill number."); return; }
+
+    fetch(`{% url 'get_sittings_procedures_by_bill' %}?uhid=${encodeURIComponent(uhid)}&billno=${encodeURIComponent(bill)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) { updateBadge(d.total_qty); renderRows(d.sittings); }
+        else alert(d.message || "Failed to load sittings.");
+      })
+      .catch(err => { console.error(err); alert("Error fetching sittings."); });
+  });
+
+  function fetchPatientData() {
+    const uhid = uhidInput.value.trim();
+    if (!uhid) { alert("Please enter UHID"); return; }
+
+    getBtn.disabled = true;
+    getBtn.innerText = "Loading...";
+
+    fetch(`{% url 'get_sittings_patient_data' %}?uhid=${encodeURIComponent(uhid)}`)
+      .then(r => r.json())
+      .then(d => {
+        getBtn.disabled = false;
+        getBtn.innerText = "Get";
+
+        if (d.success) {
+          document.getElementById("patname").value = d.patient.patname || "";
+          document.getElementById("age").value     = d.patient.age || "";
+          document.getElementById("gender").value  = d.patient.gender || "";
+          document.getElementById("phone").value   = d.patient.phone || "";
+          document.getElementById("doctor").value  = d.patient.refdoctor || "";
+
+          // Populate bills
+          billSelect.innerHTML = "";
+          if (d.bills && d.bills.length > 0) {
+            d.bills.forEach(b => {
+              const o = document.createElement("option");
+              o.value = b;
+              o.textContent = `Bill No: ${b}`;
+              if (b == d.selected_bill) o.selected = true;
+              billSelect.appendChild(o);
+            });
+          } else {
+            billSelect.innerHTML = '<option value="">-- No Bills Found --</option>';
+          }
+
+          updateBadge(d.total_qty);
+          renderRows(d.sittings);
+        } else {
+          alert(d.message || "Patient not found.");
+          resetFields();
+        }
+      })
+      .catch(err => {
+        getBtn.disabled = false;
+        getBtn.innerText = "Get";
+        console.error(err);
+        alert("Error fetching patient data.");
+      });
+  }
+
+  function fetchSittingsForCurrentBill() {
+    const uhid = uhidInput.value.trim();
+    const bill = billSelect.value;
+    if (!uhid || !bill) return;
+
+    fetch(`{% url 'get_sittings_procedures_by_bill' %}?uhid=${encodeURIComponent(uhid)}&billno=${encodeURIComponent(bill)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) { updateBadge(d.total_qty); renderRows(d.sittings); }
+      })
+      .catch(err => console.error(err));
+  }
+
+  function renderRows(sittings) {
+    sittingsCont.innerHTML = "";
+
+    if (!sittings || sittings.length === 0) {
+      showEmpty("No sittings found for this bill.");
+      return;
+    }
+
+    const totalQty   = sittings.length;
+    const maxSavedNo = sittings.reduce((max, item) => item.is_saved ? Math.max(max, item.sitting_no) : max, 0);
+
+    sittings.forEach(s => {
+      const row = document.createElement("div");
+      row.className = "sitting-row";
+
+      const isSaved = s.is_saved;
+      const no      = s.sitting_no;
+      const isFinalSitting         = (no === totalQty);
+      const isLastCompletedSitting = isSaved && (no === maxSavedNo);
+      
+      const roAttr = isSaved ? ' readonly' : '';
+
+      let showNextDate = false;
+      let isNextDateEditable = false;
+      let actionBtnHtml = "";
+
+      if (!isFinalSitting) {
+        if (isSaved) {
+          if (isLastCompletedSitting) {
+            showNextDate = true;
+            isNextDateEditable = true;
+            actionBtnHtml = `<button class="sitting-update-btn update-sitting-btn" data-no="${no}" data-sitting="${s.sitting}">Update</button>`;
+          } else {
+            showNextDate = false;
+            actionBtnHtml = `<span class="badge bg-secondary">Saved</span>`;
+          }
+        } else {
+          if (no === maxSavedNo + 1) {
+            showNextDate = true;
+            isNextDateEditable = true;
+            actionBtnHtml = `<button class="sitting-save-btn save-sitting-btn" data-no="${no}" data-sitting="${s.sitting}">Save</button>`;
+          } else {
+            showNextDate = false;
+            actionBtnHtml = `<button class="sitting-save-btn save-sitting-btn" data-no="${no}" data-sitting="${s.sitting}" disabled>Save</button>`;
+          }
+        }
+      } else {
+        showNextDate = false;
+        if (isSaved) {
+          actionBtnHtml = `<span class="badge bg-secondary">Saved</span>`;
+        } else {
+          actionBtnHtml = `<button class="sitting-save-btn save-sitting-btn" data-no="${no}" data-sitting="${s.sitting}">Save</button>`;
+        }
+      }
+
+      const nextDateHtml = showNextDate
+        ? `<input type="date" id="next-date-${no}" class="sitting-date-input" value="${s.next_sitting_date || ''}" title="Next Sitting Date"${isNextDateEditable ? '' : ' readonly'}>`
+        : `<div style="width:130px; flex-shrink:0; text-align:center; color:#aaa; font-size:11px;">-</div>`;
+
+      row.innerHTML = `
+        <div class="sitting-label">${s.sitting}</div>
+        <input type="date" id="date-${no}" class="sitting-date-input" value="${s.sdate || ''}"${roAttr} required>
+        <input type="text" id="remarks-${no}" class="sitting-remarks-input" placeholder="Remarks" value="${s.remarks || ''}"${roAttr}>
+        ${nextDateHtml}
+        <div style="width:75px; flex-shrink:0; text-align:center;">
+          ${actionBtnHtml}
+        </div>
+      `;
+
+      sittingsCont.appendChild(row);
+    });
+
+    // Wire Save buttons
+    sittingsCont.querySelectorAll(".save-sitting-btn").forEach(btn => {
+      btn.addEventListener("click", function () { saveSitting(this); });
+    });
+
+    // Wire Update buttons
+    sittingsCont.querySelectorAll(".update-sitting-btn").forEach(btn => {
+      btn.addEventListener("click", function () { updateNextDate(this); });
+    });
+  }
+
+  function saveSitting(btn) {
+    const no              = btn.getAttribute("data-no");
+    const sitting         = btn.getAttribute("data-sitting");
+    const uhid            = uhidInput.value.trim();
+    const billno          = billSelect.value;
+    const sdateInput      = document.getElementById(`date-${no}`);
+    const sdate           = sdateInput ? sdateInput.value : "";
+    const remarksInput    = document.getElementById(`remarks-${no}`);
+    const remarks         = remarksInput ? remarksInput.value.trim() : "";
+    const nextDateInput   = document.getElementById(`next-date-${no}`);
+    const nextSittingDate = nextDateInput ? nextDateInput.value : "";
+
+    if (!uhid || !billno) { alert("UHID and Bill No are required!"); return; }
+
+    if (!sdate) {
+      alert(`❗ Please select a date for ${sitting}`);
+      if (sdateInput) sdateInput.focus();
+      return;
+    }
+
+    btn.disabled  = true;
+    btn.innerText = "Saving...";
+
+    const fd = new FormData();
+    fd.append("csrfmiddlewaretoken", csrfToken);
+    fd.append("uhid", uhid);
+    fd.append("billno", billno);
+    fd.append("sitting", sitting);
+    fd.append("sdate", sdate);
+    fd.append("remarks", remarks);
+    fd.append("next_sitting_date", nextSittingDate);
+
+    fetch("{% url 'save_sitting_entry' %}", { method: "POST", body: fd })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          alert(d.message || `${sitting} saved successfully!`);
+          fetchSittingsForCurrentBill();
+        } else {
+          btn.disabled  = false;
+          btn.innerText = "Save";
+          alert(d.message || "Failed to save sitting.");
+        }
+      })
+      .catch(err => {
+        btn.disabled  = false;
+        btn.innerText = "Save";
+        console.error(err);
+        alert("Error saving sitting entry.");
+      });
+  }
+
+  function updateNextDate(btn) {
+    const no              = btn.getAttribute("data-no");
+    const sitting         = btn.getAttribute("data-sitting");
+    const uhid            = uhidInput.value.trim();
+    const billno          = billSelect.value;
+    const sdateInput      = document.getElementById(`date-${no}`);
+    const sdate           = sdateInput ? sdateInput.value : "";
+    const remarksInput    = document.getElementById(`remarks-${no}`);
+    const remarks         = remarksInput ? remarksInput.value.trim() : "";
+    const nextDateInput   = document.getElementById(`next-date-${no}`);
+    const nextSittingDate = nextDateInput ? nextDateInput.value : "";
+
+    if (!uhid || !billno) { alert("UHID and Bill No are required!"); return; }
+
+    btn.disabled  = true;
+    btn.innerText = "Updating...";
+
+    const fd = new FormData();
+    fd.append("csrfmiddlewaretoken", csrfToken);
+    fd.append("uhid", uhid);
+    fd.append("billno", billno);
+    fd.append("sitting", sitting);
+    fd.append("sdate", sdate);
+    fd.append("remarks", remarks);
+    fd.append("next_sitting_date", nextSittingDate);
+
+    fetch("{% url 'save_sitting_entry' %}", { method: "POST", body: fd })
+      .then(r => r.json())
+      .then(d => {
+        btn.disabled  = false;
+        btn.innerText = "Update";
+        if (d.success) {
+          alert(`Next sitting date for ${sitting} updated successfully!`);
+          fetchSittingsForCurrentBill();
+        } else {
+          alert(d.message || "Failed to update next sitting date.");
+        }
+      })
+      .catch(err => {
+        btn.disabled  = false;
+        btn.innerText = "Update";
+        console.error(err);
+        alert("Error updating next sitting date.");
+      });
+  }
+
+  function updateBadge(qty) {
+    if (qty > 0) {
+      totalBadge.classList.remove("d-none");
+      totalBadge.textContent = `${qty} Sitting${qty > 1 ? 's' : ''}`;
+    } else {
+      totalBadge.classList.add("d-none");
+    }
+  }
+
+  function showEmpty(msg) {
+    totalBadge.classList.add("d-none");
+    sittingsCont.innerHTML = `<div class="text-muted text-center py-3" style="font-size:12px;">${msg}</div>`;
+  }
+
+  function resetFields() {
+    document.getElementById("patname").value = "";
+    document.getElementById("age").value     = "";
+    document.getElementById("gender").value  = "";
+    document.getElementById("phone").value   = "";
+    document.getElementById("doctor").value  = "";
+    billSelect.innerHTML = '<option value="">-- Select Bill No --</option>';
+    showEmpty("Enter UHID and click 'Get' to load sittings.");
+  }
+});
+</script>
+
+{% endblock %}

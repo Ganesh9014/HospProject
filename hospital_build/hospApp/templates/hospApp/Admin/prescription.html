@@ -1,0 +1,858 @@
+{% extends "hospApp/Admin/base_blank.html" %}
+{% load static %}
+{% block content %}
+
+<div class="prescription-container">
+
+    <!-- HEADER -->
+    <div class="prescription-header">
+        <div class="patient-info">
+
+            <div class="patient-name">
+                <strong>NAME:</strong>
+                <span class="pat-name-text">{{ consult.patname|upper }}</span>
+            </div>
+
+            <div class="mode-section">
+
+                <label class="mode-label">
+                    <input type="radio" name="mode" value="write" checked>
+                    ✍️ Writing
+                </label>
+
+                <label class="mode-label">
+                    <input type="radio" name="mode" value="audio">
+                    🎤 Audio
+                </label>
+
+                <div class="next-visit-wrap">
+                    <label for="next_visit_date" class="next-visit-label">📅 Next Visit</label>
+                    <input type="date" name="next_visit_date" id="next_visit_date" class="next-visit-input">
+                </div>
+
+            </div>
+
+        </div>
+        <table style="width:100%; font-size:13px; margin-top:10px;" >
+        <tr>
+            <td style="font-weight:bold; width:60px;">TEMP</td>
+            <td style="width:90px;">: <input id="temp" type="text" value="{{ vitals.temperature|default_if_none:'' }}" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off">
+
+</td>
+
+            <td style="font-weight:bold; width:60px;">BP</td>
+            <td style="width:90px;">: <input id="bp" type="text" value="{{ vitals.bp|default_if_none:'' }}" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off"></td>
+
+            <td style="font-weight:bold; width:60px;">PR</td>
+            <td style="width:90px;">: 
+<input id="pr" type="text" id="pr" value="{{ vitals.pulse|default_if_none:'' }}" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off"></td>
+
+            <td style="font-weight:bold; width:60px;">SPO2</td>
+            <td style="width:90px;">: <input id="spo2" value="{{ vitals.spo2|default_if_none:'' }}" type="text" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off">
+</td>
+
+            <td style="font-weight:bold; width:70px;">WEIGHT</td>
+            <td style="width:90px;">: <input id="weight" value="{{ vitals.weight|default_if_none:'' }}" type="text" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off">
+</td>
+        </tr>
+    </table>
+    </div>
+
+    <div class="prescription-main-card">
+
+        <!-- ================= WRITING MODE ================= -->
+        <div id="writeMode">
+            <form id="prescriptionForm" method="POST" enctype="multipart/form-data"
+                  action="{% url 'create_prescription' %}" autocomplete="off">
+                {% csrf_token %}
+
+                <input type="hidden" name="uhid" value="{{ consult.uhid }}">
+                <input type="hidden" name="patid" value="{{ consult.patid }}">
+                <input type="hidden" name="patient_name" value="{{ consult.patname }}">
+                <input type="hidden" id="imageData" name="image">
+                <input type="hidden" name="consult_id" value="{{ consult.id }}">
+                <input type="hidden" id="temp_hidden" name="temp">
+<input type="hidden" id="bp_hidden" name="bp">
+<input type="hidden" id="pr_hidden" name="pr">
+<input type="hidden" id="spo2_hidden" name="spo2">
+<input type="hidden" id="weight_hidden" name="weight">
+<input type="hidden" id="next_visit_date_hidden" name="next_visit_date">
+                <!-- Hidden textarea — holds recognized text for form POST -->
+                <textarea id="recognizedTextArea" name="recognized_text" style="display:none;"></textarea>
+
+                <div class="canvas-section">
+                    <!-- Full-width canvas with ink-to-text overlay -->
+                    <div class="canvas-with-toolbar">
+                        <!-- LEFT TOOLBAR -->
+                        <div class="toolbar vertical-toolbar no-print">
+                            <button type="button" id="penBtn" class="tool-btn pen-btn" title="Pen">✏️</button>
+                            <button type="button" id="eraserBtn" class="tool-btn eraser-btn" title="Eraser">🧽</button>
+
+                            <select id="colorPicker" onchange="setPenColor(this.value)" class="color-picker" title="Color">
+                                <option value="black">⚫</option>
+                                <option value="blue">🔵</option>
+                                <option value="red">🔴</option>
+                                <option value="green">🟢</option>
+                            </select>
+
+                            <select id="widthPicker" onchange="setPenWidth(this.value)" class="width-picker" title="Width">
+                                <option value="0.5">Thin</option>
+                                <option value="1" selected>Normal</option>
+                                <option value="2">Thick</option>
+                                <option value="3">Bold</option>
+                                <option value="5">Extra Bold</option>
+                            </select>
+
+                            <button type="button" onclick="undoStroke()" class="tool-btn undo-btn" title="Undo">↩</button>
+                            <button type="button" onclick="redoStroke()" class="tool-btn redo-btn" title="Redo">↪</button>
+                            <button type="button" onclick="clearCanvas()" class="tool-btn clear-btn" title="Clear">🗑</button>
+                        </div>
+
+                        <!-- CANVAS + INK-TO-TEXT OVERLAY -->
+                        <div class="canvas-wrapper">
+                            <canvas id="prescriptionCanvas"></canvas>
+                            <!-- Text appears exactly where doctor writes -->
+                            <div id="textOverlay" class="text-overlay"></div>
+                        </div>
+                    </div>
+
+                    <!-- Footer: status indicator + save button -->
+                    <div class="canvas-footer no-print">
+                        <div class="footer-left">
+                            <span class="footer-label">✍️ Ink → Text</span>
+                            <span id="ocrStatus" class="ocr-status-idle">Idle</span>
+                            <span class="footer-hint">Write on canvas — text appears exactly where you write. Tap any text to edit.</span>
+                        </div>
+                        <button type="button" class="action-save-btn" onclick="savePrescription()">💾 Save &amp; Print Prescription</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- ================= AUDIO MODE ================= -->
+        <div id="audioMode" style="display:none;">
+            <form id="audioForm" method="POST" enctype="multipart/form-data">
+                <input type="hidden" id="temp_hidden_audio" name="temp_hidden">
+<input type="hidden" id="bp_hidden_audio" name="bp_hidden">
+<input type="hidden" id="pr_hidden_audio" name="pr_hidden">
+<input type="hidden" id="spo2_hidden_audio" name="spo2_hidden">
+<input type="hidden" id="weight_hidden_audio" name="weight_hidden">
+<input type="hidden" id="next_visit_date_hidden_audio" name="next_visit_date">
+
+
+                {% csrf_token %}
+                <input type="hidden" name="consult_id" value="{{ consult.id }}">
+                <input type="hidden" name="patient_name" value="{{ consult.patname }}">
+                {% include "hospApp/Admin/audio_prescription.html" %}
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<style>
+
+/* LAYOUT */
+.prescription-container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 5px;
+}
+
+.prescription-header {
+    background: #f0f7ff;
+    border: 1px solid #d3e4ff;
+    padding: 5px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+}
+
+.patient-info {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.patient-name {
+    flex: 0 1 auto;
+    max-width: 38%;
+    min-width: 120px;
+    font-weight: bold;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pat-name-text {
+    display: inline;
+    font-weight: normal;
+}
+
+.mode-section {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.mode-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #e8f0fe;
+    border: 1px solid #c0d0f0;
+    transition: background 0.15s;
+}
+
+.mode-label:hover {
+    background: #d0e2ff;
+}
+
+.mode-label input[type="radio"] {
+    accent-color: #1a73e8;
+    margin: 0;
+}
+
+.next-visit-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+}
+
+.next-visit-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #7b5800;
+    white-space: nowrap;
+}
+
+.next-visit-input {
+    border: none;
+    border-bottom: 1px dotted #b8860b;
+    background: transparent;
+    font-size: 12px;
+    padding: 1px 2px;
+    outline: none;
+    color: #333;
+    max-width: 130px;
+    cursor: pointer;
+}
+
+.next-visit-input:focus {
+    border-bottom-color: #1a73e8;
+}
+
+/* Responsive: stack on very small screens */
+@media (max-width: 600px) {
+    .patient-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .patient-name {
+        max-width: 100%;
+    }
+    .mode-section {
+        justify-content: flex-start;
+        width: 100%;
+    }
+}
+
+.prescription-main-card {
+    border: 1px solid #ccc;
+    padding: 15px;
+    background: #fff;
+    border-radius: 6px;
+}
+
+.section-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+/* CANVAS + TOOLBAR */
+.canvas-with-toolbar {
+    display: flex;
+    align-items: stretch;
+}
+
+/* TOOLBAR */
+.vertical-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+
+    background: #eef3f8;
+    padding: 8px 6px;
+    border: 1px solid #444;
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+}
+
+.tool-btn, .save-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+}
+
+.pen-btn { background: #007bff; color: white; }
+.eraser-btn { background: #dc3545; color: white; }
+.undo-btn { background: #ffc107; }
+.redo-btn { background: #17a2b8; color: white; }
+.clear-btn { background: #6c757d; color: white; }
+.save-btn { background: #28a745; color: white; }
+
+.color-picker, .width-picker {
+    width: 45px;
+    padding: 3px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 12px;
+    text-align: center;
+}
+
+/* CANVAS */
+.canvas-wrapper {
+    position: relative;         /* ← needed for overlay positioning */
+    overflow: hidden;
+    flex: 1;
+    border: 1px solid #444;
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+    background: #f9f9f9;
+}
+
+#prescriptionCanvas {
+    width: 100%;
+    height: calc(100vh - 175px);
+    display: block;
+    background: white;
+    touch-action: none;
+}
+
+/* INK-TO-TEXT OVERLAY — sits on top of canvas, pointer-events pass through */
+.text-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;       /* drawing still works under overlay */
+    z-index: 10;
+}
+
+/* Each recognized line is an editable div at exact Y position */
+.text-line-div {
+    position: absolute;
+    pointer-events: all;        /* allow tap/click to edit */
+    background: rgba(255, 255, 255, 0.88);
+    border: 1.5px dashed #3b82f6;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 15px;
+    font-family: Arial, sans-serif;
+    font-weight: 600;
+    color: #1e293b;
+    min-width: 60px;
+    max-width: 90%;
+    outline: none;
+    cursor: text;
+    white-space: nowrap;
+    backdrop-filter: blur(2px);
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.text-line-div:focus {
+    border-color: #2563eb;
+    border-style: solid;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.2);
+    z-index: 20;
+}
+
+.text-line-div:hover:not(:focus) {
+    border-color: #60a5fa;
+    background: rgba(255, 255, 255, 0.93);
+}
+
+/* PRINT */
+@media print {
+    .no-print { display: none; }
+}
+
+/* CANVAS FOOTER BAR */
+.canvas-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.canvas-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.footer-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.footer-label {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 13px;
+}
+
+.footer-hint {
+    font-size: 11px;
+    color: #64748b;
+    font-style: italic;
+}
+
+.action-save-btn {
+    padding: 10px 20px;
+    background: #10b981;
+    color: white;
+    font-weight: 700;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.15s ease-in-out;
+    white-space: nowrap;
+}
+
+.action-save-btn:hover {
+    background: #059669;
+}
+
+.ocr-status-idle {
+    font-size: 11px;
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 500;
+}
+
+.ocr-status-loading {
+    font-size: 11px;
+    background: #fef3c7;
+    color: #d97706;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 500;
+    animation: pulse 1.5s infinite;
+}
+
+.ocr-status-success {
+    font-size: 11px;
+    background: #d1fae5;
+    color: #059669;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 500;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+</style>
+
+
+
+<!-- ================= MODE SWITCH ================= -->
+<script>
+ function fillVitals() {
+    document.getElementById("temp_hidden").value = document.getElementById("temp").value;
+    document.getElementById("bp_hidden").value = document.getElementById("bp").value;
+    document.getElementById("pr_hidden").value = document.getElementById("pr").value;
+    document.getElementById("spo2_hidden").value = document.getElementById("spo2").value;
+    document.getElementById("weight_hidden").value = document.getElementById("weight").value;
+} 
+
+function fillVitalsAudio() {
+    document.getElementById("temp_hidden_audio").value = document.getElementById("temp").value;
+    document.getElementById("bp_hidden_audio").value = document.getElementById("bp").value;
+    document.getElementById("pr_hidden_audio").value = document.getElementById("pr").value;
+    document.getElementById("spo2_hidden_audio").value = document.getElementById("spo2").value;
+    document.getElementById("weight_hidden_audio").value = document.getElementById("weight").value;
+}
+
+
+const radios = document.querySelectorAll("input[name='mode']");
+const writeDiv = document.getElementById("writeMode");
+const audioDiv = document.getElementById("audioMode");
+
+radios.forEach(radio => {
+  radio.addEventListener("change", function () {
+    if (this.value === "write") {
+      writeDiv.style.display = "block";
+      audioDiv.style.display = "none";
+    } else {
+      writeDiv.style.display = "none";
+      audioDiv.style.display = "block";
+    }
+  });
+});
+</script>
+
+<!-- ================= CANVAS LOGIC ================= -->
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<script>
+
+window.addEventListener("DOMContentLoaded", function () {
+
+    const canvas = document.getElementById("prescriptionCanvas");
+
+    if (!canvas) { console.error("Canvas element not found!"); return; }
+    if (typeof SignaturePad === "undefined") { alert("SignaturePad library failed to load!"); return; }
+
+    const ctx = canvas.getContext("2d");
+    let undoStack = [];
+    let redoStack = [];
+    let recognizeTimer = null;  // debounce timer for auto-recognition
+
+    function deepCopy(data) { return JSON.parse(JSON.stringify(data)); }
+
+    const signaturePad = new SignaturePad(canvas, {
+        minWidth: 1.2,
+        maxWidth: 2.4,
+        penColor: "black",
+        backgroundColor: "white"
+    });
+
+    /* ── DPI Scaling ── */
+    function resizeCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const cssWidth  = canvas.offsetWidth;
+        const cssHeight = canvas.offsetHeight;
+        canvas.width  = cssWidth  * ratio;
+        canvas.height = cssHeight * ratio;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        const lastState = undoStack.length ? undoStack[undoStack.length - 1] : null;
+        signaturePad.clear();
+        if (lastState) signaturePad.fromData(lastState);
+    }
+    window.addEventListener("load",   resizeCanvas);
+    window.addEventListener("resize", resizeCanvas);
+
+    /* ── State save ── */
+    function saveState() { undoStack.push(deepCopy(signaturePad.toData())); }
+
+    /* ── OCR Status indicator ── */
+    function setOcrStatus(state) {
+        const el = document.getElementById("ocrStatus");
+        if (!el) return;
+        el.className = "ocr-status-" + state;
+        if (state === "idle")    { el.textContent = "Idle"; }
+        if (state === "loading") { el.textContent = "⏳ Recognizing…"; }
+        if (state === "success") { el.textContent = "✅ Done"; }
+    }
+
+    /* ── Render ink-to-text overlay: each line at its exact Y position ── */
+    function renderTextOverlay(lines) {
+        const overlay = document.getElementById("textOverlay");
+        if (!overlay) return;
+        overlay.innerHTML = "";   // clear previous text divs
+
+        if (!lines || lines.length === 0) return;
+
+        lines.forEach(function(line, idx) {
+            const div = document.createElement("div");
+            div.className = "text-line-div";
+            div.contentEditable = "true";
+            div.spellcheck = false;
+            div.textContent = line.text;
+            div.dataset.lineIndex = idx;
+
+            // Position at exact coordinates returned by MyScript (CSS pixel space)
+            div.style.left = Math.max(0, Math.round(line.x)) + "px";
+            div.style.top  = Math.max(0, Math.round(line.y)) + "px";
+
+            // Double-click selects all text in the div for easy correction
+            div.addEventListener("dblclick", function() {
+                const range = document.createRange();
+                range.selectNodeContents(this);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            });
+
+            // Prevent canvas strokes from firing while editing text
+            div.addEventListener("pointerdown", function(e) { e.stopPropagation(); });
+
+            overlay.appendChild(div);
+        });
+    }
+
+    /* ── Collect all overlay text sorted top-to-bottom ── */
+    function getOverlayText() {
+        const overlay = document.getElementById("textOverlay");
+        if (!overlay) return "";
+        const divs = Array.from(overlay.querySelectorAll(".text-line-div"));
+        divs.sort(function(a, b) {
+            return (parseFloat(a.style.top) || 0) - (parseFloat(b.style.top) || 0);
+        });
+        return divs.map(function(d) { return d.textContent.trim(); })
+                   .filter(function(t) { return t.length > 0; })
+                   .join("\n");
+    }
+
+    /* ── Auto-recognition: send strokes, render text at exact positions ── */
+    function autoRecognize() {
+        if (signaturePad.isEmpty()) return;
+
+        const strokeData = JSON.stringify(signaturePad.toData());
+        const csrfToken  = document.querySelector("#prescriptionForm input[name='csrfmiddlewaretoken']").value;
+
+        setOcrStatus("loading");
+
+        const formData = new FormData();
+        formData.append("stroke_data", strokeData);
+
+        fetch("{% url 'recognize_handwriting_ajax' %}", {
+            method: "POST",
+            body: formData,
+            headers: { "X-CSRFToken": csrfToken }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.status === "success") {
+                if (data.lines && data.lines.length > 0) {
+                    // ✅ Best case: position-aware lines from MyScript
+                    renderTextOverlay(data.lines);
+                    setOcrStatus("success");
+                } else if (data.recognized_text) {
+                    // ⚠️ Fallback: no position data — show text at top-left
+                    renderTextOverlay([{ text: data.recognized_text, x: 10, y: 10 }]);
+                    setOcrStatus("success");
+                } else {
+                    setOcrStatus("idle");
+                }
+            } else {
+                setOcrStatus("idle");
+            }
+        })
+        .catch(function() { setOcrStatus("idle"); });
+    }
+
+    /* ── On every stroke end: save state + trigger debounced recognition ── */
+    signaturePad.addEventListener("endStroke", () => {
+        saveState();
+        redoStack = [];
+
+        // Debounce: wait 1.5 seconds of no drawing before sending to server
+        clearTimeout(recognizeTimer);
+        recognizeTimer = setTimeout(autoRecognize, 1500);
+    });
+
+    saveState();
+
+    /* ── Pen ── */
+    document.getElementById("penBtn").onclick = function () {
+        signaturePad.penColor = "black";
+        signaturePad.minWidth = 1.2;
+        signaturePad.maxWidth = 2.4;
+    };
+
+    /* ── Eraser ── */
+    document.getElementById("eraserBtn").onclick = function () {
+        signaturePad.penColor = "white";
+        signaturePad.minWidth = 10;
+        signaturePad.maxWidth = 15;
+    };
+
+    window.setPenColor = function (color) { signaturePad.penColor = color; };
+
+    window.setPenWidth = function (width) {
+        width = parseFloat(width);
+        signaturePad.minWidth = width * 1.2;
+        signaturePad.maxWidth = width * 2.4;
+    };
+
+    /* ── Undo ── */
+    window.undoStroke = function () {
+        if (undoStack.length > 1) {
+            redoStack.push(undoStack.pop());
+            signaturePad.clear();
+            signaturePad.fromData(undoStack[undoStack.length - 1]);
+            clearTimeout(recognizeTimer);
+            recognizeTimer = setTimeout(autoRecognize, 1500);
+        }
+    };
+
+    /* ── Redo ── */
+    window.redoStroke = function () {
+        if (redoStack.length > 0) {
+            const state = redoStack.pop();
+            signaturePad.clear();
+            signaturePad.fromData(state);
+            undoStack.push(state);
+            clearTimeout(recognizeTimer);
+            recognizeTimer = setTimeout(autoRecognize, 1500);
+        }
+    };
+
+    /* ── Clear ── */
+    window.clearCanvas = function () {
+        signaturePad.clear();
+        undoStack = [];
+        redoStack = [];
+        saveState();
+        clearTimeout(recognizeTimer);
+        // Clear both the overlay and the hidden textarea
+        document.getElementById("textOverlay").innerHTML = "";
+        document.getElementById("recognizedTextArea").value = "";
+        setOcrStatus("idle");
+    };
+
+    /* ── SAVE PRESCRIPTION ── */
+    window.savePrescription = function () {
+
+        fillVitals();
+        // Copy next visit date from the shared header picker
+        document.getElementById("next_visit_date_hidden").value =
+            document.getElementById("next_visit_date").value;
+
+        if (!signaturePad || signaturePad.isEmpty()) {
+            alert("Please write the prescription before saving.");
+            return;
+        }
+
+        // ✅ Collect recognized text from overlay divs (sorted top-to-bottom)
+        const overlayText = getOverlayText();
+        document.getElementById("recognizedTextArea").value = overlayText;
+
+        // ✅ SAVE IMAGE
+        const dataURL = signaturePad.toDataURL("image/png");
+        document.getElementById("imageData").value = dataURL;
+
+        // ✅ SAVE STROKES JSON
+        let strokeInput = document.getElementById("strokeData");
+        if (!strokeInput) {
+            strokeInput = document.createElement("input");
+            strokeInput.type  = "hidden";
+            strokeInput.name  = "stroke_data";
+            strokeInput.id    = "strokeData";
+            document.getElementById("prescriptionForm").appendChild(strokeInput);
+        }
+        strokeInput.value = JSON.stringify(signaturePad.toData());
+
+        const form = document.getElementById("prescriptionForm");
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-CSRFToken": document.querySelector(
+                    "#prescriptionForm input[name='csrfmiddlewaretoken']"
+                ).value
+            }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.status === "success") {
+                window.open(
+                    data.print_url,
+                    "_blank",
+                    "width=900,height=650,left=200,top=100,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes"
+                );
+                window.close();
+            } else {
+                alert(data.message || "Failed to save prescription.");
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert("Error saving prescription.");
+        });
+    };
+
+});
+</script>
+
+
+
+
+<!-- ================= AUDIO SAVE AJAX ================= -->
+<script>document.getElementById("audioForm").addEventListener("submit", function(e) {
+ 
+    e.preventDefault();
+fillVitalsAudio();
+    // ✅ Copy next visit date from the shared header picker
+    document.getElementById("next_visit_date_hidden_audio").value =
+        document.getElementById("next_visit_date").value;
+
+    const formData = new FormData(this);
+
+    fetch("{% url 'create_audio_prescription_ajax' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-CSRFToken": document.querySelector(
+              "#audioForm input[name='csrfmiddlewaretoken']"
+            ).value
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("SERVER RESPONSE:", data);
+
+        if (data.status === "success") {
+
+   window.open(
+    data.print_url,
+    "_blank",
+    "width=900,height=650,left=200,top=100,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes"
+);
+
+window.close();
+
+} else {
+    alert(data.message || " prescription save failed");
+}
+    })
+    .catch(err => {
+        console.error("FETCH ERROR:", err);
+        alert("Server error while saving audio prescription.");
+    });
+});
+
+
+
+</script>
+
+{% endblock %}

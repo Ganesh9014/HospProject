@@ -1,0 +1,156 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Investigation Report</title>
+
+    <style>
+        body {
+            font-family: "Times New Roman", serif;
+            font-size: 11px;
+        }
+
+        /* 🔲 OUTER BORDER */
+        .report-container {
+            border: 2px solid black;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        /* 🏥 HEADER */
+        .header {
+            text-align: center;
+            line-height: 1.5;
+            border-bottom: 2px solid black;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .header p {
+            margin: 2px 0;
+        }
+
+        /* 🔽 SECTION TITLE */
+        .title {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* 📅 FILTER INFO */
+        .filters {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        /* 📊 TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 5px;
+            border-bottom: 1px solid black;
+        }
+
+        td {
+            padding: 1px 4px;
+        }
+
+        /* ❌ REMOVE ALL INNER LINES */
+        table, th, td {
+            border: none;
+        }
+
+        /* TOTAL */
+        .total {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="report-container">
+
+    <!-- 🏥 HEADER (you can replace with DB later) -->
+    <div class="header">
+        <h2>{{ hospital.name }}</h2>
+        <p>{{ hospital.address }}</p>
+        
+    </div>
+<div class="title">{{inv_obj.invname |upper}} INVESTIGATION REPORT</div>
+
+    <!-- 📅 FILTER -->
+    <div class="filters">
+        From Date : {{ from_date | date:"d-m-Y" }},
+     {{ to_date | date:"d-m-Y" }} 
+  
+    </div>
+
+<table border="1">
+<tr style='border-bottom: 2px solid black;border-top: 2px solid black'>
+  <th>S.No</th>
+  <th>BILL NO</th> 
+  <th>UHID</th>
+  <th>NAME</th>
+  <th>AGE</th>
+  <th>REF DOC</th>
+  
+  <th>CREATED BY</th>    
+  <th>CREATED DATE</th>
+  <th style="text-align:right;">AMOUNT</th>
+</tr>
+
+{% for row in data %}
+<tr>
+    
+  <td>{{ forloop.counter }}</td>
+   <td>{{ row.billno }}</td>
+  <td>{{ row.uhid }}</td>
+
+  <!-- from patient table -->
+  <td>{{ row.patient.patname|default:"-"  |upper}}</td>
+  <td>{{ row.patient.age|default:"-" }}</td>
+  <td>{{ row.patient.refdoctor.docname|default:"-" |upper}}</td>
+  
+  <td>{{ row.createdby|default:"-" |upper}}</td>
+  <td>{{ row.generateddate|date:"d-m-Y H:i:s" }}</td>
+  <td style="text-align:right;">{{ row.cost | floatformat:2}}</td>
+
+  
+</tr>
+{% endfor %}
+<tr style="border-top: 2px solid black; font-weight: bold;">
+    <td colspan="8" style="text-align: right;">Total</td>
+    <td style="text-align:right;">{{ total_cost| floatformat:2 }}</td>
+  
+</tr>
+</table>
+
+</div>
+<div style="width:50%; margin:auto; margin-top:20px;">
+  <div style="display:flex; justify-content:space-between; font-size:12px;">
+    
+    <div>
+      <strong>Print By:</strong> {{logged_user | upper}}
+    </div>
+
+    <div>
+      <strong>Print Time:</strong> {{ print_time|date:"d-m-Y H:i:s" }}
+    </div>
+
+  </div>
+</div>
+</body>
+</html>     

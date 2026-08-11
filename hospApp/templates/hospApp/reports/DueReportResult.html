@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Due Report</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 11px; margin: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    th { border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 6px; text-align: left; }
+    td { padding: 1px 4px; text-align: left; }
+    .text-end { text-align: right; }
+
+    .total-row { font-weight: bold; background: #f8f9fa; }
+
+    @media print {
+      button { display: none !important; }
+      body { margin: 0; }
+    }
+
+    .report-container {
+      border: 2px solid black;
+      padding: 10px;
+      margin: 10px;
+    }
+
+    .header { text-align: center; }
+    .title { text-align: center; font-weight: bold; margin-top: 10px; }
+    .total-row { font-weight: bold; border-top: 1px solid #000; }
+  </style>
+</head>
+
+<body>
+
+<div class="report-container">
+
+  <div class="header">
+    <h2>{{ hospital.name }}</h2>
+    <p>{{ hospital.address }}</p>
+  </div>
+
+  <hr style="border: 1px solid #333;" >
+
+  <div style="text-align:center; margin-bottom: 15px; ">
+    <div class="title">
+      {{ username|default:"All" |upper}} DUE REPORT
+    </div>
+    <div style="font-weight: bold;">{{ from_date |date:"d-m-Y" }} to {{ to_date |date:"d-m-Y"}}</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>S.NO</th>
+        <th>BILL NO</th>
+        <th>UHID</th>
+        <th>PATIENT NAME</th>
+        <th>USER</th>
+        <th>DATE</th>
+        <th class="text-end">TOTAL</th>
+        <th class="text-end">PAID</th>
+        <th class="text-end">DUE</th>
+        <th width="15%">REASON</th>
+      </tr>
+    </thead>
+
+    
+
+    <!-- ================= CONSULTATION ================= -->
+    {% if consultation %}
+    <tr>
+      <td colspan="10" style="border-top:1px solid #000;border-bottom:1px solid #000;">
+        <strong>OP Consultations</strong>
+      </td>
+    </tr>
+
+    {% for r in consultation %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ r.billno }}</td>
+      <td>{{ r.uhid }}</td>
+      <td>{{ r.patname |upper}}</td>
+      <td>{{ r.user |upper}}</td>
+      <td>{{ r.date|date:"d-m-Y H:i:s" }}</td>
+      <td class="text-end">{{ r.total }}</td>
+      <td class="text-end">{{ r.paid }}</td>
+      <td class="text-end">{{ r.due|floatformat:2 }}</td>
+      <td>{{ r.concreason |upper}}</td>
+    </tr>
+    {% endfor %}
+
+    <tr class="total-row">
+      <td colspan="8" class="text-end">Total Due </td>
+      <td class="text-end">{{ total_due_cons | floatformat:2}}</td>
+      <td></td>
+    </tr>
+    {% endif %}
+<!-- ================= INVESTIGATION ================= -->
+    {% if investigation %}
+    <tr>
+      <td colspan="10" style="border-top:1px solid #000;border-bottom:1px solid #000;">
+        <strong>OP Investigations</strong>
+      </td>
+    </tr>
+
+    {% for r in investigation %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ r.billno }}</td>
+      <td>{{ r.uhid }}</td>
+      <td>{{ r.patname |upper}}</td>
+      <td>{{ r.createdby |upper}}</td>
+      <td>{{ r.generateddate | date:"d-m-Y H:i:s" }}</td>
+      <td class="text-end">{{ r.total }}</td>
+      <td class="text-end">{{ r.paid }}</td>
+      <td class="text-end">{{ r.due | floatformat:2}}</td>
+      <td>{{ r.concreason |upper}}</td>
+    </tr>
+    {% endfor %}
+
+    <tr class="total-row">
+      <td colspan="8" class="text-end">Total Due</td>
+      <td class="text-end">{{ total_due_inv | floatformat:2}}</td>
+      <td></td>
+    </tr>
+    {% endif %}
+    <!-- ================= PROCEDURE ================= -->
+    {% if procedure %}
+    <tr>
+      <td colspan="10" style="border-top:1px solid #000;border-bottom:1px solid #000;">
+        <strong>OP Procedures</strong>
+      </td>
+    </tr>
+
+    {% for r in procedure %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ r.billno }}</td>
+      <td>{{ r.uhid }}</td>
+      <td>{{ r.patname |upper}}</td>
+      <td>{{ r.user |upper}}</td>
+      <td>{{ r.createddate|date:"d-m-Y H:i:s" }}</td>
+      <td class="text-end">{{ r.total }}</td>
+      <td class="text-end">{{ r.paid }}</td>
+      <td class="text-end">{{ r.due | floatformat:2}}</td>
+      <td>{{ r.concreason |upper }}</td>
+    </tr>
+    {% endfor %}
+
+    <tr class="total-row">
+      <td colspan="8" class="text-end">Total Due</td>
+      <td class="text-end">{{ total_due_proc | floatformat:2}}</td>
+      <td></td>
+    </tr>
+    {% endif %}
+
+    <tr>
+
+   <td colspan="9" style="padding-top:30px;"></td>
+</tr>
+<tr class="total-row" style="border-top: 1px solid #000;">
+  <td colspan="8" class="text-end"><b>Grand Total </b></td>
+  <td class="text-end"><b>{{ grand_total | floatformat:2 }}</b></td>
+</tr>
+  </table>
+
+ 
+
+</div>
+<div style="width:50%; margin:auto; margin-top:20px;">
+  <div style="display:flex; justify-content:space-between; font-size:12px;">
+    
+    <div>
+      <strong>PRINT BY:</strong> {{logged_user |upper}}
+    </div>
+
+    <div>
+      <strong>PRINT TIME:</strong> {{ print_time|date:"d-m-Y H:i:s" }}
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

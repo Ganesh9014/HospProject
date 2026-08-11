@@ -1,0 +1,590 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Inv Department Master</h5>
+    </div>
+
+    <div class="form-body">
+      <form method="POST" id="deptImgForm" enctype="multipart/form-data" autocomplete="off">
+        {% csrf_token %}
+
+        {% if messages %}
+        <script>
+          {% for msg in messages %}
+            alert("{{ msg|escapejs }}");
+          {% endfor %}
+        </script>
+        {% endif %}
+
+        <!-- Operation Selection -->
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label>
+              <input type="radio" name="operation" value="add"
+                     onchange="window.location.href='?operation=add';">
+              Add
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="modify"
+                     onchange="window.location.href='?operation=modify';">
+              Modify
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="delete"
+                     onchange="window.location.href='?operation=delete';">
+              Delete
+            </label>
+          </div>
+        </div>
+
+        <!-- Dynamic Fields -->
+        <div id="fields-section" style="display:none;">
+          <div class="row">
+
+            <div id="dept-field" class="col-md-4  mb-3">
+              <label>Department Name:</label>
+              <input type="text" name="department" id="department"
+                     class="form-control" value="{{ search_term }}" maxlength="100">
+            </div>
+            <div id="name-field" class="col-md-4 mb-3">
+    <label>Name:</label>
+    <input type="text"
+           name="name"
+           id="name"
+           class="form-control"
+           maxlength="100">
+</div>
+
+<div id="regno-field" class="col-md-4 mb-3">
+    <label>Reg No:</label>
+    <input type="text"
+           name="reg_no"
+           id="reg_no"
+           class="form-control"
+           maxlength="50">
+</div>
+
+            <div id="photo-field" class="col-md-4 mb-3">
+              <label>Signature File:</label>
+
+             <input type="file" name="signature" accept="image/*" class="form-control">
+
+              
+            </div>
+
+            <div id="search-btn" class="col-md-4 mb-3" style="display:none;">
+              <label>&nbsp;</label><br>
+              <button type="button" class="btn btn-info px-4"
+                      onclick="doDeptSearch()">Search</button>
+            </div>
+
+            <div id="action-btn" class="col-md-4 mb-3" style="display:none;">
+              <label>&nbsp;</label><br>
+              <button type="submit" class="btn btn-primary px-4"
+                      id="submit-btn">Submit</button>
+              <button type="button" class="btn btn-secondary ms-2" id="cancelBtn">Cancel</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Table Section -->
+        <div id="table-section" class="row" style="display:none;">
+          <div class="col-10">
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm">
+                <thead class="table-light">
+                  <tr>
+                    {% if operation == 'modify' %}
+                      <th style="width:18%;">Modify</th>
+                    {% elif operation == 'delete' %}
+                      <th style="width:10%;">Delete</th>
+                    {% else %}
+                      <th style="width:10%;">Code</th>
+                    {% endif %}
+                  <th>Department</th>
+<th>Name</th>
+<th>Reg No</th>
+                    {% if operation == 'modify' %}
+                      <th style="width:22%;">Signature</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {% if records %}
+                    {% for r in records %}
+                    <tr id="row-{{ r.dno }}" data-row-id="{{ r.dno }}">
+
+                      {% if operation == 'modify' %}
+                      <td class="text-center">
+                        <button type="button" class="btn1 edit-btn"
+                                data-id="{{ r.dno }}"
+                                id="edit-{{ r.dno }}">Edit</button>
+                        <span id="update-cancel-{{ r.dno }}" style="display:none;">
+                          <button type="button" class="btn1 btn1-update update-btn"
+                                  data-id="{{ r.dno }}">Update</button>
+                          <button type="button" class="btn1 btn1-secondary cancel-btn"
+                                  data-id="{{ r.dno }}">Cancel</button>
+                        </span>
+                      </td>
+
+                      {% elif operation == 'delete' %}
+                      <td class="text-center">
+                        <button type="button" class="btn1 btn-danger-delete delete-btn"
+                                data-id="{{ r.dno }}">Delete</button>
+                      </td>
+
+                      {% else %}
+                      <td>{{ r.dno }}</td>
+                      {% endif %}
+
+                      <td>
+                        <input type="text"
+                               id="department_{{ r.dno }}"
+                               name="department_{{ r.dno }}"
+                               class="form-control form-control-sm"
+                               value="{{ r.department }}"
+                               data-original="{{ r.department }}"
+                               disabled>
+                      </td>
+                      <td>
+    <input type="text"
+           id="name_{{ r.dno }}"
+           name="name_{{ r.dno }}"
+           class="form-control form-control-sm"
+           value="{{ r.name }}"
+           data-original="{{ r.name }}"
+           disabled>
+</td>
+
+<td>
+    <input type="text"
+           id="regno_{{ r.dno }}"
+           name="regno_{{ r.dno }}"
+           class="form-control form-control-sm"
+           value="{{ r.regno }}"
+           data-original="{{ r.regno }}"
+           disabled>
+</td>
+
+                    {% if operation == 'modify' %}
+<td>
+  <div id="img-preview-{{ r.dno }}">
+    {% if r.signature %}
+      <img src="{{ r.signature.url }}"
+           alt="Signature"
+           style="height:40px; width:40px; object-fit:cover;
+                  border-radius:4px; border:1px solid #dee2e6;">
+    {% else %}
+      <span class="text-muted small">No signature</span>
+    {% endif %}
+  </div>
+  <div id="img-upload-{{ r.dno }}" style="display:none; margin-top:4px;">
+    <input type="file"
+           name="signature_{{ r.dno }}"
+           id="photo_{{ r.dno }}"
+           accept="image/*"
+           class="form-control form-control-sm"
+           onchange="previewImage(this, '{{ r.dno }}')">
+    <small class="text-muted">JPG/PNG, max 2MB</small>
+  </div>
+</td>
+{% endif %}
+
+                    </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                     <td colspan="6" class="text-center">No Records Found.</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" name="update_id" id="update_id">
+        <input type="hidden" name="delete_id" id="delete_id">
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'InvDepartment' %}";
+});
+
+function doDeptSearch() {
+    var name = document.getElementById('department').value || '';
+    var op = document.querySelector('input[name="operation"]:checked');
+    var operation = op ? op.value : 'modify';
+    window.location.href =
+        '?operation=' + operation +
+        '&search=' + encodeURIComponent(name);
+}
+
+function toggleFields(mode) {
+
+    const sec        = document.getElementById("fields-section");
+    const tableSec   = document.getElementById("table-section");
+
+    const dept       = document.getElementById("dept-field");
+    const nameField  = document.getElementById("name-field");
+    const regnoField = document.getElementById("regno-field");
+    const photo      = document.getElementById("photo-field");
+
+    const searchBtn  = document.getElementById("search-btn");
+    const actionBtn  = document.getElementById("action-btn");
+    const submitBtn  = document.getElementById("submit-btn");
+
+    sec.style.display       = "block";
+    tableSec.style.display  = "block";
+
+    dept.style.display      = "none";
+    nameField.style.display = "none";
+    regnoField.style.display= "none";
+    photo.style.display     = "none";
+
+    searchBtn.style.display = "none";
+    actionBtn.style.display = "none";
+
+    if (mode === "add") {
+
+        dept.style.display       = "block";
+        nameField.style.display  = "block";
+        regnoField.style.display = "block";
+        photo.style.display      = "block";
+
+        actionBtn.style.display  = "block";
+        submitBtn.innerHTML      = "Add";
+
+    }
+    else if (mode === "modify") {
+
+        dept.style.display      = "block";
+        searchBtn.style.display = "block";
+
+    }
+    else if (mode === "delete") {
+
+        dept.style.display      = "block";
+        searchBtn.style.display = "block";
+
+    }
+}
+
+function previewImage(input, rowId) {
+
+    const file = input.files[0];
+
+    if (!file) return;
+
+    if (file.size > (2 * 1024 * 1024)) {
+
+        alert("File size must be under 2MB.");
+        input.value = "";
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+
+        document.getElementById("img-preview-" + rowId).innerHTML = `
+            <img src="${e.target.result}"
+                 style="height:40px;
+                        width:40px;
+                        object-fit:cover;
+                        border-radius:4px;
+                        border:1px solid #0d6efd;">
+        `;
+    };
+
+    reader.readAsDataURL(file);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    toggleFields("{{ operation }}");
+
+    let op = document.querySelector(
+        `input[name="operation"][value="{{ operation }}"]`
+    );
+
+    if (op) op.checked = true;
+
+    function disableAllRows() {
+
+        document.querySelectorAll('tr[data-row-id]').forEach(tr => {
+
+            const id = tr.dataset.rowId;
+
+            const deptInp = document.getElementById('department_' + id);
+
+            if (deptInp) {
+                deptInp.value = deptInp.dataset.original;
+                deptInp.disabled = true;
+            }
+
+            const nameInp = document.getElementById('name_' + id);
+
+            if (nameInp) {
+                nameInp.value = nameInp.dataset.original;
+                nameInp.disabled = true;
+            }
+
+            const regInp = document.getElementById('regno_' + id);
+
+            if (regInp) {
+                regInp.value = regInp.dataset.original;
+                regInp.disabled = true;
+            }
+
+            const editBtn =
+                document.getElementById('edit-' + id);
+
+            const updateCancel =
+                document.getElementById('update-cancel-' + id);
+
+            if (editBtn)
+                editBtn.style.display = '';
+
+            if (updateCancel)
+                updateCancel.style.display = 'none';
+
+            const uploadDiv =
+                document.getElementById('img-upload-' + id);
+
+            const fileInput =
+                document.getElementById('photo_' + id);
+
+            if (uploadDiv)
+                uploadDiv.style.display = 'none';
+
+            if (fileInput)
+                fileInput.value = '';
+        });
+    }
+
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+
+        btn.addEventListener('click', function (e) {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const id = this.dataset.id;
+
+            disableAllRows();
+
+            const deptInp =
+                document.getElementById('department_' + id);
+
+            if (deptInp) {
+
+                deptInp.dataset.original = deptInp.value;
+                deptInp.disabled = false;
+                deptInp.focus();
+            }
+
+            const nameInp =
+                document.getElementById('name_' + id);
+
+            if (nameInp) {
+
+                nameInp.dataset.original = nameInp.value;
+                nameInp.disabled = false;
+            }
+
+            const regInp =
+                document.getElementById('regno_' + id);
+
+            if (regInp) {
+
+                regInp.dataset.original = regInp.value;
+                regInp.disabled = false;
+            }
+
+            document.getElementById(
+                'edit-' + id
+            ).style.display = 'none';
+
+            document.getElementById(
+                'update-cancel-' + id
+            ).style.display = 'inline';
+
+            const uploadDiv =
+                document.getElementById('img-upload-' + id);
+
+            if (uploadDiv)
+                uploadDiv.style.display = 'block';
+        });
+
+    });
+
+    document.querySelectorAll('.update-btn').forEach(btn => {
+
+        btn.addEventListener('click', function (e) {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const id = this.dataset.id;
+
+            const deptInp =
+                document.getElementById('department_' + id);
+
+            const nameInp =
+                document.getElementById('name_' + id);
+
+            const regInp =
+                document.getElementById('regno_' + id);
+
+            if (!deptInp.value.trim()) {
+
+                alert('Department name cannot be empty.');
+                deptInp.focus();
+                return;
+            }
+
+            if (!nameInp.value.trim()) {
+
+                alert('Name cannot be empty.');
+                nameInp.focus();
+                return;
+            }
+
+            if (!regInp.value.trim()) {
+
+                alert('Reg No cannot be empty.');
+                regInp.focus();
+                return;
+            }
+
+            document.getElementById('update_id').value = id;
+
+            document.getElementById(
+                'deptImgForm'
+            ).submit();
+
+        });
+
+    });
+
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+
+        btn.addEventListener('click', function (e) {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            disableAllRows();
+
+        });
+
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+
+        btn.addEventListener('click', function (e) {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!confirm('Delete this department?'))
+                return;
+
+            document.getElementById(
+                'delete_id'
+            ).value = this.dataset.id;
+
+            document.getElementById(
+                'deptImgForm'
+            ).submit();
+
+        });
+
+    });
+
+    document.addEventListener('click', function (e) {
+
+        const activeEditBtn =
+            document.querySelector(
+                '.edit-btn[style*="display: none"]'
+            );
+
+        if (!activeEditBtn)
+            return;
+
+        const activeRow =
+            activeEditBtn.closest('tr');
+
+        if (activeRow &&
+            !activeRow.contains(e.target)) {
+
+            disableAllRows();
+        }
+
+    });
+
+    document.getElementById("deptImgForm")
+        .addEventListener("submit", function(e){
+
+        const op =
+            document.querySelector(
+                'input[name="operation"]:checked'
+            );
+
+        if(op && op.value === "add"){
+
+            const dept =
+                document.getElementById("department")
+                .value.trim();
+
+            const name =
+                document.getElementById("name")
+                .value.trim();
+
+            const reg =
+                document.getElementById("reg_no")
+                .value.trim();
+
+            if(!dept){
+                alert("Department Name is required");
+                e.preventDefault();
+                return;
+            }
+
+            if(!name){
+                alert("Name is required");
+                e.preventDefault();
+                return;
+            }
+
+            if(!reg){
+                alert("Reg No is required");
+                e.preventDefault();
+                return;
+            }
+        }
+    });
+
+    disableAllRows();
+
+});
+</script>
+<style>
+  .table-responsive { max-height: 300px; overflow-y: auto; }
+</style>
+
+{% endblock %}

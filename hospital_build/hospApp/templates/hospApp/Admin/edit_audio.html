@@ -1,0 +1,45 @@
+{% extends "hospApp/home.html" %}
+{% block content %}
+
+<h3>Edit Audio Prescription</h3>
+<p><strong>Patient:</strong> {{ prescription.patient_name }}</p>
+
+{% comment %} <audio controls src="{{ prescription.audio.url }}"></audio> {% endcomment %}
+
+<textarea id="audioText" class="form-control mt-3" rows="6">{{ prescription.audio_text }}</textarea>
+
+<input type="file" id="audioFile" class="form-control mt-2">
+
+<button class="btn btn-success mt-3" id="saveAudio">Save Changes</button>
+
+<script>
+document.getElementById("saveAudio").onclick = async function() {
+    let fd = new FormData();
+    fd.append("audio_text", document.getElementById("audioText").value);
+
+    let file = document.getElementById("audioFile").files[0];
+    if (file) fd.append("audio", file);
+
+    const resp = await fetch("{% url 'update_audio_prescription' prescription.id %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        body: fd
+    });
+
+    const data = await resp.json();
+
+    if (data.status === "success") {
+        if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({
+                type: "prescription_saved",
+                consult_id: data.consult_id
+            }, "*");
+        }
+
+        alert("Updated Successfully!");
+        window.close();
+    }
+};
+</script>
+
+{% endblock %}

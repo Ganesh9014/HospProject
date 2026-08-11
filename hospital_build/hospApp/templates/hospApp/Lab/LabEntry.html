@@ -1,0 +1,682 @@
+
+
+
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header py-2">
+      <h6 class="mb-0">Lab Entry</h6>
+    </div>
+
+    <div class="card-body">
+     <form method="post"  id="LabEntryForm" autocomplete="off">
+
+        {% csrf_token %}
+
+        
+
+        <fieldset>
+  <legend class="float-none w-auto px-1 fs-6 fw-bold"></legend>
+
+  <div class="row mb-1">
+
+    <!-- FROM DATE -->
+    <div class="col-md-3">
+      <div class="row align-items-center g-1">
+        <div class="col-5">
+          <label class="form-label">From Date</label>
+        </div>
+        <div class="col-7">
+          <input type="date" class="form-control" id="from_date">
+        </div>
+      </div>
+    </div>
+
+    <!-- TO DATE -->
+    <div class="col-md-3">
+      <div class="row align-items-center g-1">
+        <div class="col-5">
+          <label class="form-label">To Date</label>
+        </div>
+        <div class="col-7">
+          <input type="date" class="form-control" id="to_date">
+        </div>
+      </div>
+    </div>
+
+    <!-- BILL NO -->
+    <div class="col-md-3">
+      <div class="row align-items-center g-1">
+        <div class="col-5">
+          <label class="form-label">Bill No</label>
+        </div>
+        <div class="col-7">
+          <input type="Number"
+                 id="billno"
+                 name="billno"
+                 class="form-control form-control-sm"
+                 placeholder="Enter Bill No" onkeydown="['e','E','+','-'].includes(event.key) && event.preventDefault()">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</fieldset>
+<!-- Row 1 -->
+        <fieldset class="custom-fieldset" id="billPatientFieldset" style="display:none;">
+  <legend class="float-none w-auto px-1 fs-6 fw-bold">Patient Information</legend>
+
+  <table class="table table-bordered table-sm text-center">
+    <tr>
+      <th>Bill No</th>
+      <th>Patient Name</th>
+      <th>UHID</th>
+      <th>Phone</th>
+      <th>Generated Date</th>
+
+    </tr>
+    <tr>
+      <td id="bp_bill"></td>
+      <td id="bp_name"></td>
+      <td id="bp_uhid"></td>
+      <td id="bp_phone"></td>
+      <td id="bp_doc"></td>
+    </tr>
+  </table>
+</fieldset>
+<fieldset>
+  
+
+  <div class="table-responsive table-container">
+
+  <!-- 🔍 FIXED SEARCH -->
+  <div class="search-box">
+    <input type="text"
+           id="patientSearch"
+           class="form-control form-control-sm"
+           placeholder="🔍 Search by Name / Phone / UHID">
+  </div>
+
+  <!-- 📋 SCROLLABLE TABLE -->
+  <div class="table-scroll">
+    <table class="table table-bordered table-sm text-center" id="dueBillsTable">
+      <thead class="table-light">
+        <tr>
+          <th>Bill No</th>
+          <th>Pat Name</th>
+          <th>UHID</th>
+          <th>Phone No</th>
+          <th>Generated Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="5">No Data</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</fieldset>
+
+<fieldset class="custom-fieldset" id="investigationFieldset" style="display:none;">
+  <legend class="float-none w-auto px-1 fs-6 fw-bold">Investigations</legend>
+
+  <!-- 🔥 SCROLL WRAPPER -->
+  <div class="inv-scroll">
+
+    <div class="row">
+      
+      <!-- LEFT -->
+      <div class="col-md-12">
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm text-center" id="invTable">
+            <thead class="table-light">
+              <tr>
+                <th style="width:15%">Select</th>
+                <th>Investigation</th>
+               <th style="width:15%">code</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="3">No Data</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      
+
+    </div>
+
+  </div>
+</fieldset>
+
+     <fieldset class="custom-fieldset" id="reportFieldset" style="display:none;">
+  <legend class="float-none w-auto px-1 fs-6 fw-bold">Investigation Report Entry</legend>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm text-center col-8" id="reportTable">
+      <thead class="table-light">
+        <tr>
+          <th>Test</th>
+          <th>Result</th>
+          <th>Units</th>
+          <th>Normal Range</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  
+</fieldset>
+
+
+
+        <!-- Bottom -->
+        
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Styles -->
+<style>
+ .inv-scroll {
+  max-height: 150px;
+  overflow-y: auto;
+  overflow-x: hidden;   /* 🔥 KEY FIX */
+}
+.inv-scroll .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+.inv-scroll .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+#invTable {
+  width: 100%;
+  table-layout: fixed;   /* 🔥 prevents stretching */
+}
+
+#invTable td,
+#invTable th {
+  word-wrap: break-word;
+  white-space: normal;
+}
+  /* Container */
+.table-container {
+  border: 1px solid #9ca3af;
+  border-radius: 6px;
+}
+
+/* 🔍 Search fixed */
+.search-box {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+  padding: 5px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* 📋 Scroll area */
+.table-scroll {
+  max-height: 200px;   /* 🔥 adjust height as needed */
+  overflow-y: auto;
+}
+
+/* Sticky table header */
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 5;
+}
+.form-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0;
+}
+
+.form-control,
+.form-select {
+  height: 24px;               /* 🔥 key line */
+  padding: 2px 6px;
+  font-size: .68rem;
+  border-radius: .4rem;
+  border: 1px solid #000;
+
+}
+
+
+.form-control:focus, .form-select:focus {
+  border-color: blue;
+  background-color: #ffffff;
+}
+
+input[readonly], textarea[readonly] {
+  caret-color: transparent !important;
+  background-color: #f3f6fb;
+  color: #6b7280;
+}
+.custom-fieldset {
+  border: 1px solid #9ca3af;
+  border-radius: .5rem;
+  padding: 0;
+}
+
+.custom-legend {
+  font-size: .8rem;
+  font-weight: 700;
+  padding: 0 .5rem;
+  color: #111827;
+}
+
+.amount-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.amount-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  width: 180px;
+}
+
+.amount-table td {
+  border: 1px solid #000;
+  padding: 2px 6px;
+}
+
+.amount-table input {
+  width: 100%;
+  border: none;
+  height: 18px;
+  font-size: 12px;
+}
+
+#patientSearch {
+  border: 1px solid #0e0f0f;
+}
+.row.g-1 {
+  margin-bottom: 2px;
+}
+
+.form-label {
+  white-space: nowrap;   /* prevents label breaking */
+}
+
+.form-control {
+  width: 100%;
+}
+.table td ,.table th{
+  text-align: left;
+}
+</style>
+<script>
+const searchInput = document.getElementById("patientSearch");
+
+searchInput.addEventListener("input", function () {
+
+    const value = this.value.toLowerCase();
+
+    const rows = document.querySelectorAll("#dueBillsTable tbody tr");
+
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+
+        const name  = row.children[1]?.textContent.toLowerCase() || "";
+        const uhid  = row.children[2]?.textContent.toLowerCase() || "";
+        const phone = row.children[3]?.textContent.toLowerCase() || "";
+
+        const matched =
+            name.includes(value) ||
+            uhid.includes(value) ||
+            phone.includes(value);
+
+        row.style.display = matched ? "" : "none";
+
+        if (matched) visibleCount++;
+    });
+
+    // 🔥 IMPORTANT FIX
+    if (visibleCount === 0) {
+
+        // clear investigations
+        document.querySelector("#invTable tbody").innerHTML =
+            `<tr><td colspan="3">No Data</td></tr>`;
+
+        document.getElementById("investigationFieldset").style.display = "none";
+
+        // clear report
+        document.querySelector("#reportTable tbody").innerHTML = "";
+
+        document.getElementById("reportFieldset").style.display = "none";
+
+        // remove selected patient highlight
+        document.querySelectorAll("#dueBillsTable tbody tr")
+            .forEach(r => r.classList.remove("table-active"));
+
+        // clear bill no
+        document.getElementById("billno").value = "";
+    }
+});
+document.addEventListener("DOMContentLoaded", function () {
+
+  console.log("LabEntry JS loaded");
+
+  /* ================= MODE ================= */
+  let entryMode = "DATE"; // DATE | BILL
+
+  /* ================= ELEMENTS ================= */
+  const fromDateInput = document.getElementById("from_date");
+  const toDateInput   = document.getElementById("to_date");
+  const billNoInput   = document.getElementById("billno");
+
+  const patientTableBody    = document.querySelector("#dueBillsTable tbody");
+  const datePatientFieldset = document.querySelector("#dueBillsTable").closest("fieldset");
+  const billPatientFieldset = document.getElementById("billPatientFieldset");
+
+  const invFieldset  = document.getElementById("investigationFieldset");
+  const invTableBody = document.querySelector("#invTable tbody");
+
+  const reportFieldset  = document.getElementById("reportFieldset");
+  const reportTableBody = document.querySelector("#reportTable tbody");
+
+  /* ================= URLS ================= */
+  const LAB_URL          = "{% url 'get_lab_entries' %}";
+  const INV_URL          = "{% url 'get_investigations' %}";
+  const BILL_PATIENT_URL = "{% url 'get_patient_by_bill' %}";
+  const REPORT_URL       = "{% url 'get_report_entries' %}";
+
+  /* ================= HELPERS ================= */
+  function resetPayment() {
+    
+  }
+
+  function resetInvestigations() {
+    invTableBody.innerHTML = `<tr><td colspan="3">No Data</td></tr>`;
+    invFieldset.style.display = "none";
+  }
+
+  function resetReport() {
+    reportTableBody.innerHTML = "";
+    reportFieldset.style.display = "none";
+  }
+
+  function clearRowHighlight() {
+    document.querySelectorAll("#dueBillsTable tbody tr")
+      .forEach(r => r.classList.remove("table-active"));
+  }
+
+  /* ================= LOAD DATE LIST ================= */
+  function loadPatientsByDateRange(from, to) {
+    fetch(`${LAB_URL}?from_date=${from}&to_date=${to}`)
+      .then(res => res.json())
+      .then(res => {
+        patientTableBody.innerHTML = "";
+
+        if (!res.data || res.data.length === 0) {
+          patientTableBody.innerHTML = `<tr><td colspan="5">No Data</td></tr>`;
+          return;
+        }
+
+        res.data.forEach(row => {
+          patientTableBody.innerHTML += `
+            <tr data-billno="${row.billno}">
+              <td>${row.billno}</td>
+              <td>${row.patname}</td>
+              <td>${row.uhid}</td>
+              <td>${row.phone}</td>
+              <td>${row.generateddate}</td>
+            </tr>
+          `;
+        });
+      });
+  }
+
+  /* ================= LOAD BILL PATIENT ================= */
+  function loadPatientByBill(billno) {
+    fetch(`${BILL_PATIENT_URL}?billno=${billno}`)
+      .then(res => res.json())
+      .then(res => {
+
+        if (!res.data) {
+          billPatientFieldset.style.display = "none";
+          return;
+        }
+
+        billPatientFieldset.style.display = "block";
+
+        document.getElementById("bp_bill").textContent  = res.data.billno;
+        document.getElementById("bp_name").textContent  = res.data.patname;
+        document.getElementById("bp_uhid").textContent  = res.data.uhid;
+        document.getElementById("bp_phone").textContent = res.data.phone;
+        document.getElementById("bp_doc").textContent   = res.data.generateddate;
+      });
+  }
+
+  /* ================= LOAD INVESTIGATIONS ================= */
+  function loadInvestigationsByBill(billno) {
+
+    invTableBody.innerHTML = "";
+    invFieldset.style.display = "block";
+    resetReport();
+
+    fetch(`${INV_URL}?billno=${billno}`)
+      .then(res => res.json())
+      .then(res => {
+
+        if (res.status === "invalid") {
+          alert(res.message || "Invalid Bill Number");
+
+          entryMode = "DATE";
+          billNoInput.value = "";
+
+          billPatientFieldset.style.display = "none";
+          datePatientFieldset.style.display = "block";
+
+          clearRowHighlight();
+          resetInvestigations();
+          resetPayment();
+          resetReport();
+          return;
+        }
+
+        if (!res.data || res.data.length === 0) {
+          resetInvestigations();
+          resetPayment();
+          return;
+        }
+
+     
+    
+        res.data.forEach(inv => {
+          invTableBody.innerHTML += `
+            <tr>
+              <td>
+                <a href="#" class="select-inv-link" data-id="${inv.inv_master_id}">
+                  Select
+                </a>
+              </td>
+              <td style="text-align: left">${inv.inv_name}</td>
+              <td>INV${inv.inv_master_id}</td>
+            </tr>
+          `;
+        });
+      });
+  }
+
+  /* ================= LOAD REPORT ================= */
+  function loadReportEntries(invId) {
+
+    reportTableBody.innerHTML = "";
+    reportFieldset.style.display = "block";
+
+    fetch(`${REPORT_URL}?inv_id=${invId}`)
+      .then(res => res.json())
+      .then(res => {
+
+        if (!res.data || res.data.length === 0) {
+          reportTableBody.innerHTML =
+            `<tr><td colspan="4">No Report Structure Found</td></tr>`;
+          return;
+        }
+
+        let currentHeader = "";
+
+        res.data.forEach(row => {
+
+          if (row.header && row.header !== currentHeader) {
+            currentHeader = row.header;
+            reportTableBody.innerHTML += `
+              <tr class="table-secondary fw-bold">
+                <td colspan="4">${row.header}</td>
+              </tr>
+            `;
+          }
+
+          reportTableBody.innerHTML += `
+            <tr>
+              <td>${row.method || row.test}</td>
+              <td>
+                <input type="text" class="form-control form-control-sm text-center"
+                       value="${row.defaults || ''}">
+              </td>
+              <td>${row.units || ''}</td>
+              <td>${row.normal || ''}</td>
+            </tr>
+          `;
+        });
+      });
+  }
+
+  /* ================= INIT ================= */
+  const today = new Date().toLocaleDateString('en-CA');
+  fromDateInput.value = today;
+  toDateInput.value = today;
+  loadPatientsByDateRange(today, today);
+
+  /* ================= DATE CHANGE ================= */
+  function onDateRangeChange() {
+    entryMode = "DATE";
+
+    billNoInput.value = "";
+    billPatientFieldset.style.display = "none";
+    datePatientFieldset.style.display = "block";
+
+    clearRowHighlight();
+    resetInvestigations();
+    resetPayment();
+    resetReport();
+
+    loadPatientsByDateRange(fromDateInput.value, toDateInput.value);
+  }
+
+  fromDateInput.addEventListener("change", onDateRangeChange);
+  toDateInput.addEventListener("change", onDateRangeChange);
+
+  /* ================= DATE ROW CLICK ================= */
+  patientTableBody.addEventListener("click", function (e) {
+    const row = e.target.closest("tr");
+    if (!row || !row.dataset.billno) return;
+
+    entryMode = "DATE";
+
+    const billno = row.dataset.billno;
+    billNoInput.value = billno;
+
+    clearRowHighlight();
+    row.classList.add("table-active");
+
+    billPatientFieldset.style.display = "none";
+    datePatientFieldset.style.display = "block";
+
+    loadInvestigationsByBill(billno);
+  });
+
+  /* ================= BILL NO BLUR ================= */
+  billNoInput.addEventListener("blur", function () {
+    const billno = this.value.trim();
+    if (!billno) return;
+
+    entryMode = "BILL";
+
+    datePatientFieldset.style.display = "none";
+    billPatientFieldset.style.display = "block";
+
+    clearRowHighlight();
+
+    loadPatientByBill(billno);
+    loadInvestigationsByBill(billno);
+  });
+
+  /* ================= SELECT INVESTIGATION ================= */
+/* ================= SELECT INVESTIGATION ================= */
+const openWindows = new Set();  // tracks billno__invId pairs open this session
+
+document.addEventListener("click", function (e) {
+  if (!e.target.classList.contains("select-inv-link")) return;
+
+  e.preventDefault();
+
+  const billno = billNoInput.value;
+  const invId  = e.target.dataset.id;
+  const key    = `${billno}__${invId}`;
+
+  // Already open in this session — do nothing at all
+  if (openWindows.has(key)) return;
+
+  fetch(`/check-report-exists/?billno=${billno}&inv_id=${invId}`)
+    .then(res => res.json())
+    .then(res => {
+
+      if (res.exists) {
+        alert("⚠️ Report already generated.");
+        return;   // stop here — no window, no "Selected" label
+      }
+
+      // First time — mark it and open
+      openWindows.add(key);
+
+      document.querySelectorAll(".select-inv-link")
+        .forEach(l => l.textContent = "Select");
+      e.target.textContent = "Selected";
+
+      const win = window.open(
+        `/Lab/ReportEntry/?billno=${billno}&inv_id=${invId}`,
+        "_blank",
+        "width=1100,height=700"
+      );
+
+      // When child window closes, allow re-selection
+      if (win) {
+        const timer = setInterval(() => {
+          if (win.closed) {
+            clearInterval(timer);
+            openWindows.delete(key);
+            e.target.textContent = "Select";
+          }
+        }, 800);
+      }
+    });
+});
+
+});
+</script>
+
+
+{% endblock %}

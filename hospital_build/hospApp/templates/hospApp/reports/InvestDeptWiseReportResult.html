@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Report</title>
+    <style>
+        body {
+            font-family: "Times New Roman", serif;
+            font-size: 12px;
+        }
+
+        .report-container {
+            border: 2px solid black;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        .header {
+            text-align: center;
+            line-height: 1.5;
+            border-bottom: 2px solid black;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .header p {
+            margin: 2px 0;
+        }
+
+        .title {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .filters {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 5px;
+        }
+
+       
+
+        table, th, td {
+            border: none;
+        }
+
+        .total-row td {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+<div class="report-container">
+
+    <!-- 🏥 Header -->
+    <div class="header">
+        <h2>{{ hospital.name }}</h2>
+        <p>{{ hospital.address }}</p>
+    </div>
+
+    <!-- 📋 Title -->
+     <div class="title">
+       DEPARTMENT: {{ dept_name|upper }}  
+    </div>
+    <div class="title">
+        INVESTIGATION REPORT    
+    </div>
+
+    
+  
+    <table >
+    <tr style="border-bottom: 2px solid black; border-top: 2px solid black;">
+        <th>S.NO</th>
+        
+    
+        <th>INVESTIGATION NAME</th>
+        <th>CODE</th>
+        <th style="text-align:right;">AMOUNT</th>
+
+    </tr>
+
+    {% for row in investigations %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        
+        <td>{{ row.invname|upper |default:"-"  }}</td>
+        
+        <td>INV{{ row.ino|upper |default:"-"  }}</td>
+        
+        <td style="text-align:right;">{{ row.cost|floatformat:2 }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="2" style="text-align:center; padding:10px;">No records found.</td>
+    </tr>
+    {% endfor %}
+
+    <tr style="border-top: 2px solid black; font-weight: bold;">
+    <td colspan="4" style="text-align:right;">
+        Total    : {{ total_cost|floatformat:2 }}
+    </td>
+</tr>
+</table>
+
+</div>
+
+<!-- 🖨️ Print Info -->
+<div style="width:50%; margin:auto; margin-top:20px;">
+    <div style="display:flex; justify-content:space-between; font-size:12px;">
+        <div><strong>Print By:</strong> {{ logged_user |upper }}</div>
+        <div><strong>Print Time:</strong> {{ print_time|date:"d-m-Y H:i:s" }}</div>
+    </div>
+</div>
+
+</body>
+</html>

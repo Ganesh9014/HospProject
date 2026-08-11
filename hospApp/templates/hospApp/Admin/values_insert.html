@@ -1,0 +1,118 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+
+    <!-- HEADER (UNCHANGED) -->
+    <div class="form-header">
+      <h5>Patient Vital Signs & Clinical Data</h5>
+    </div>
+
+    <div class="form-body d-flex justify-content-center">
+  <form method="post" id="insert-values" style="width: 480px;" autocomplete="off">
+    
+    {% csrf_token %}
+
+    <div class="form-row-fixed">
+      <label>UHID</label>
+      <div class="colon">:</div>
+      <input type="text" name="uhid" id="uhid" class="form-control" readonly>
+    </div>
+
+    <div class="form-row-fixed">
+      <label>Name</label>
+      <div class="colon">:</div>
+      <input type="text" name="name" id="name" class="form-control" readonly>
+    </div>
+
+    <div class="form-row-fixed">
+      <label>Temp (°F)</label>
+      <div class="colon">:</div>
+      <input type="number" step="0.1" name="temp" class="form-control" maxlength="7">
+    </div>
+
+    <div class="form-row-fixed">
+      <label>BP</label>
+      <div class="colon">:</div>
+      <input type="text" name="bp" class="form-control" maxlength="7">
+    </div>
+
+    <div class="form-row-fixed">
+      <label>PR</label>
+      <div class="colon">:</div>
+      <input type="number" name="pr" class="form-control" maxlength="7">
+    </div>
+
+    <div class="form-row-fixed">
+      <label>SpO₂ (%)</label>
+      <div class="colon">:</div>
+      <input type="number" name="spo2" class="form-control" maxlength="7">
+    </div>
+
+    <div class="form-row-fixed">
+      <label>Weight (kg)</label>
+      <div class="colon">:</div>
+      <input type="number" step="0.1" name="weight" class="form-control" maxlength="7">
+    </div>
+
+    <div class="text-center mt-4">
+      <button type="submit" class="btn btn-primary px-5">
+        Submit
+      </button>
+    </div>
+
+  </form>
+</div>
+
+
+  </div>
+</div><style>
+
+    .form-control, .form-select {
+    
+    border: 1px solid #49505770 !important;
+    background-color: #fff;
+    box-shadow: none !important;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+.form-row-fixed {
+  display: grid;
+  grid-template-columns: 140px 15px 1fr;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.form-row-fixed label {
+  text-align: left;
+  margin-bottom: 0;
+  font-weight: 500;
+}
+
+.form-row-fixed .colon {
+  
+  font-weight: bold;
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const params = new URLSearchParams(window.location.search);
+    const uhid = params.get("uhid");
+    if (!uhid) return;
+
+    document.getElementById("uhid").value = uhid;
+
+    fetch(`/get_patient_details_for_insert/?uhid=${uhid}`)
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                document.getElementById("name").value = result.data.patname || "";
+            }
+        });
+});
+</script>
+
+{% endblock %}

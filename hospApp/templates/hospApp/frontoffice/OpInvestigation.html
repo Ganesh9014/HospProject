@@ -1,0 +1,1606 @@
+{% extends 'hospApp/home.html' %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+
+    <div class="form-header py-2">
+      <h6 class="mb-0">OP-Investigation</h6>
+    </div>
+
+    <div class="card-body">
+      <form method="post"
+      id="investigationForm"
+      action="{% url 'save_investigation' %}"
+      data-due-field="#due"
+      data-reason-field="#reason" autocomplete="off">
+
+        {% csrf_token %}
+
+        <!-- Row 1 -->
+        <div class="row mb-2">
+          <div class="col-md-6">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-3">Patient Type</label>
+              <select name="pattype" id="pattype"
+                      class="form-select form-select-sm" required>
+                <option>OP</option>
+                <option>Others</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="d-flex align-items-center gap-2">
+              <label class="form-label col-4 mb-0">UHID</label>
+              <input type="text" id="uhid" name="uhid"
+                     class="form-control form-control-sm"
+                     placeholder="Enter UHID"
+                     maxlength="10" required autocomplete="off">
+              <button type="button" id="getBtn"
+                      class="btn btn-primary btn-sm">
+                Get
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="row mb-1">
+          <div class="col-md-6 mb-2 mb-md-0">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-3">Patient Name</label>
+              <input type="text" id="patname" class="form-control form-control-sm" name="patname" readonly style="border:1px solid #ced4da">
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-2 mb-md-0">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Patient ID</label>
+              <input type="text" id="patid" class="form-control form-control-sm" name="patid" required readonly style="border:1px solid #ced4da">
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="row mb-1">
+          <div class="col-md-6 mb-2 mb-md-0">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-3">Age</label>
+              <input type="text" id="age" class="form-control form-control-sm me-1" readonly name="age" style="border:1px solid #ced4da">
+              <select id="agetype_display" class="form-select form-select-sm me-1" disabled style="border:1px solid #ced4da">
+                <option value="">-- Select --</option>
+                <option value="Years">Years</option>
+                <option value="Months">Months</option>
+                <option value="Days">Days</option>
+              </select>
+              <input type="hidden" id="agetype" name="agetype">
+              <input type="text" id="gender" class="form-control form-control-sm" name="gender" readonly style="border:1px solid #ced4da">
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-1 mb-md-0">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Ref Doctor</label>
+              <input type="text" id="refdoctor" class="form-control form-control-sm" readonly style="border:1px solid #ced4da">
+              <input type="hidden" id="refdoctor_id" name="refdoctor_id">
+            </div>
+          </div>
+        </div>
+
+        <!-- Doctor + Phone -->
+        <div class="row mb-1" id="doctorPhoneRow">
+          <div class="col-md-6 mb-2 mb-md-0">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-3">Doctor</label>
+
+              <!-- OP Doctor -->
+              <div class="position-relative flex-grow-1" id="opDoctorWrapper">
+                <input type="text" id="doc_name"
+                       class="form-control form-control-sm"
+                       placeholder="Type doctor name..." autocomplete="off">
+                <ul id="op-doctor-suggestions"
+                    class="list-group suggestion-list"></ul>
+              </div>
+              <input type="hidden" id="doc_id" name="doctor">
+
+              <!-- Others Doctor -->
+              <div class="position-relative flex-grow-1 d-none" id="otherDoctorWrapper">
+                <input type="text"
+                       id="other_doctor"
+                       class="form-control form-control-sm"
+                       placeholder="Type doctor name..." autocomplete="off">
+                <input type="hidden" id="other_doctor_id" name="other_doctor_id">
+                <ul id="other-doctor-suggestions"
+                    class="list-group suggestion-list"></ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Phone</label>
+              <input type="text" name="phone" id="phone"
+                     class="form-control form-control-sm" readonly style="border:1px solid #ced4da">
+            </div>
+          </div>
+        </div>
+
+        <!-- Investigations -->
+        <div class="row mb-1">
+          <div class="col-md-6">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-3">Investigations</label>
+              <div class="position-relative flex-grow-1">
+                <input type="text" id="service"
+                       class="form-control form-control-sm"
+                       placeholder="Enter Investigations..." >
+                <ul id="invSuggestions" class="list-group suggestion-list"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Investigation Table -->
+        <div class="table-responsive col-10 mt-2">
+          <table class="table table-bordered table-sm align-middle">
+            <thead class="table-light">
+              <tr class="text-center">
+                <th style="width:60px;">S.No</th>
+                <th>Investigation</th>
+                <th style="width:120px;">Cost</th>
+                <th style="width:90px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="investigationBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Amounts -->
+        <!-- {# ============================================================
+   INVESTIGATION — SPLIT PAYMENT SECTION
+   Replace the existing "Amounts" row (payingamount / paymentmode /
+   extraFieldDiv / due / netamount) with this block.
+   Everything else in OpInvestigation.html stays unchanged.
+============================================================ #} -->
+
+<!-- Amounts Row — Split Payment -->
+<div class="row mb-1 mt-1">
+
+  <!-- Net Amount (readonly, unchanged) -->
+  <div class="col-md-2">
+    <label class="form-label">Net Amount</label>
+    <input type="text" id="netamount" name="netamount"
+           class="form-control form-control-sm" readonly
+           style="border:1px solid #ced4da">
+  </div>
+
+  <!-- Cash Amount (always visible) -->
+  <div class="col-md-2">
+    <label class="form-label">Cash Amt</label>
+    <input type="number" id="cash_amt" name="cash_amt"
+           class="form-control form-control-sm" value="0" min="0"
+           maxlength="7" autocomplete="off"
+           oninput="if(this.value.length>7)this.value=this.value.slice(0,7);"
+           onkeydown="['e','E','+','-'].includes(event.key)&&event.preventDefault()"
+           onblur="recalcInvSplit()">
+  </div>
+
+  <!-- + Online toggle -->
+  <div class="col-md-2 d-flex align-items-end">
+    <div class="form-check mb-1">
+      <input class="form-check-input" type="checkbox" id="invOnlineChk"
+             onchange="toggleInvOnline(this.checked)">
+      <label class="form-check-label" for="invOnlineChk">+ Online</label>
+    </div>
+  </div>
+
+  <!-- Online Mode (hidden until checkbox ticked) -->
+  <div class="col-md-2" id="invOnlineModeDiv" style="display:none;">
+    <label class="form-label">Online Mode</label>
+    <select id="inv_online_mode" name="online_mode"
+            class="form-select form-select-sm"
+            onchange="updateInvOnlineLabel(); recalcInvSplit()">
+      <option value="">-- Select --</option>
+      {% for p in payee_list %}
+        {% if p.name|lower != "cash" %}
+          <option value="{{ p.name }}">{{ p.name }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Online Amount (hidden until checkbox ticked) -->
+  <div class="col-md-2" id="invOnlineAmtDiv" style="display:none;">
+    <label class="form-label">Online Amt</label>
+    <input type="number" id="online_amt" name="online_amt"
+           class="form-control form-control-sm" value="0" min="0"
+           maxlength="7" autocomplete="off"
+           oninput="if(this.value.length>7)this.value=this.value.slice(0,7);"
+           onkeydown="['e','E','+','-'].includes(event.key)&&event.preventDefault()"
+           onblur="recalcInvSplit()">
+  </div>
+
+  <!-- Online Details (UPI no / card name etc) -->
+  <div class="col-md-2" id="invOnlineDetailsDiv" style="display:none;">
+    <label class="form-label" id="invOnlineDetailsLabel">Reference</label>
+    <input type="text" id="online_details" name="online_details"
+           class="form-control form-control-sm" maxlength="12"
+           autocomplete="off">
+  </div>
+
+</div>
+
+<!-- Paying / Due / Concession Row -->
+<div class="row mb-1">
+
+  <!-- Paying Amt (readonly, auto-calculated) -->
+  <div class="col-md-2">
+    <label class="form-label">Paying Amount</label>
+    <input type="text" id="payingamount" name="payingamount"
+           class="form-control form-control-sm" readonly
+           style="border:1px solid #ced4da">
+  </div>
+
+  <!-- Due Amt (readonly) -->
+  <div class="col-md-2">
+    <label class="form-label">Due Amt</label>
+    <input type="text" id="due" name="due"
+           class="form-control form-control-sm" readonly
+           style="border:1px solid #ced4da">
+  </div>
+
+  <!-- Concession -->
+  <div class="col-md-2">
+    <label class="form-label">Conc. Amount</label>
+    <input type="text" id="concamount" name="concamount"
+           class="form-control form-control-sm" maxlength="7"
+           autocomplete="off" onblur="recalcInvSplit()">
+  </div>
+
+  <!-- Reason -->
+  <div class="col-md-4">
+    <label class="form-label">Reason</label>
+    <input type="text" id="reason" name="concession_reason"
+           class="form-control form-control-sm" autocomplete="off">
+  </div>
+
+</div>
+
+
+        
+
+        <!-- Footer -->
+        <div class="bottom d-flex align-items-center mt-3">
+          <div class="col-md-2">
+            <input type="password" id="usercode" name='usercode'
+                   class="form-control" required
+                   style='background-color: yellow;'
+                   maxlength="12" placeholder="Enter User Code" autocomplete="off">
+          </div>
+
+          <div class="flex-grow-1 text-center">
+            <button type="submit" class="btn btn-success btn-sm">💾 Save</button>
+            <button type="button" class="btn btn-secondary btn-sm"
+                    id="cancelBtn">Cancel</button>
+          </div>
+
+          <div style="width:200px;"></div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<style>
+:root {
+  --page-bg: #f3f6fb;
+  --card-bg: #ffffff;
+  --card-border: #e0e6f1;
+  --card-header-bg: #0d6efd0f;
+  --card-header-text: #0b2a6f;
+  --input-bg: #f9fbff;
+  --input-border: #ced4da;
+  --input-border-focus: #4b7cf5;
+  --input-shadow-focus: 0 0 0 0.15rem rgba(13,110,253,.15);
+  --shadow-soft: 0 10px 25px rgba(15,23,42,0.08);
+  --table-header-bg: #f1f4fb;
+  --table-border: #e1e5f0;
+}
+
+.form-card {
+  border-radius: .8rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.form-header {
+  background: linear-gradient(90deg, #0d6efd, #5a8dff);
+  color: #fff;
+  padding: .65rem 1.1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+.form-header h6 {
+  font-weight: 600;
+  letter-spacing: .03em;
+}
+
+.form-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0;
+}
+
+.form-control,
+.form-select {
+  padding: .4rem .5rem;
+  border-radius: .45rem;
+  background-color: var(--input-bg);
+  font-size: .7rem;
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--input-border-focus);
+  box-shadow: var(--input-shadow-focus);
+  background-color: #ffffff;
+}
+
+input[readonly],
+textarea[readonly] {
+  caret-color: transparent !important;
+  background-color: #f3f6fb;
+  color: #6b7280;
+}
+
+.btn-primary.btn-sm {
+  border-radius: .4rem;
+  padding-inline: .8rem;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.35);
+}
+
+.btn-success.btn-sm {
+  border-radius: .4rem;
+  padding-inline: 1rem;
+  box-shadow: 0 2px 6px rgba(16,185,129,0.35);
+}
+
+.btn-secondary.btn-sm {
+  border-radius: .4rem;
+  padding-inline: 1rem;
+}
+
+.table-responsive {
+  height: 150px;
+  border-radius: .6rem;
+  border: 1px solid var(--table-border);
+  overflow-y: auto;
+  background: #ffffff;
+}
+
+.table {
+  margin-bottom: 0;
+  border-color: var(--table-border);
+}
+
+.table thead {
+  background: var(--table-header-bg);
+}
+
+.table thead th {
+  border-bottom-width: 1px;
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #4b5563;
+}
+
+.table tbody td {
+  font-size: .78rem;
+  vertical-align: middle;
+  text-align: left;
+}
+
+.table tbody tr:hover {
+  background-color: #f9fbff;
+}
+
+.suggestion-list {
+  display: none;
+  max-height: 100px;
+  overflow-y: auto;
+  z-index: 1200;
+  background: #ffffff;
+  position: absolute;
+  width: 100%;
+  left: 0;
+  top: 100%;
+  border-radius: 0 0 .5rem .5rem;
+  border: 1px solid #d1d9ee;
+  border-top: none;
+  box-shadow: 0 14px 30px rgba(15,23,42,0.18);
+}
+
+.suggestion-list .list-group-item {
+  position: relative;
+  display: block;
+  padding: 0;
+  font-size: .75rem;
+  color: #111827;
+  border: none;
+  border-bottom: 1px solid #edf0fb;
+  cursor: pointer;
+  background: transparent;
+}
+
+.suggestion-list .list-group-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-list .list-group-item:hover,
+.suggestion-list .list-group-item:focus {
+  background: #eef3ff;
+  color: #1d4ed8;
+}
+
+.delete-row {
+  font-size: .74rem;
+  text-decoration: none;
+}
+
+.delete-row:hover {
+  text-decoration: underline;
+}
+
+#payingamount,
+#due,
+#netamount,
+#concamount {
+  font-weight: 600;
+}
+
+.row.mb-3,
+.row.mb-4,
+.row.mb-2 {
+  row-gap: .35rem;
+}
+
+.suggestion-list .list-group-item.active {
+  background-color: #0d6efd;
+  color: #fff;
+}
+
+
+</style>
+
+<!-- 
+{# ─────────────────────────────────────────────────────────────────────
+   SPLIT PAYMENT JAVASCRIPT FOR INVESTIGATION
+   Add this <script> block anywhere after the form in OpInvestigation.html.
+   It REPLACES the old paymentmode / extraFieldDiv logic entirely.
+───────────────────────────────────────────────────────────────────── #} -->
+<script>
+/* ================================================================
+   INVESTIGATION SPLIT PAYMENT LOGIC
+================================================================ */
+
+function toggleInvOnline(show) {
+    document.getElementById('invOnlineModeDiv').style.display   = show ? '' : 'none';
+    document.getElementById('invOnlineAmtDiv').style.display    = show ? '' : 'none';
+    document.getElementById('invOnlineDetailsDiv').style.display = 'none';
+
+    if (!show) {
+        document.getElementById('online_amt').value     = 0;
+        document.getElementById('inv_online_mode').value = '';
+        document.getElementById('online_details').value  = '';
+        recalcInvSplit();
+    }
+}
+
+function updateInvOnlineLabel() {
+    const mode  = document.getElementById('inv_online_mode').value.trim().toLowerCase();
+    const div   = document.getElementById('invOnlineDetailsDiv');
+    const label = document.getElementById('invOnlineDetailsLabel');
+
+    if (!mode) { div.style.display = 'none'; return; }
+
+    if      (mode === 'card')   label.innerText = 'Card Name';
+    else if (mode === 'upi')    label.innerText = 'UPI Number';
+    else if (mode === 'cheque') label.innerText = 'Cheque No';
+    else if (mode === 'neft')   label.innerText = 'NEFT Ref No';
+    else                        label.innerText = 'Reference';
+
+    div.style.display = '';
+}
+
+function recalcInvSplit() {
+    const net        = parseFloat(document.getElementById('netamount').value   || 0);
+    const cash       = parseFloat(document.getElementById('cash_amt').value    || 0);
+    const online     = parseFloat(document.getElementById('online_amt').value  || 0);
+    const concession = parseFloat(document.getElementById('concamount').value  || 0);
+
+    // Guard: concession cannot exceed net
+    if (concession > net) {
+        alert(`❗ Concession (₹${concession}) cannot exceed Net Amount (₹${net})!`);
+        document.getElementById('concamount').value = 0;
+        recalcInvSplit();
+        return;
+    }
+
+    const maxPayable = Math.max(net - concession, 0);
+    const totalPaid  = cash + online;
+
+    // Guard: cash + online cannot exceed net - concession
+    if (totalPaid > maxPayable) {
+    alert(`❗ Cash + Online (₹${totalPaid}) cannot exceed Net − Concession (₹${maxPayable})!`);
+    // Cap cash to maxPayable, zero out online
+    document.getElementById('cash_amt').value   = maxPayable;
+    document.getElementById('online_amt').value = 0;
+    // NO recursive call — just return, values are now valid
+    return;
+}
+
+
+    const paid = cash + parseFloat(document.getElementById('online_amt').value || 0);
+    const due  = Math.max(net - paid - concession, 0);
+
+    document.getElementById('payingamount').value = paid;
+    document.getElementById('due').value          = due.toFixed(2);
+}
+
+/* ── Override the existing recalcTotals so it refreshes split too ── */
+const _origRecalcTotals = typeof recalcTotals === 'function' ? recalcTotals : null;
+
+function recalcTotals(resetPayment = false) {
+    const body   = document.getElementById("investigationBody");
+    const netEl  = document.getElementById("netamount");
+
+    let netTotal = 0;
+    body.querySelectorAll("tr").forEach(tr => {
+        netTotal += parseFloat(tr.dataset.cost || 0);
+    });
+    netEl.value = netTotal.toFixed(2);
+
+    if (resetPayment) {
+        document.getElementById('cash_amt').value   = 0;
+        document.getElementById('online_amt').value = 0;
+        document.getElementById('concamount').value = '';
+        // Reset online toggle too
+        document.getElementById('invOnlineChk').checked = false;
+        toggleInvOnline(false);
+    }
+
+    // Pre-fill cash with net (so it covers total by default)
+    const concession = parseFloat(document.getElementById('concamount').value || 0);
+    const online     = parseFloat(document.getElementById('online_amt').value  || 0);
+    if (!resetPayment) {
+        // Only update cash if user hasn't touched it manually
+        const currentCash = parseFloat(document.getElementById('cash_amt').value || 0);
+        const maxPayable  = Math.max(netTotal - concession, 0);
+        // If cash was auto-set (equals remaining), keep tracking
+        document.getElementById('cash_amt').value = Math.max(maxPayable - online, 0);
+    }
+
+    recalcInvSplit();
+}
+
+/* ── Override hardResetForm to also clear split fields ── */
+const _origHardReset = typeof hardResetForm === 'function' ? hardResetForm : null;
+function hardResetForm() {
+    const form = document.getElementById("investigationForm");
+    if (form) form.reset();
+
+    const wipe = [
+        "uhid", "patname", "patid", "age", "gender",
+        "agetype", "agetype_display",
+        "refdoctor", "refdoctor_id",
+        "doc_name", "doc_id",
+        "phone",
+        "other_doctor", "other_doctor_id",
+        "payingamount", "concamount", "netamount", "due",
+        "usercode", "reason"
+        // ❌ REMOVED: "paymentdetails" — element no longer exists
+    ];
+    wipe.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+
+    // ❌ REMOVE these lines — paymentmode and extraFieldDiv no longer exist
+    // const paySelect = document.getElementById("paymentmode");
+    // if (paySelect) { ... }
+    // const extraDiv = document.getElementById("extraFieldDiv");
+    // if (extraDiv) extraDiv.style.display = "none";
+
+    const tbody = document.getElementById("investigationBody");
+    if (tbody) tbody.innerHTML = "";
+
+    loadedUHID = null;
+    loadedType = null;
+
+    const typeSelect = document.querySelector("select[name='pattype']");
+    if (typeSelect) typeSelect.value = "OP";
+    toggleFieldsForPatientType("OP");
+
+    // ✅ Reset split payment fields
+    document.getElementById('cash_amt').value        = 0;
+    document.getElementById('online_amt').value      = 0;
+    document.getElementById('inv_online_mode').value = '';
+    document.getElementById('online_details').value  = '';
+    document.getElementById('invOnlineChk').checked  = false;
+    toggleInvOnline(false);
+    recalcInvSplit();
+}
+
+/* ── Wire events on DOMContentLoaded ── */
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('cash_amt').addEventListener('input',   recalcInvSplit);
+    document.getElementById('online_amt').addEventListener('input',  recalcInvSplit);
+    document.getElementById('concamount').addEventListener('input',  recalcInvSplit);
+    document.getElementById('inv_online_mode').addEventListener('change', function () {
+        updateInvOnlineLabel();
+        recalcInvSplit();
+    });
+});
+
+/* ── Form submit: validate online mode selected ── */
+document.getElementById("investigationForm").addEventListener('submit', function (e) {
+    const onlineChk  = document.getElementById('invOnlineChk').checked;
+    const onlineMode = document.getElementById('inv_online_mode').value.trim();
+    const onlineAmt  = parseFloat(document.getElementById('online_amt').value || 0);
+
+    if (onlineChk && onlineAmt > 0 && !onlineMode) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        alert('❗ Please select an Online Payment Mode (UPI / Card / Cheque / NEFT).');
+        document.getElementById('inv_online_mode').focus();
+        return false;
+    }
+}, true); // capture phase — fires before existing submit handler
+</script>
+<!-- ================================================================
+     REMOVE READONLY FROM TAB FLOW
+================================================================ -->
+<script>
+$(document).ready(function () {
+    $("input[readonly], textarea[readonly]").attr("tabindex", "-1");
+});
+</script>
+
+<!-- ================================================================
+     MAIN SCRIPT
+================================================================ -->
+<script>
+
+let initialLoadDone = false;
+let invBody, payingInput, concInput, netInput, dueInput;
+let loadedUHID = null;
+let loadedType = null;
+
+/* ============================
+   HARD RESET — covers reload, back button, save success
+============================ */
+function hardResetForm() {
+    const form = document.getElementById("investigationForm");
+    if (form) form.reset();
+
+    const wipe = [
+        "uhid", "patname", "patid", "age", "gender",
+        "agetype", "agetype_display",
+        "refdoctor", "refdoctor_id",
+        "doc_name", "doc_id",
+        "phone",
+        "other_doctor", "other_doctor_id",
+        "payingamount", "concamount", "netamount", "due",
+        "usercode", "reason", "paymentdetails"
+    ];
+    wipe.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+
+    // ✅ Explicitly reset payment mode to Cash
+    const paySelect = document.getElementById("paymentmode");
+    if (paySelect) {
+        paySelect.value = "Cash";
+        paySelect.dispatchEvent(new Event("change")); // hides UPI/Card/etc field
+    }
+
+    const tbody = document.getElementById("investigationBody");
+    if (tbody) tbody.innerHTML = "";
+
+    loadedUHID = null;
+    loadedType = null;
+
+    const typeSelect = document.querySelector("select[name='pattype']");
+    if (typeSelect) typeSelect.value = "OP";
+    toggleFieldsForPatientType("OP");
+
+    const extraDiv = document.getElementById("extraFieldDiv");
+    if (extraDiv) extraDiv.style.display = "none";
+}
+
+// ✅ Covers: F5, reload button, Ctrl+R
+window.addEventListener("load", function () {
+    const urlUHID = new URLSearchParams(window.location.search).get("uhid");
+    if (!urlUHID) {
+        setTimeout(hardResetForm, 150);
+    }
+});
+
+// ✅ Covers: back button, forward button, tab restore (bfcache)
+window.addEventListener("pageshow", function (e) {
+    const urlUHID = new URLSearchParams(window.location.search).get("uhid");
+    if (!urlUHID) {
+        setTimeout(hardResetForm, 150);
+    }
+});
+function clearPatientFields() {
+    const ids = [
+        "patname", "patid", "age", "gender",
+        "agetype", "agetype_display",
+        "refdoctor", "refdoctor_id",
+        "doc_name", "doc_id",
+        "phone", "uhid",
+        "other_doctor", "other_doctor_id"
+    ];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+
+    // ❌ REMOVE: paymentmode and extraFieldDiv no longer exist
+    // document.getElementById("paymentmode").value = "Cash";
+    // const extraDiv = document.getElementById("extraFieldDiv");
+    // if (extraDiv) extraDiv.style.display = "none";
+
+    recalcTotals();
+}
+
+/* ============================
+   TOGGLE DOCTOR FIELDS
+============================ */
+function toggleFieldsForPatientType(type) {
+    const opWrapper   = document.getElementById("opDoctorWrapper");
+    const otherWrapper = document.getElementById("otherDoctorWrapper");
+
+    if (type === "Others") {
+        opWrapper.classList.add("d-none");
+        otherWrapper.classList.remove("d-none");
+    } else {
+        opWrapper.classList.remove("d-none");
+        otherWrapper.classList.add("d-none");
+        document.getElementById("other_doctor").value = "";
+        document.getElementById("other_doctor_id").value = "";
+    }
+}
+
+/* ============================
+   FILL PATIENT DATA
+============================ */
+function fillOPData(d) {
+    document.getElementById("patname").value      = d.patname || "";
+    document.getElementById("patid").value        = d.patid   || "";
+    document.getElementById("age").value          = d.age     || "";
+    document.getElementById("agetype").value      = d.agetype || "";
+    document.getElementById("agetype_display").value = d.agetype || "";
+    document.getElementById("gender").value       = d.gender  || "";
+    document.getElementById("phone").value        = d.phone   || "";
+    document.getElementById("refdoctor").value    = d.refdoctor_name || "";
+    document.getElementById("refdoctor_id").value = d.refdoc_id      || "";
+
+    // ✅ DOCTOR ACTIVE CHECK
+    if (d.doctor_inactive) {
+        // Fill name temporarily so alert can show it
+        const inactiveName = d.doc_name || "this doctor";
+
+        // Clear doctor fields — do NOT fill them
+        document.getElementById("doc_name").value = "";
+        document.getElementById("doc_id").value   = "";
+
+        // Show alert then focus doctor field
+        setTimeout(function () {
+            alert(`⚠️ Doctor "${inactiveName}" is no longer active or has been removed from the system. Please select a new doctor.`);
+            document.getElementById("doc_name").focus();
+        }, 200);
+
+    } else {
+        document.getElementById("doc_name").value = d.doc_name || "";
+        document.getElementById("doc_id").value   = d.doc_id   || "";
+    }
+}
+
+function fillOthersData(d) {
+    document.getElementById("patname").value      = d.patname || "";
+    document.getElementById("patid").value        = d.patid   || "";
+    document.getElementById("age").value          = d.age     || "";
+    document.getElementById("agetype").value      = d.agetype || "";
+    document.getElementById("agetype_display").value = d.agetype || "";
+    document.getElementById("gender").value       = d.gender  || "";
+    document.getElementById("phone").value        = d.phone   || "";
+    document.getElementById("refdoctor").value    = d.refdoctor_name || "";
+    document.getElementById("refdoctor_id").value = d.refdoctor_id   || "";
+    document.getElementById("doc_name").value     = "";
+    document.getElementById("doc_id").value       = "";
+}
+
+/* ============================
+   SERIAL + RECALC
+============================ */
+function updateSerial() {
+    if (!invBody) invBody = document.getElementById("investigationBody");
+    let i = 1;
+    invBody.querySelectorAll("tr").forEach(tr => {
+        tr.querySelector("td:first-child").textContent = i++;
+    });
+}
+
+function recalcTotals(resetPayment = false) {
+    const body       = document.getElementById("investigationBody");
+    const payingEl   = document.getElementById("payingamount");
+    const concEl     = document.getElementById("concamount");
+    const netEl      = document.getElementById("netamount");
+    const dueEl      = document.getElementById("due");
+
+    let netTotal = 0;
+    body.querySelectorAll("tr").forEach(tr => {
+        netTotal += parseFloat(tr.dataset.cost || 0);
+    });
+
+    netEl.value = netTotal.toFixed(2);
+
+    if (resetPayment) {
+        payingEl.value = "";
+        concEl.value   = "";
+    }
+
+    const paying = parseFloat(payingEl.value || 0);
+    const conc   = parseFloat(concEl.value   || 0);
+    const due    = netTotal - (paying + conc);
+    dueEl.value  = Math.max(0, due).toFixed(2);
+}
+
+/* ============================
+   AMOUNT VALIDATION
+============================ */
+function allowOnlyNumbers(input) {
+    input.value = input.value.replace(/[^0-9]/g, "");
+}
+// Replace your existing validateAmounts function and its two event listeners
+
+document.getElementById("payingamount").addEventListener("blur", function () {
+    const net    = parseFloat(document.getElementById("netamount").value || 0);
+    const paying = parseFloat(this.value || 0);
+    const conc   = parseFloat(document.getElementById("concamount").value || 0);
+    const self   = this;
+
+    if (paying > net) {
+        setTimeout(function () {
+            alert("❗ Paying amount cannot be greater than Net Amount");
+            self.value = "";
+            recalcTotals();
+            self.focus();
+        }, 0);
+        return;
+    }
+
+    if ((paying + conc) > net) {
+        setTimeout(function () {
+            alert("❗ Paying Amount + Concession cannot exceed Net Amount");
+            self.value = "";
+            recalcTotals();
+            self.focus();
+        }, 0);
+        return;
+    }
+
+    recalcTotals();
+});
+
+document.getElementById("concamount").addEventListener("blur", function () {
+    const net    = parseFloat(document.getElementById("netamount").value || 0);
+    const conc   = parseFloat(this.value || 0);
+    const paying = parseFloat(document.getElementById("payingamount").value || 0);
+    const self   = this;
+
+    if (conc > net) {
+        setTimeout(function () {
+            alert("❗ Concession amount cannot be greater than Net Amount");
+            self.value = "";
+            recalcTotals();
+            self.focus();
+        }, 0);
+        return;
+    }
+
+    if ((paying + conc) > net) {
+        setTimeout(function () {
+            alert("❗ Paying Amount + Concession cannot exceed Net Amount");
+            self.value = "";
+            recalcTotals();
+            self.focus();
+        }, 0);
+        return;
+    }
+
+    recalcTotals();
+});
+/* ============================
+   INVESTIGATION SUGGEST
+============================ */
+function createInvestigationSuggest() {
+    const input = document.getElementById("service");
+    const box   = document.getElementById("invSuggestions");
+
+    let currentIndex = -1;
+    let itemClicked  = false;
+    let itemSelected = false;
+
+    input.addEventListener("input", function () {
+        currentIndex = -1;
+        itemSelected = false;
+
+        const q = this.value.trim();
+        box.innerHTML    = "";
+        box.style.display = "none";
+        if (!q) return;
+
+        fetch(`/search-investigation/?q=${encodeURIComponent(q)}`)
+            .then(res => res.json())
+            .then(data => {
+                const list = data.results || [];
+                if (!list.length) return;
+
+                let html = "";
+                list.forEach((item, i) => {
+                    html += `
+                        <li class="list-group-item inv-item"
+                            data-inv_id="${item.inv_id}"
+                            data-name="${item.invname}"
+                            data-cost="${item.cost}"
+                            data-index="${i}">
+                           ${item.invname} (₹${item.cost})
+                        </li>`;
+                });
+
+                box.innerHTML     = html;
+                box.style.display = "block";
+            });
+    });
+
+    input.addEventListener("keydown", function (e) {
+        const items = box.querySelectorAll(".inv-item");
+        if (!items.length || box.style.display === "none") return;
+
+        if (e.key === "Escape") {
+            box.style.display = "none";
+            currentIndex = -1;
+            return;
+        }
+
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            currentIndex = e.key === "ArrowDown"
+                ? (currentIndex + 1) % items.length
+                : (currentIndex - 1 + items.length) % items.length;
+            highlightItem(items);
+            return;
+        }
+
+        if (e.key === "Enter") {
+            e.preventDefault();
+            if (currentIndex === -1) currentIndex = 0;
+            selectItem(items[currentIndex]);
+            return;
+        }
+
+        if (e.key === "Tab") {
+            if (itemSelected) { itemSelected = false; return; }
+            e.preventDefault();
+            if (currentIndex === -1) currentIndex = 0;
+            selectItem(items[currentIndex]);
+        }
+    });
+
+    function highlightItem(items) {
+        items.forEach(el => el.classList.remove("active"));
+        const active = items[currentIndex];
+        if (!active) return;
+        active.classList.add("active");
+
+        const container = box;
+        const a = active.getBoundingClientRect();
+        const c = container.getBoundingClientRect();
+        if (a.top < c.top)            container.scrollTop -= (c.top - a.top);
+        else if (a.bottom > c.bottom) container.scrollTop += (a.bottom - c.bottom);
+    }
+
+    function selectItem(item) {
+        const inv_id = item.dataset.inv_id;
+        const name   = item.dataset.name;
+        const cost   = parseFloat(item.dataset.cost);
+
+        addInvestigationRow(inv_id, name, cost);
+
+        input.value       = "";
+        box.style.display = "none";
+        currentIndex      = -1;
+        itemSelected      = true;
+    }
+
+    box.addEventListener("mousedown", function () { itemClicked = true; });
+
+    box.addEventListener("click", function (e) {
+        const item = e.target.closest(".inv-item");
+        if (!item) return;
+        selectItem(item);
+        setTimeout(() => itemClicked = false, 150);
+    });
+
+    input.addEventListener("blur", function () {
+        setTimeout(() => {
+            if (itemClicked) return;
+            if (input.value.trim()) input.value = "";
+            box.style.display = "none";
+        }, 200);
+    });
+}
+
+/* ============================
+   ADD INVESTIGATION ROW
+============================ */
+function addInvestigationRow(inv_id, invname, cost) {
+    if (!inv_id) { alert("Invalid investigation."); return; }
+
+    if (document.querySelector(`tr[data-inv_id="${inv_id}"]`)) {
+        alert("❗ Investigation already added!");
+        return;
+    }
+
+    const body = document.getElementById("investigationBody");
+    const tr   = document.createElement("tr");
+    tr.dataset.inv_id = inv_id;
+    tr.dataset.cost   = cost;
+
+    tr.innerHTML = `
+        <td class="text-center"></td>
+        <td>
+            ${invname}
+            <input type="hidden" name="inv_id[]"   value="${inv_id}">
+            <input type="hidden" name="invname[]"  value="${invname}">
+            <input type="hidden" name="invcost[]"  value="${cost}">
+        </td>
+        <td class="text-end">${cost.toFixed(2)}</td>
+        <td class="text-center">
+            <a href="#" class="text-danger delete-row">Delete</a>
+        </td>`;
+
+    body.appendChild(tr);
+    updateSerial();
+    recalcTotals();
+}
+
+/* ============================
+   PATIENT UHID LOOKUP
+============================ */
+async function loadPatientDetailsAuto(uhid) {
+    try {
+        let res     = await fetch(`/get-patient-details1/?uhid=${encodeURIComponent(uhid)}`);
+        let payload = await res.json();
+        if (payload && payload.success) {
+            fillOPData(payload.data || {});
+            loadedUHID = uhid;
+            loadedType = "OP";
+            document.querySelector("select[name='pattype']").value = "OP";
+            toggleFieldsForPatientType("OP");
+            return;
+        }
+    } catch(e) {}
+
+    try {
+        let res2     = await fetch(`/get-patient-details-op/?uhid=${encodeURIComponent(uhid)}`);
+        let payload2 = await res2.json();
+        if (payload2 && payload2.success) {
+            fillOthersData(payload2.data || {});
+            loadedUHID = uhid;
+            loadedType = "Others";
+            document.querySelector("select[name='pattype']").value = "Others";
+            toggleFieldsForPatientType("Others");
+            return;
+        }
+    } catch(e) {}
+
+    alert("❗ Invalid UHID! No patient found.");
+    clearPatientFields();
+    loadedUHID = null;
+    loadedType = null;
+}
+
+/* ============================
+   FORM SUBMIT
+============================ */
+$(document).ready(function () {
+
+    $("#investigationForm").on("submit", function (e) {
+        e.preventDefault();
+
+        // ✅ Validate at least one investigation
+        if (document.getElementById("investigationBody").querySelectorAll("tr").length === 0) {
+            alert("❗ Please add at least one investigation");
+            document.getElementById("service").focus();
+            return;
+        }
+
+        // ✅ Validate doctor
+        const pattype = document.querySelector("select[name='pattype']").value;
+
+        if (pattype === "OP" && !document.getElementById("doc_id").value.trim()) {
+            alert("❗ Please select a doctor from suggestions");
+            document.getElementById("doc_name").focus();
+            return;
+        }
+
+        if (pattype === "Others" && !document.getElementById("other_doctor_id").value.trim()) {
+            alert("❗ Please select doctor from suggestions");
+            document.getElementById("other_doctor").focus();
+            return;
+        }
+
+        
+
+        $.ajax({
+            url: this.action,
+            type: "POST",
+            data: $(this).serialize(),
+            success: function (res) {
+
+                if (res.success) {
+                    // 1️⃣ Open bill window
+                    window.open(
+                        res.redirect_url,
+                        "ReceiptWindow",
+                        "width=900,height=650,left=200,top=100,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes"
+                    );
+
+                    // 2️⃣ Full hard reset
+                    hardResetForm();
+                    updateSerial();
+                    recalcTotals();
+
+                    // 3️⃣ Focus UHID for next entry
+                    setTimeout(() => document.getElementById("uhid").focus(), 100);
+
+                } else {
+                    alert(res.message || "Invalid user code");
+                }
+            },
+            error: function () {
+                alert("Server error. Please try again.");
+            }
+        });
+    });
+
+});
+
+/* ============================
+   DOMContentLoaded HANDLERS
+============================ */
+window.addEventListener("DOMContentLoaded", function () {
+
+    invBody     = document.getElementById("investigationBody");
+    payingInput = document.getElementById("payingamount");
+    concInput   = document.getElementById("concamount");
+    netInput    = document.getElementById("netamount");
+    dueInput    = document.getElementById("due");
+
+    createInvestigationSuggest();
+
+    // Auto-load UHID from URL only on first load (not reload)
+    const params  = new URLSearchParams(window.location.search);
+    const urlUHID = params.get("uhid");
+    const navType = performance.getEntriesByType("navigation")[0]?.type;
+
+    if (urlUHID && !initialLoadDone && navType !== "reload") {
+        initialLoadDone = true;
+        document.getElementById("uhid").value = urlUHID;
+        loadPatientDetailsAuto(urlUHID);
+    }
+
+    // Initial toggle
+    const typeSelect = document.querySelector("select[name='pattype']");
+    toggleFieldsForPatientType(typeSelect.value);
+
+    // Patient type change
+    typeSelect.addEventListener("change", function () {
+        const newType = this.value;
+        toggleFieldsForPatientType(newType);
+        if (loadedUHID && loadedType && newType !== loadedType) {
+            clearPatientFields();
+            loadedUHID = null;
+            loadedType = null;
+        }
+    });
+
+    // Get button
+    document.getElementById("getBtn").addEventListener("click", function () {
+        const uhid    = document.getElementById("uhid").value.trim();
+        const pattype = document.querySelector("select[name='pattype']").value;
+
+        let url = pattype === "OP"
+            ? "/search-consultation-uhid/?return=opinvestigation"
+            : "/search-uhid/?return=opinvestigation";
+
+        if (uhid) url += "&uhid=" + encodeURIComponent(uhid);
+        window.location.href = url;
+    });
+
+    
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'OpInvestigationView' %}";
+});
+    // Delete row
+    invBody.addEventListener("click", function (e) {
+        if (e.target.classList.contains("delete-row")) {
+            e.preventDefault();
+            if (!confirm("Delete this investigation?")) return;
+            e.target.closest("tr").remove();
+            updateSerial();
+            recalcTotals(true);
+            document.getElementById("payingamount").focus();
+        }
+    });
+});
+
+// UHID blur
+document.getElementById("uhid").addEventListener("blur", function () {
+    const uhid = this.value.trim();
+    if (!uhid) return;
+    loadPatientDetailsAuto(uhid);
+});
+
+</script>
+
+<!-- ================================================================
+     OTHER DOCTOR AUTOCOMPLETE
+================================================================ -->
+<script>
+  function highlightMatch(text, query) {
+    if (!query) return text;
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+}
+let otherDocIndex        = -1;
+let otherDocClicked      = false;
+let otherDocSelected     = false;
+let otherDocAlertShowing = false;
+
+const otherDocURL = "/search-doctors/";
+
+$("#other_doctor").on("input", function () {
+    otherDocIndex    = -1;
+    otherDocSelected = false;
+    $("#other_doctor_id").val("");
+
+    let q   = $(this).val().trim();
+    let box = $("#other-doctor-suggestions");
+
+    box.empty().hide();
+    if (!q) return;
+
+    $.get(otherDocURL, { q: q }, function (res) {
+        let data = res.results || [];
+        if (!data.length) return;
+
+        let html = "";
+
+        
+        data.forEach((item, i) => {
+            html += `
+                <a href="#" class="list-group-item list-group-item-action other-doc-item"
+                   data-id="${item.id}"
+                   data-name="${item.name}"
+                   data-index="${i}">
+                     ${highlightMatch(item.name, q)} 
+                  
+                </a>`;
+        });
+
+        box.html(html).show();
+    });
+});
+
+$("#other_doctor").on("keydown", function (e) {
+    let items = $(".other-doc-item");
+
+    if (!$("#other-doctor-suggestions").is(":visible") || items.length === 0) {
+        otherDocSelected = false;
+        return;
+    }
+
+    if (e.key === "Escape") {
+        $("#other-doctor-suggestions").hide();
+        otherDocIndex = -1;
+        items.removeClass("active");
+        return;
+    }
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        otherDocIndex = e.key === "ArrowDown"
+            ? (otherDocIndex + 1) % items.length
+            : (otherDocIndex - 1 + items.length) % items.length;
+        highlightOtherDoctor(items);
+        return;
+    }
+
+    if (e.key === "Enter") {
+        e.preventDefault();
+        if (otherDocIndex === -1) otherDocIndex = 0;
+        selectOtherDoctor($(items[otherDocIndex]));
+        return;
+    }
+
+    if (e.key === "Tab") {
+        if (otherDocSelected) { otherDocSelected = false; return; }
+        e.preventDefault();
+        if (otherDocIndex === -1) otherDocIndex = 0;
+        selectOtherDoctor($(items[otherDocIndex]));
+    }
+});
+
+function highlightOtherDoctor(items) {
+    items.removeClass("active");
+    let active    = $(items[otherDocIndex]);
+    active.addClass("active");
+
+    let container = $("#other-doctor-suggestions")[0];
+    if (container && active.length) {
+        const a = active[0].getBoundingClientRect();
+        const c = container.getBoundingClientRect();
+        if (a.top < c.top)            container.scrollTop -= (c.top - a.top);
+        else if (a.bottom > c.bottom) container.scrollTop += (a.bottom - c.bottom);
+    }
+}
+
+$(document).on("mousedown", ".other-doc-item", function () {
+    otherDocClicked = true;
+});
+
+$(document).on("click", ".other-doc-item", function (e) {
+    e.preventDefault();
+    selectOtherDoctor($(this));
+    setTimeout(() => otherDocClicked = false, 150);
+});
+
+function selectOtherDoctor(item) {
+    $("#other_doctor").val(item.data("name"));
+    $("#other_doctor_id").val(item.data("id"));
+    $("#other-doctor-suggestions").hide();
+    otherDocSelected = true;
+    setTimeout(() => $("#service").focus(), 100);
+}
+
+$("#other_doctor").on("blur", function () {
+    setTimeout(() => {
+        if (otherDocClicked)      return;
+        if (otherDocAlertShowing) return;
+
+        let name = $(this).val().trim();
+
+        if (!name) {
+            if (!$("#other_doctor_id").val()) {
+                otherDocAlertShowing = true;
+                alert("❗ Doctor cannot be empty!");
+                setTimeout(() => {
+                    otherDocAlertShowing = false;
+                    $("#other_doctor").focus();
+                }, 300);
+            }
+            return;
+        }
+
+        $.get(otherDocURL, { q: name }, function (res) {
+            let exists = (res.results || [])
+                .some(x => x.name.toUpperCase() === name.toUpperCase());
+
+            if (!exists) {
+                otherDocAlertShowing = true;
+                alert("❗ Doctor not found! Select from suggestions.");
+                setTimeout(() => {
+                    otherDocAlertShowing = false;
+                    $("#other_doctor").val("");
+                    $("#other_doctor_id").val("");
+                    $("#other_doctor").focus();
+                }, 300);
+            }
+        });
+
+    }, 200);
+});
+</script>
+
+<!-- ================================================================
+     SKIP READONLY FIELDS ON TAB
+================================================================ -->
+<script>
+$(document).on("keydown", "input, select, textarea", function (e) {
+    if (e.key !== "Tab") return;
+
+    const focusable = $(
+        "input:not([readonly]):not([disabled]), " +
+        "select:not([disabled]), " +
+        "textarea:not([readonly]):not([disabled]), " +
+        "button:not([disabled])"
+    ).filter(":visible");
+
+    const index = focusable.index(this);
+    if (index === -1) return;
+
+    e.preventDefault();
+
+    if (e.shiftKey) {
+        if (index > 0) focusable.eq(index - 1).focus();
+    } else {
+        if (index < focusable.length - 1) focusable.eq(index + 1).focus();
+    }
+});
+</script>
+
+<!-- ================================================================
+     OP DOCTOR AUTOCOMPLETE
+================================================================ -->
+<script>
+let opDocIndex    = -1;
+let opDocClicked  = false;
+let opDocSelected = false;
+const opDocURL    = "/search-doctors/";
+
+$("#doc_name").on("input", function () {
+    opDocIndex    = -1;
+    opDocSelected = false;
+    $("#doc_id").val("");
+
+    const q   = $(this).val().trim();
+    const box = $("#op-doctor-suggestions");
+
+    box.empty().hide();
+    if (!q) return;
+
+    $.get(opDocURL, { q: q }, function (res) {
+        const data = res.results || [];
+        if (!data.length) return;
+
+        let html = "";
+        data.forEach((item, i) => {
+            html += `
+                <a href="#" class="list-group-item list-group-item-action op-doc-item"
+                   data-id="${item.id}"
+                   data-name="${item.name}"
+                   data-index="${i}">
+                   ${highlightMatch(item.name, q)}  
+                </a>`;
+        });
+        box.html(html).show();
+    });
+});
+
+$("#doc_name").on("keydown", function (e) {
+    const items = $(".op-doc-item");
+
+    if (!$("#op-doctor-suggestions").is(":visible") || items.length === 0) {
+        opDocSelected = false;
+        return;
+    }
+
+    if (e.key === "Escape") {
+        $("#op-doctor-suggestions").hide();
+        opDocIndex = -1;
+        items.removeClass("active");
+        return;
+    }
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        opDocIndex = e.key === "ArrowDown"
+            ? (opDocIndex + 1) % items.length
+            : (opDocIndex - 1 + items.length) % items.length;
+        highlightOpDoctor(items);
+        return;
+    }
+
+    if (e.key === "Enter") {
+        e.preventDefault();
+        if (opDocIndex === -1) opDocIndex = 0;
+        selectOpDoctor($(items[opDocIndex]));
+        return;
+    }
+
+    if (e.key === "Tab") {
+        if (opDocSelected) { opDocSelected = false; return; }
+        e.preventDefault();
+        if (opDocIndex === -1) opDocIndex = 0;
+        selectOpDoctor($(items[opDocIndex]));
+    }
+});
+
+function highlightOpDoctor(items) {
+    items.removeClass("active");
+    const active    = $(items[opDocIndex]);
+    active.addClass("active");
+
+    const container = $("#op-doctor-suggestions")[0];
+    if (container && active.length) {
+        const a = active[0].getBoundingClientRect();
+        const c = container.getBoundingClientRect();
+        if (a.top < c.top)            container.scrollTop -= (c.top - a.top);
+        else if (a.bottom > c.bottom) container.scrollTop += (a.bottom - c.bottom);
+    }
+}
+
+$(document).on("mousedown", ".op-doc-item", function () {
+    opDocClicked = true;
+});
+
+$(document).on("click", ".op-doc-item", function (e) {
+    e.preventDefault();
+    selectOpDoctor($(this));
+    setTimeout(() => opDocClicked = false, 150);
+});
+
+function selectOpDoctor(item) {
+    $("#doc_name").val(item.data("name"));
+    $("#doc_id").val(item.data("id"));
+    $("#op-doctor-suggestions").hide();
+    opDocSelected = true;
+    setTimeout(() => $("#service").focus(), 100);
+}
+
+$("#doc_name").on("blur", function () {
+    setTimeout(() => {
+        if (opDocClicked) return;
+
+        const name       = $(this).val().trim();
+        const existingId = $("#doc_id").val().trim();
+
+        if (!name) {
+            $("#doc_id").val("");
+            $("#op-doctor-suggestions").hide();
+            return;
+        }
+
+        if (existingId) {
+            $("#op-doctor-suggestions").hide();
+            return;
+        }
+
+        $.get(opDocURL, { q: name }, function (res) {
+            const match = (res.results || [])
+                .find(x => x.name.toUpperCase() === name.toUpperCase());
+
+            if (match) {
+                $("#doc_id").val(match.id);
+            } else {
+                alert("❗ Doctor not found! Select from suggestions.");
+                $("#doc_name").val("");
+                $("#doc_id").val("");
+                $("#doc_name").focus();
+            }
+        });
+
+        $("#op-doctor-suggestions").hide();
+    }, 200);
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("uhid").focus();
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,243 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header"><h5>Speciality Master</h5></div>
+    <div class="form-body">
+
+      <!-- ✅ Alert messages -->
+       {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+      <form method="post" AUTOCOMPLETE="off">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+        <!-- 🔘 Operation Radio Buttons -->
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label><input type="radio" name="operation_radio" value="add"
+              {% if operation == 'add' %}checked{% endif %}
+              onchange="window.location.href='?operation=add';"> Add</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="modify"
+              {% if operation == 'modify' %}checked{% endif %}
+              onchange="window.location.href='?operation=modify';"> Modify</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="delete"
+              {% if operation == 'delete' %}checked{% endif %}
+              onchange="window.location.href='?operation=delete';"> Delete</label>
+          </div>
+        </div>
+
+        <!-- 🟢 ADD Mode -->
+        {% if operation == 'add' %}
+        <div class="row mb-3">
+          <div class="col-md-5">
+            <label>Enter Speciality <span class="text-danger">*</span></label>
+            <input type="text" name="speciality" class="form-control" maxlength="50" value="{{ search_text }}">
+
+          </div>
+          <div class="col-md-3 align-self-end">
+            <button type="submit" name="add_btn" class="btn btn-primary btn-sm me-2">Add</button>
+            <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+        {% elif operation in 'modify delete' %}
+        <!-- ✏️ MODIFY / 🗑️ DELETE Mode Search -->
+        <div class="row mb-3">
+          <div class="col-md-5">
+            <label>Search Speciality</label>
+            <input type="text" name="search_text" value="{{ search_text }}" class="form-control" maxlength="50">
+          </div>
+          <div class="col-md-3 align-self-end">
+            <button type="submit" name="search_btn" class="btn btn-secondary btn-sm">Search</button>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- 📋 Table -->
+        <div class="col-8">
+            <div class="table-responsive mt-2">
+          <table class="table table-bordered">
+            <thead class="table-light">
+              <tr>
+                {% if operation == 'modify' %}
+                  <th width="20%">Edit</th>
+                {% elif operation == 'delete' %}
+                  <th>Delete</th>
+                {% endif %}
+                <th>Code</th>
+                <th>Speciality</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in records %}
+              <tr data-row-id="{{ s.pk }}">
+                {% if operation == 'modify' %}
+                <td>
+                  <button type="button" class="btn1 edit-btn" data-id="{{ s.pk }}">Edit</button>
+                  <button type="submit" class="btn1 btn1-update update-btn" name="update_btn" value="{{ s.pk }}" style="display:none;">Update</button>
+                  <button type="button" class="btn1 btn1-secondary cancel-btn" data-id="{{ s.pk }}" style="display:none;">Cancel</button>
+                </td>
+                {% elif operation == 'delete' %}
+                <td>
+                  <button type="submit" class="btn1 btn-danger-delete" name="delete_btn" value="{{ s.pk }}" onclick="return confirm('Delete {{ s.speciality }}?');">Delete</button>
+                </td>
+                {% endif %}
+                <td>{{ s.sno }}</td>
+                <td>
+                  <input type="text" name="speciality_{{ s.pk }}"
+                         class="form-control form-control-sm row-input-{{ s.pk }}"
+                         value="{{ s.speciality }}"
+                         data-original="{{ s.speciality }}"
+                         {% if operation != 'modify' %}disabled{% endif %} maxlength="50">
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center">No records found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const cancelBtn = document.getElementById("cancelBtn");
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", function () {
+            window.location.href = "{% url 'SpecialityMasterView' %}";
+        });
+    }
+
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    function disableAllRows() {
+
+        document.querySelectorAll('tr[data-row-id]').forEach(tr => {
+
+            const id = tr.dataset.rowId;
+
+            tr.querySelectorAll('.row-input-' + id).forEach(inp => {
+
+                inp.disabled = true;
+            });
+
+            tr.querySelector('.edit-btn')?.style?.setProperty('display', '');
+
+            tr.querySelector('.update-btn')?.style?.setProperty('display', 'none');
+
+            tr.querySelector('.cancel-btn')?.style?.setProperty('display', 'none');
+
+        });
+
+    }
+
+    // ✅ Edit
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+
+        btn.addEventListener('click', e => {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const id = btn.dataset.id;
+
+            disableAllRows();
+
+            document.querySelectorAll('.row-input-' + id).forEach(inp => {
+
+                inp.disabled = false;
+
+                inp.dataset.original = inp.value;
+            });
+
+            btn.style.display = 'none';
+
+            document.querySelector(`.update-btn[value="${id}"]`).style.display = '';
+
+            document.querySelector(`.cancel-btn[data-id="${id}"]`).style.display = '';
+        });
+
+    });
+
+    // ✅ Cancel
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+
+        btn.addEventListener('click', e => {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const id = btn.dataset.id;
+
+            document.querySelectorAll('.row-input-' + id).forEach(inp => {
+
+                inp.value = inp.dataset.original;
+
+                inp.disabled = true;
+            });
+
+            disableAllRows();
+
+        });
+
+    });
+
+    // ✅ Click outside row
+    document.addEventListener('click', function(e) {
+
+        const activeEditBtn = document.querySelector(
+            '.edit-btn[style*="display: none"]'
+        );
+
+        if (!activeEditBtn) return;
+
+        const row = activeEditBtn.closest('tr');
+
+        if (row && !row.contains(e.target)) {
+
+            row.querySelectorAll('input').forEach(inp => {
+
+                if (inp.dataset.original !== undefined) {
+
+                    inp.value = inp.dataset.original;
+                }
+
+            });
+
+            disableAllRows();
+        }
+
+    });
+
+    disableAllRows();
+
+});
+</script>
+<style>
+
+  .table th, .table td {
+    text-align: left;
+  }
+  </style>
+
+{% endblock %}

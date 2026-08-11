@@ -1,0 +1,185 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header"><h5>District Master</h5></div>
+
+    <div class="form-body">
+      <form method="post" autocomplete="off">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+          {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+        <!-- Operation -->
+        <div class="row mb-2">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label><input type="radio" name="operation_radio" value="add" {% if operation == 'add' %}checked{% endif %} onchange="window.location.href='?operation=add';"> Add</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="modify" {% if operation == 'modify' %}checked{% endif %} onchange="window.location.href='?operation=modify';"> Modify</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="delete" {% if operation == 'delete' %}checked{% endif %} onchange="window.location.href='?operation=delete';"> Delete</label>
+          </div>
+        </div>
+
+        <!-- Fields -->
+        {% if operation == 'add' %}
+        <div class="row align-items-end mb-2">
+          <div class="col-md-3">
+            <label>State Name</label>
+            <select name="state_name" class="form-select">
+              <option value="">--Select--</option>
+              {% for s in states %}
+                <option value="{{ s.pk }}">{{ s.statename }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label>District Name</label>
+            <input type="text" name="district_name" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <button type="submit" class="btn btn-primary btn-sm me-2" name="add_btn">Save</button>
+           <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+
+        {% elif operation == 'modify' or operation == 'delete' %}
+        <div class="row align-items-end mb-2">
+          <div class="col-md-3">
+            <label>Search</label>
+            <input type="text" name="search_term" class="form-control" value="{{ search_term }}">
+          </div>
+          <div class="col-md-3">
+            <button type="submit" class="btn btn-info btn-sm me-2" name="search_btn">Search</button>
+           
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Table -->
+        <div class="row mt-3" {% if not districts %}style="display:none;"{% endif %}>
+          <div class="col-10">
+            <h6><strong>Existing Districts</strong></h6>
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead class="table-light">
+                  <tr>
+                    {% if operation == 'modify' %}<th>Actions</th>{% elif operation == 'delete' %}<th>Delete</th>{% endif %}
+                    <th>Code</th>
+                    <th>State Name</th>
+                    <th>District Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for d in districts %}
+                    <tr>
+                      {% if operation == 'modify' %}
+                        <td>
+                          <button type="button" class="btn1 edit-btn" data-id="{{ d.sno }}">Edit</button>
+                          <button type="submit" class="btn1 btn1-update update-btn" name="update_btn" value="{{ d.sno }}" style="display:none;">Update</button>
+                          <button type="button" class="btn1 btn1-secondary cancel-btn" data-id="{{ d.sno }}" style="display:none;">Cancel</button>
+                        </td>
+                      {% elif operation == 'delete' %}
+                        <td>
+                          <button type="submit" class="btn1 btn-danger-delete" name="delete_btn" value="{{ d.sno }}" onclick="return confirm('Delete district {{ d.district_name }}?')">Delete</button>
+                        </td>
+                      {% endif %}
+                      <td>{{ d.sno }}</td>
+                      <td>
+                        <select name="state_name_{{ d.sno }}" class="form-select form-select-sm row-input-{{ d.sno }}" {% if operation != 'modify' %}disabled{% endif %}>
+                          {% for s in states %}
+                            <option value="{{ s.pk }}" {% if s.pk == d.state_name.pk %}selected{% endif %}>{{ s.statename }}</option>
+                          {% endfor %}
+                        </select>
+                      </td>
+                      <td>
+                        <input type="text" name="district_name_{{ d.sno }}" class="form-control form-control-sm row-input-{{ d.sno }}" value="{{ d.district_name }}" data-original="{{ d.district_name }}" {% if operation != 'modify' %}disabled{% endif %}>
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr><td colspan="4" class="text-center">No records found.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  
+document.addEventListener('DOMContentLoaded', function () {
+
+    const cancelBtn = document.getElementById("cancelBtn");
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", function () {
+            window.location.href = "{% url 'DistrictMasterView' %}";
+        });
+    }
+
+});
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        btn.style.display = 'none';
+        document.querySelector('.update-btn[value="' + id + '"]').style.display = '';
+        document.querySelector('.cancel-btn[data-id="' + id + '"]').style.display = '';
+        document.querySelectorAll('.row-input-' + id).forEach(el => {
+          el.disabled = false;
+          el.classList.add('border');
+        });
+      });
+    });
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        btn.style.display = 'none';
+        document.querySelector('.update-btn[value="' + id + '"]').style.display = 'none';
+        document.querySelector('.edit-btn[data-id="' + id + '"]').style.display = '';
+        document.querySelectorAll('.row-input-' + id).forEach(el => {
+          el.disabled = true;
+          el.classList.remove('border');
+        });
+      });
+    });
+  });
+  // ✅ Click outside active row → cancel edit
+document.addEventListener('click', function(e) {
+  const activeEditBtn = document.querySelector('.edit-btn[style*="display: none"]');
+  if (!activeEditBtn) return;
+
+  const activeRow = activeEditBtn.closest('tr');
+  if (activeRow && !activeRow.contains(e.target)) {
+    const id = activeEditBtn.dataset.id;
+
+    document.querySelectorAll('.row-input-' + id).forEach(el => {
+      if (el.dataset.original !== undefined) el.value = el.dataset.original;
+      el.disabled = true;
+      el.classList.remove('border');
+    });
+
+    activeEditBtn.style.display = '';
+    const updateBtn = document.querySelector('.update-btn[value="' + id + '"]');
+    const cancelBtn = document.querySelector('.cancel-btn[data-id="' + id + '"]');
+    if (updateBtn) updateBtn.style.display = 'none';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+  }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+{% comment %} <style>
+  /* ✅ Same styles as RoomMaster */
+  .form-control { font-size: 0.7rem; }
+  .table>:not(caption)>*>* { padding: 0px; }
+  .table th { font-size: 0.75rem; }
+  .table td { font-size: 0.7rem; }
+  .table-responsive { max-height: 300px; overflow-y: auto; }
+  .form-control:disabled { background-color: white; }
+  .btn1 { font-weight: 400; padding: 2px 4px; font-size: 0.6rem; }
+  .btn1-update { background-color: var(--form-success); border-color: var(--form-success); }
+  .btn1-success:hover { background-color: #1b5e20; }
+  .edit-btn { background-color: orange; border-color: black; }
+  .btn1-secondary { background-color: #6c757d; border-color: #6c757d; }
+  .btn1-secondary:hover { background-color: #5a6268; }
+  .btn-danger-delete { background-color: red; color: white; }
+  .table { width: 100%; border-collapse: collapse; table-layout: auto; }
+  .table th, .table td { text-align: center; vertical-align: middle; font-size: 0.7rem; padding: 4px 6px !important; }
+  .table th { font-weight: 600; background-color: #f8f9fa; position: sticky; top: 0; z-index: 2; }
+  .table-responsive { max-height: 320px; overflow-y: auto; box-shadow: inset 0 0 8px rgba(0,0,0,0.08); }
+</style> {% endcomment %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Auto Services</h5>
+    </div>
+
+    <div class="form-body">
+        {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+      <form method="post" id="service-form">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+        <!-- ✅ Operation Selection -->
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label><input type="radio" name="operation_radio" value="add"
+                   {% if operation == 'add' %}checked{% endif %}
+                   onchange="window.location.href='?operation=add';"> Add</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="modify"
+                   {% if operation == 'modify' %}checked{% endif %}
+                   onchange="window.location.href='?operation=modify';"> Modify</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="delete"
+                   {% if operation == 'delete' %}checked{% endif %}
+                   onchange="window.location.href='?operation=delete';"> Delete</label>
+          </div>
+        </div>
+
+        <!-- ✅ Add / Modify / Delete Layout -->
+        <div class="row mb-3">
+          <div class="col-md-3">
+            <label class="form-label">Room Type</label>
+            <select name="roomtypeid" id="roomtypeid" class="form-select">
+              <option value="">--Select--</option>
+              {% for rt in roomtypes %}
+                <option value="{{ rt.roomtypeid }}" {% if selected_roomtype == rt.roomtypeid|stringformat:"s" %}selected{% endif %}>
+                  {{ rt.roomtype }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {% if operation == 'add' %}
+          <div class="col-md-4">
+            <label class="form-label">Enter Services</label>
+            <input type="text" name="servicename" id="servicename" class="form-control" maxlength="100" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Cost</label>
+            <input type="number" name="charge" id="charge" class="form-control" step="0.01" min="0" required oninput="if(this.value.length>10)this.value=this.value.slice(0,10);">
+          </div>
+          <div class="col-md-2 align-self-end">
+            <button type="submit" class="btn btn-primary btn-sm" name="add_btn">Submit</button>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- ✅ Table -->
+        <div class='col-8'>
+            <div class="table-responsive mt-2">
+          <table class="table table-bordered table-s">
+            <thead class="table-light">
+              <tr>
+                {% if operation == 'modify' %}<th>Action</th>{% elif operation == 'delete' %}<th>Delete</th>{% endif %}
+                <th>S.No</th>
+                <th>Room Type</th>
+                <th>Service</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in servicelist %}
+              <tr data-row-id="{{ s.pk }}">
+                {% if operation == 'modify' %}
+                <td>
+                  <button type="button" class="btn1 edit-btn" data-id="{{ s.pk }}">Edit</button>
+                  <button type="submit" class="btn1 btn1-update update-btn" name="update_btn" value="{{ s.pk }}" style="display:none;">Update</button>
+                  <button type="button" class="btn1 btn1-secondary cancel-btn" data-id="{{ s.pk }}" style="display:none;">Cancel</button>
+                </td>
+                {% elif operation == 'delete' %}
+                <td>
+                  <button type="submit" class="btn1 btn-danger-delete" name="delete_btn" value="{{ s.pk }}" onclick="return confirm('Delete service {{ s.servicename }}?');">Delete</button>
+                </td>
+                {% endif %}
+                <td>{{ forloop.counter }}</td>
+                <td>{{ s.roomtype.roomtype }}</td>
+
+                <!-- ✅ Service Name locked always -->
+                <td>
+                   
+                    {{ s.servicename }}
+
+                <!-- ✅ Cost editable only in Modify mode -->
+                <td>
+                  <input type="number" name="charge_{{ s.pk }}" class="form-control form-control-sm row-input-{{ s.pk }}" 
+                         value="{{ s.charge }}" step="0.01" data-original="{{ s.charge }}"  oninput="if(this.value.length>10)this.value=this.value.slice(0,10);"
+                         {% if operation != 'modify' %}disabled{% endif %}>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-center">No records found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ JS -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const dropdown = document.getElementById('roomtypeid');
+  if (dropdown) {
+    dropdown.addEventListener('change', function() {
+      const selected = this.value;
+      const params = new URLSearchParams(window.location.search);
+      params.set('roomtypeid', selected);
+      params.set('operation', '{{ operation }}');
+      window.location.search = params.toString();
+    });
+  }
+
+  function disableAllRows() {
+    document.querySelectorAll('tr[data-row-id]').forEach(tr => {
+      const id = tr.dataset.rowId;
+      tr.querySelectorAll('.row-input-' + id).forEach(inp => inp.disabled = true);
+      tr.querySelector('.edit-btn')?.style?.setProperty('display', '');
+      tr.querySelector('.update-btn')?.style?.setProperty('display', 'none');
+      tr.querySelector('.cancel-btn')?.style?.setProperty('display', 'none');
+    });
+  }
+
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const id = btn.dataset.id;
+      disableAllRows();
+      document.querySelectorAll('.row-input-' + id).forEach(inp => inp.disabled = false);
+      btn.style.display = 'none';
+      document.querySelector(`.update-btn[value="${id}"]`).style.display = '';
+      document.querySelector(`.cancel-btn[data-id="${id}"]`).style.display = '';
+    });
+  });
+
+  document.querySelectorAll('.cancel-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const id = btn.dataset.id;
+      document.querySelectorAll('.row-input-' + id).forEach(inp => {
+        inp.value = inp.dataset.original;
+        inp.disabled = true;
+      });
+      disableAllRows();
+    });
+  });
+
+  disableAllRows();
+});
+</script>
+
+{% endblock %}

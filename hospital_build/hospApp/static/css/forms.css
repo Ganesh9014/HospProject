@@ -1,0 +1,275 @@
+/* =======================================
+   Global Form Styling — Hospital Dashboard
+   ======================================= */
+
+:root {
+  /* Primary palette — calm, clean, clinical */
+  --form-primary: #1e88e5;          /* modern soft blue */
+  --form-primary-light: #e3f2fd;
+  --form-success: #2e7d32;
+  --form-danger: #c62828;
+
+  /* Neutrals */
+  --form-bg: #f8f9fa;
+  --form-card-bg: #ffffff;
+  --form-border: #dee2e6;
+  --form-text: #343a40;
+  --form-label: #495057;
+  --form-muted: #6c757d;
+
+  /* Effects */
+  --form-radius: 12px;
+  --form-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ===============================
+   Form Card and Layout
+   =============================== */
+.form-card {
+  background: var(--form-card-bg);
+  border: 1px solid var(--form-border);
+  border-radius: var(--form-radius);
+  box-shadow: var(--form-shadow);
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+}
+.form-card:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+.form-card .form-header {
+  background: rgb(90, 0, 128);
+  color: #fff;
+  padding: 12px 12px;
+}
+.form-card .form-header h5 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.0rem;
+  letter-spacing: 0.3px;
+}
+.form-card .form-body {
+  padding: 10px;
+}
+
+/* ===============================
+   Form Elements
+   =============================== */
+.form-label {
+  color: var(--form-label);
+  font-weight: bolder;
+  font-size: 0.85rem;
+  margin-bottom: 0.2rem;
+}
+
+.form-control,
+.form-select {
+  /* border-radius: var(--form-radius); */
+  border: 1px solid black;
+  background-color: #fff;
+  box-shadow: none !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-size: 0.7rem;
+  font-weight: bold;
+  height: 24px;
+
+  padding:0rem 0.6rem !important; 
+  
+}
+.form-select{
+   cursor: pointer !important;
+}
+
+.form-control:hover,
+.form-select:hover {
+  border-color: var(--form-primary-light);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--form-primary);
+  box-shadow: 0 0 0 0.15rem rgba(30, 136, 229, 0.15);
+}
+
+.form-control:disabled {
+  background-color: #fff;
+}
+
+/* ===============================
+   Table Styling
+   =============================== */
+.table th,
+.table td {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 0.7rem;
+}
+.table th {
+  font-size: 0.75rem;
+  background-color: var(--form-primary-light);
+}
+.table>:not(caption)>*>* {
+  padding: 0px;
+}
+.table-responsive {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.form-check-input {
+    cursor: pointer;
+    border: 1px solid #0d6efd;
+}
+/* ===============================
+   Button Styling
+   =============================== */
+.btn {
+  border-radius: var(--form-radius);
+  font-weight: 500;
+  
+  font-size: 0.8rem;
+}
+.btn-success {
+  background-color: var(--form-success);
+  border-color: var(--form-success);
+  color: #fff;
+}
+.btn-success:hover {
+  background-color: #1b5e20;
+}
+.btn-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: #fff;
+}
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+.btn-primary {
+  background-color: var(--form-primary);
+  border-color: var(--form-primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background-color: #1565c0;
+}
+.btn-outline-secondary {
+  background-color: transparent;
+  border: 1px solid #6c757d;
+  color: #6c757d;
+}
+.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  color: #fff;
+}
+
+/* Small Action Buttons */
+.btn1 {
+  font-weight: 400;
+  padding: 2px 4px;
+  font-size: 0.6rem;
+}
+.btn1-update {
+  background-color: var(--form-success);
+  border-color: var(--form-success);
+}
+.btn1-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+.edit-btn {
+  background-color: orange;
+  border-color: black;
+}
+.cancel-btn {
+  background-color: gray;
+  border-color: black;
+  color: white;
+}
+.btn-danger-delete {
+  background-color: red;
+  color: white;
+}
+
+/* ===============================
+   Alerts (for Django messages)
+   =============================== */
+.alert {
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+}
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+.alert-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+.alert-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+.alert-info {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+/* ===============================
+   Special Effects
+   =============================== */
+.active-edit {
+  background-color: #e7f3ff;
+  border-color: #2196f3;
+}
+.usercode {
+  background-color: yellow;
+} 
+
+/* ===============================
+   Responsive Grid
+   =============================== */
+@media (min-width: 992px) {
+  .form-grid .form-field {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+  }
+}
+@media (min-width: 768px) and (max-width: 991px) {
+  .form-grid .form-field {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+}
+@media (max-width: 767px) {
+  .form-grid .form-field {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .form-card .form-header h5 {
+    font-size: 1rem;
+  }
+  .btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+
+
+
+.rpt-label {
+  min-width: 90px;
+  flex-shrink: 0;
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.rpt-label ~ .form-control,
+.rpt-label ~ .form-select {
+  min-width: 0;
+  flex: 1;
+}

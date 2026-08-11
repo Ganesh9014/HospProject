@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Day Wise Doctor Report</title>
+
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 11px; margin: 10px; }
+
+        .report-container {
+            border: 2px solid black;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        .header { text-align: center; }
+        .title { text-align: center; font-weight: bold; margin-top: 10px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            padding: 5px;
+            text-align: left;
+        }
+
+        td {
+            padding: 1px 4px;
+        }
+
+        .text-end { text-align: right; }
+
+        .section-row {
+            font-weight: bold;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+           
+        }
+
+        .total-row {
+            font-weight: bold;
+            border-top: 1px solid #000;
+           
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="report-container">
+
+    <div class="header">
+        <h2>{{ hospital.name }}</h2>
+        <p>{{ hospital.address }}</p>
+    </div>
+
+    <hr style="border:1px solid #333;">
+
+    <div class="title">
+    {% if selected_doctor_name == "ALL" %}
+       {{selected_doctor_name}} DOCTOR'S DAY WISE REPORT
+    {% else %}
+        {{ selected_doctor_name|upper }}  DAY WISE REPORT
+    {% endif %}
+</div>
+
+    <div class="title" >
+        From {{ from_date | date:"d-m-Y"}} To {{ to_date | date:"d-m-Y"}}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>S.NO</th>
+                <th>BILL NO</th>
+                <th>UHID</th>
+                <th>PATIENT NAME</th>
+                
+                <th>DOCTOR</th>
+                <th>CREATED DATE</th>
+                <th class="text-end">PAID AMT</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        <!-- ================= CONSULTATION ================= -->
+        {% if consultation_data %}
+        <tr class="section-row">
+            <td colspan="6">OP CONSULTATION</td>
+        </tr>
+
+        {% for row in consultation_data %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.billno }}</td>
+            <td>{{ row.uhid }}</td>
+            <td>{{ row.patname|upper }}</td>
+            
+             <td>{{ row.doctor|upper|default:"-" }}</td>
+            <td>{{ row.date|date:"d-m-Y H:i:s" }}</td>
+            <td class="text-end">{{ row.amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row">
+            <td colspan="6" class="text-end">Total</td>
+            <td class="text-end">{{ consultation_total|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+
+
+        <!-- ================= INVESTIGATION ================= -->
+        {% if investigation_data %}
+        <tr class="section-row">
+            <td colspan="6">OP INVESTIGATION</td>
+        </tr>
+
+        {% for row in investigation_data %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.billno }}</td>
+            <td>{{ row.uhid }}</td>
+            <td>{{ row.patname|upper }}</td>
+    
+             <td>{{ row.doctor|upper|default:"-" }}</td>
+            <td>{{ row.date|date:"d-m-Y H:i:s" }}</td>
+            <td class="text-end">{{ row.amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row">
+            <td colspan="6" class="text-end">Total</td>
+            <td class="text-end">{{ investigation_total|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+
+
+        <!-- ================= PROCEDURE ================= -->
+        {% if procedure_data %}
+        <tr class="section-row">
+            <td colspan="6">OP PROCEDURE</td>
+        </tr>
+
+        {% for row in procedure_data %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.billno }}</td>
+            <td>{{ row.uhid }}</td>
+            <td>{{ row.patname|upper }}</td>
+            
+             <td>{{ row.doctor|upper|default:"-" }}</td>
+            <td>{{ row.date|date:"d-m-Y H:i:s" }}</td>
+            <td class="text-end">{{ row.amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row">
+            <td colspan="6" class="text-end">Total</td>
+            <td class="text-end">{{ procedure_total|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+
+
+        <!-- ================= PAYMENTS ================= -->
+        {% if payment_data %}
+        <tr class="section-row">
+            <td colspan="6">OP PAYMENTS</td>
+        </tr>
+
+        {% for row in payment_data %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.billno }}</td>
+            <td>{{ row.uhid }}</td>
+            <td>{{ row.patname|upper }}</td>
+            
+             <td>{{ row.doctor|upper|default:"-" }}</td>
+            <td>{{ row.date|date:"d-m-Y H:i:s" }}</td>
+            <td class="text-end">{{ row.amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row">
+            <td colspan="6" class="text-end">Total</td>
+            <td class="text-end">{{ op_total|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+
+        <!-- ================= CANCELLATION ================= -->
+        {% if cancellation_data %}
+        <tr class="section-row">
+            <td colspan="6">OP CANCELLATION</td>
+        </tr>
+
+        {% for row in cancellation_data %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.billno }}</td>
+            <td>{{ row.uhid }}</td>
+            <td>{{ row.patname|upper }}</td>
+            <td>{{ row.doctor|upper|default:"-" }}</td>
+            <td>{{ row.date|date:"d-m-Y H:i:s" }}</td>
+            <td class="text-end">-{{ row.amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row">
+            <td colspan="6" class="text-end">Total</td>
+            <td class="text-end">-{{ cancellation_total|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+
+        <!-- ================= REFUND ================= -->
+        {% if refund_data %}
+        <tr class="section-row">
+            <td colspan="6">OP REFUNDS</td>
+        </tr>
+
+        {% for row in refund_data %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.billno }}</td>
+            <td>{{ row.uhid }}</td>
+            <td>{{ row.patname|upper }}</td>
+            <td>{{ row.doctor|upper|default:"-" }}</td>
+            <td>{{ row.date|date:"d-m-Y H:i:s" }}</td>
+            <td class="text-end">-{{ row.amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row">
+            <td colspan="6" class="text-end">Total</td>
+            <td class="text-end">-{{ refund_total|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+
+         <tr>
+            <td colspan="7" style="padding-top:30px;"></td>
+         </tr>
+         <tr class="total-row" style="border-top: 1px solid #000;">
+            <td colspan="6" class="text-end"><b>Grand Total </b></td>
+            <td class="text-end"><b>{{ grand_total | floatformat:2 }}</b></td>
+         </tr>
+        </tbody>
+    </table>
+
+  
+</div>
+
+<div style="width:50%; margin:auto; margin-top:20px;">
+  <div style="display:flex; justify-content:space-between; font-size:12px;">
+    <div><strong>Print By:</strong> {{logged_user |upper}}</div>
+    <div><strong>Print Time:</strong> {{ print_time|date:"d-m-Y H:i:s" }}</div>
+  </div>
+</div>
+
+</body>
+</html>

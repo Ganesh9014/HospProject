@@ -1,0 +1,816 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="card form-card">
+        <div class="form-header">
+            <h5>🧑Patient Registration</h5>
+        </div>
+        
+
+
+        <div class="card shadow-sm form-card">
+            <div class="card-body">
+
+                <form method="POST" autocomplete="off">
+
+
+                   <!-- existing messages block -->
+{% if messages %}
+<script>
+    {% for msg in messages %}
+        alert("{{ msg }}");
+    {% endfor %}
+</script>
+{% endif %}
+{% if form.errors %}
+<script>
+    let errorList = [];
+    let errorFields = [];
+
+    {% for field, errors in form.errors.items %}
+        {% for error in errors %}
+            errorList.push("{{ field|capfirst }}: {{ error|striptags }}");
+            errorFields.push("id_{{ field }}");
+        {% endfor %}
+    {% endfor %}
+
+    let currentErrorIndex = 0;
+
+    function showNextError() {
+        if (currentErrorIndex >= errorList.length) return;
+
+        alert(errorList[currentErrorIndex]);
+
+        let fieldId = errorFields[currentErrorIndex];
+        let field = document.getElementById(fieldId);
+
+        if (field) {
+            setTimeout(() => {
+                // ✅ CLEAR FIELD VALUE
+                field.value = "";
+
+                // ✅ FOCUS FIELD
+                field.focus();
+
+                // ✅ OPTIONAL: highlight field
+                field.style.border = "2px solid red";
+
+                field.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 100);
+        }
+
+        currentErrorIndex++;
+
+        if (currentErrorIndex < errorList.length) {
+            setTimeout(showNextError, 200);
+        }
+    }
+
+    window.onload = function() {
+        showNextError();
+    };
+</script>
+{% endif %}
+<!-- one-time invalid usercode alert (set via session in the view) -->
+{% if show_invalid_usercode_alert %}
+<script>
+    alert("❌ Invalid User Code! Login password incorrect.");
+    // the view sets this flag from session and removes it, so the alert will only appear once.
+</script>
+{% endif %}
+
+                    {% csrf_token %}
+
+                    
+
+                    <!-- UHID + Date -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="fw-semibold">UHID :</label>
+                            <span class="badge bg-primary uhid-display">{{ form.uhid.value }}</span>
+                            <input type="hidden" name="uhid" value="{{ form.uhid.value }}">
+                        </div>
+
+                        <div class="col-md-6 text-end">
+                            <label class="fw-semibold">Date & Time :</label>
+                         <span class="text-primary fw-semibold">
+    {{ entry_display|date:"d-m-Y h:i:s A" }}
+</span>
+        <input type="hidden" name="entrydate" value="{{ entry_display|date:'Y-m-d H:i:s' }}">
+
+                           
+                        </div>
+                    </div>
+
+                    <!-- Patient Name -->
+                    <div class="row g-3 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Patient Name</label>
+                            <div class="input-group">
+                                <div class="me-2" style="min-width:110px;">{{ form.title }}</div>
+                                <div class="flex-grow-1">{{ form.patname }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Age / Gender / Relation / Phone -->
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-3">
+                            <label class="form-label">Age</label>
+                            <div class="d-flex gap-2">
+                                <div class="flex-fill">{{ form.age }}</div>
+                                <div style="width:110px;">{{ form.agetype }}</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Gender</label>
+                            {{ form.gender }}
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Relation Name</label>
+                            {{ form.fname }}
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Phone</label>
+                            {{ form.phone }}
+                        </div>
+
+                    </div>
+
+                    <!-- Address -->
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-3">
+                            <label class="form-label">State</label>
+                            <select id="state" name="state" class="form-select">
+    <option value="">Select State</option>
+
+    {% for s in states %}
+    <option value="{{ s.id }}"
+        {% if s.id == 1 %}selected{% endif %}>
+        {{ s.statename }}
+    </option>
+    {% endfor %}
+</select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">District</label>
+                            <select id="district" name="district" class="form-select">
+                                <option value="">Select District</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">City</label>
+                            <select id="city" name="city" class="form-select">
+                                <option value="">Select City</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Area</label>
+                            {{ form.area }}
+                        </div>
+
+                    </div>
+
+                    <!-- Pincode / PRO / Ref Doctor -->
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-3">
+                            <label class="form-label">Pincode</label>
+                            {{ form.pincode }}
+                        </div>
+
+                        <!-- PRO -->
+                        <div class="col-md-3 position-relative">
+                            <label class="form-label">PRO</label>
+                            <input type="text" id="proField" name="pro_name" class="form-control"
+                                   value="self" autocomplete="off" maxlength="50" required>
+
+                            <div id="proSuggestions" class="list-group position-absolute suggestion-list w-100"></div>
+
+                            <!-- FK ID -->
+                            <input type="hidden" id="pro_id_field" name="pro_id">
+                        </div>
+
+                        <!-- Ref Doctor -->
+                        <div class="col-md-3 position-relative">
+                            <label class="form-label">Ref Doctor</label>
+                            <div class="input-group">
+                                <input type="text" id="refDoctorField" name="refdoctor"
+                                       class="form-control" value="SELF" autocomplete="off" required>
+                                <button type="button" class="btn btn-primary" id="addRefDoctorBtn" style="height: 28px; text-align: center; padding: 0px 8px">Add</button>
+                            </div>
+                           <div id="refDoctorSuggestions" class="list-group position-absolute suggestion-list w-100"></div>
+                        </div>
+
+                        {% comment %} <div class="col-md-2">
+                            <label class="form-label">Type</label>
+                            {{ form.types }}
+                        </div> {% endcomment %}
+
+                    </div>
+
+                    <!-- Address / User Code -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Address</label>
+                            {{ form.address }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Alternative Phone</label>
+                            {{ form.alternatephone }}
+                        </div>
+
+                       
+                    </div>
+
+                    
+
+                      <div class="bottom d-flex align-items-center mt-3">
+
+  <!-- Left: User Code -->
+   <div class="col-md-2 mt-4" id="userCodeDiv">
+                            
+                            {{ form.userid }}
+                        </div>
+
+  <!-- Center: Buttons -->
+  <div class="flex-grow-1 text-center mt-4">
+            <button type="submit" class="btn btn-success btn-lg">Save</button>
+                        <a href="{% url 'OpPatientRegistration' %}" class="btn btn-secondary btn-lg">Cancel</a>
+                </div>
+
+  <!-- Right spacer (keeps buttons perfectly centered) -->
+  <div style="width:200px;"></div>
+
+
+
+
+
+
+                </form>
+                
+            </div>
+            <div class="modal fade" id="addRefDoctorModal" tabindex="-1" aria-labelledby="addRefDoctorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Add New Doctor</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addRefDoctorForm" class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Doctor Name</label>
+              <input type="text" id="newDoctorName" class="form-control" >
+            </div>
+            <div class="col-12">
+              <label class="form-label">Phone Number</label>
+              <input type="text" id="newDoctorPhone" class="form-control" maxlength="10" placeholder="Enter 10-digit phone number">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" id="saveDoctorBtn" class="btn ">Save</button>
+        </div>
+
+        
+      </div>
+    </div>
+    
+
+  </div>
+            
+        </div>
+        
+    </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("input[readonly], textarea[readonly], select[readonly]")
+    .forEach(el => el.setAttribute("tabindex", "-1"));
+});
+</script>
+
+<script>
+    // Block all non-numeric characters in ALL number inputs
+document.addEventListener("input", function(e) {
+    if (e.target.type === "number") {
+        e.target.value = e.target.value.replace(/[^\d]/g, "");
+    }
+});
+
+// Also block typing e, +, -, ., etc.
+document.addEventListener("keydown", function(e) {
+    if (e.target.type === "number") {
+        if (["e", "E", "+", "-", "."].includes(e.key)) {
+            e.preventDefault();
+        }
+    }
+});
+
+    let proEmptyOnce = false;
+let refEmptyOnce = false;
+
+    const proSuggestURL = "{% url 'suggest_pros' %}";
+    const refDoctorSuggestURL = "{% url 'suggest_refdoctors' %}";
+    const addRefDoctorURL = "{% url 'add_refdoctor_ajax' %}";
+    const csrfToken = "{{ csrf_token }}";
+/* ================================================================= */
+/* GLOBAL FLAGS */
+/* ================================================================= */
+let proIndex = -1;
+let refIndex = -1;
+
+let proSelecting = false;
+let refSelecting = false;
+
+let proClicked = false;
+let refClicked = false;
+
+let proSelectedFinal = false;
+let refSelectedFinal = false;
+
+let proLock = false;
+let refLock = false;
+
+let refSkipBlur = false;   // <<< FIXED
+let proSkipBlur = false;   // optional
+
+// NEW: prevent infinite repeated empty alerts
+let proEmptyAlertShown = false;
+let refEmptyAlertShown = false;
+
+/* ================================================================= */
+/* RESET FLAGS ON FOCUS */
+/* ================================================================= */
+$("#proField").on("focus", function () {
+    proSelectedFinal = false;
+    proIndex = -1;
+    // reset empty-alert flag when user intentionally focuses again
+    proEmptyAlertShown = false;
+});
+
+$("#refDoctorField").on("focus", function () {
+    refSelectedFinal = false;
+    refIndex = -1;
+    // reset empty-alert flag when user intentionally focuses again
+    refEmptyAlertShown = false;
+});
+
+/* Also reset when user types */
+$("#proField").on("input", function() {
+    proEmptyAlertShown = false;
+});
+$("#refDoctorField").on("input", function() {
+    refEmptyAlertShown = false;
+});
+
+/* ================================================================= */
+/* ------------------------- PRO FIELD ------------------------------ */
+/* ================================================================= */
+
+/* INPUT → show suggestions */
+$("#proField").on("input", function () {
+    proIndex = -1;
+    proSelectedFinal = false;
+
+    let q = $(this).val().trim();
+    $("#proSuggestions").empty().hide();
+
+    if (q.length < 1) return;
+
+    $.get(proSuggestURL, { term: q }, function (data) {
+
+        if (!data.length) return;
+
+        let html = "";
+        data.forEach((item, i) => {
+            html += `
+                <a href="#" class="list-group-item list-group-item-action pro-item"
+                   data-id="${item.proid}" data-name="${item.pro_name}" data-index="${i}">
+                    ${item.pro_name}
+                </a>`;
+        });
+
+        $("#proSuggestions").html(html).show();
+    });
+});
+
+$("#proField").on("keydown", function (e) {
+
+    const items = $(".pro-item");
+
+    // If list NOT visible → normal TAB
+    if (!$("#proSuggestions").is(":visible") || items.length === 0) {
+        proTabSelected = false;
+        return;
+    }
+
+    // --- ARROW KEYS ---
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+
+        if (e.key === "ArrowDown") proIndex = (proIndex + 1) % items.length;
+        else proIndex = (proIndex - 1 + items.length) % items.length;
+
+        items.removeClass("active");
+        $(items[proIndex]).addClass("active");
+        return;
+    }
+
+    // --- ENTER = SELECT ---
+    if (e.key === "Enter") {
+        e.preventDefault();
+        let item = $(items[proIndex]);
+        $("#proField").val(item.data("name"));
+        $("#pro_id_field").val(item.data("id"));
+        $("#proSuggestions").hide();
+        proTabSelected = true;
+        return;
+    }
+
+    // --- TAB KEY BEHAVIOR ---
+    if (e.key === "Tab") {
+
+        // If already selected → allow normal TAB
+        if (proTabSelected) {
+            proTabSelected = false;
+            return; // normal tab
+        }
+
+        e.preventDefault(); // stop default TAB
+        proTabSelected = true;
+
+        // If nothing selected → select 1st item
+        if (proIndex === -1) proIndex = 0;
+
+        let item = $(items[proIndex]);
+        $("#proField").val(item.data("name"));
+        $("#pro_id_field").val(item.data("id"));
+        $("#proSuggestions").hide();
+        return;
+    }
+});
+
+
+/* CLICK select */
+$(document).on("mousedown", ".pro-item", function () {
+    proClicked = true;
+});
+$(document).on("click", ".pro-item", function (e) {
+    e.preventDefault();
+
+    $("#proField").val($(this).data("name"));
+    $("#pro_id_field").val($(this).data("id"));
+    $("#proSuggestions").hide();
+    proSelectedFinal = true;
+
+    setTimeout(() => proClicked = false, 150);
+});
+
+/* BLUR validation for PRO */
+$("#proField").on("blur", function () {
+
+    setTimeout(function () {
+
+        if (proClicked || proSelecting || proLock || proSkipBlur) {
+            proSkipBlur = false;
+            return;
+        }
+
+        let name = $("#proField").val().trim();
+
+        if (!name) {
+            // Show a single clear message and avoid infinite alert loops
+            if (!proEmptyAlertShown) {
+                proEmptyAlertShown = true;
+                alert("❗ Please enter a PRO name, or type 'SELF' if patient is self.");
+                // focus back once after a short delay so that the browser finishes the blur lifecycle
+                setTimeout(() => $("#proField").focus(), 200);
+            }
+            return;
+        }
+
+        if (name.toUpperCase() === "SELF") return;
+
+        $.get(proSuggestURL, { term: name }, function (data) {
+
+            let exists = data.some(x =>
+                x.pro_name.toUpperCase() === name.toUpperCase()
+            );
+
+            if (!exists) {
+                // avoid repeated alerts for the same invalid input
+                if (!proEmptyAlertShown) {
+                    proEmptyAlertShown = true;
+                    alert("❗ PRO name does not exist! Please select a name from the suggestions.");
+                    $("#proField").val("");
+                    $("#pro_id_field").val("");
+                    // focus back for correction
+                    setTimeout(() => $("#proField").focus(), 200);
+                }
+            }
+        });
+
+    }, 200);
+});
+
+/* ================================================================= */
+/* ---------------------- REF DOCTOR FIELD -------------------------- */
+/* ================================================================= */
+
+/* INPUT → suggestions */
+$("#refDoctorField").on("input", function () {
+
+    refIndex = -1;
+    refSelectedFinal = false;
+
+    let q = $(this).val().trim();
+    $("#refDoctorSuggestions").empty().hide();
+
+    if (q.length < 1) return;
+
+    $.get(refDoctorSuggestURL, { term: q }, function (data) {
+
+        if (!data.length) return;
+
+        let html = "";
+        data.forEach((name, i) => {
+            html += `
+                <a href="#" class="list-group-item list-group-item-action ref-item"
+                   data-index="${i}">
+                    ${name}
+                </a>`;
+        });
+
+        $("#refDoctorSuggestions").html(html).show();
+    });
+});
+
+$("#refDoctorField").on("keydown", function (e) {
+
+    const items = $(".ref-item");
+    
+
+    if (!$("#refDoctorSuggestions").is(":visible") || items.length === 0) {
+        refTabSelected = false;
+        return;
+    }
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+
+        if (e.key === "ArrowDown") refIndex = (refIndex + 1) % items.length;
+        else refIndex = (refIndex - 1 + items.length) % items.length;
+
+        items.removeClass("active");
+        $(items[refIndex]).addClass("active");
+        return;
+    }
+
+    if (e.key === "Enter") {
+        e.preventDefault();
+        let item = $(items[refIndex]);
+        $("#refDoctorField").val(item.text().trim());
+        $("#refDoctorSuggestions").hide();
+        refTabSelected = true;
+        return;
+    }
+
+    if (e.key === "Tab") {
+
+        if (refTabSelected) {
+            refTabSelected = false;
+            return;
+        }
+
+        e.preventDefault();
+        refTabSelected = true;
+
+        if (refIndex === -1) refIndex = 0;
+
+        let item = $(items[refIndex]);
+        $("#refDoctorField").val(item.text().trim());
+        $("#refDoctorSuggestions").hide();
+        return;
+    }
+});
+
+
+/* CLICK select */
+$(document).on("mousedown", ".ref-item", function () {
+    refClicked = true;
+});
+$(document).on("click", ".ref-item", function (e) {
+    e.preventDefault();
+
+    $("#refDoctorField").val($(this).text().trim());
+    $("#refDoctorSuggestions").hide();
+    refSelectedFinal = true;
+
+    setTimeout(() => refClicked = false, 150);
+});
+
+/* BLUR validation — FIXED */
+$("#refDoctorField").on("blur", function () {
+
+    setTimeout(function () {
+
+        // <<< FIXED HERE
+        if (refClicked || refSelecting || refLock || refSkipBlur) {
+            refSkipBlur = false;
+            return;
+        }
+
+        let name = $("#refDoctorField").val().trim();
+
+        if (!name) {
+            // Show a single clear message and avoid infinite alert loops
+            if (!refEmptyAlertShown) {
+                refEmptyAlertShown = true;
+                alert("❗ Ref Doctor cannot be empty. Enter a doctor name or type 'SELF'.");
+                setTimeout(() => $("#refDoctorField").focus(), 200);
+            }
+            return;
+        }
+
+        if (name.toUpperCase() === "SELF") return;
+
+        $.get(refDoctorSuggestURL, { term: name }, function (data) {
+
+            let exists = data.some(x =>
+                x.toUpperCase() === name.toUpperCase()
+            );
+
+            if (!exists) {
+                // prevent re-triggering the blur when we open modal
+                refSkipBlur = true;
+
+                $("#newDoctorName").val(name);
+                $("#addRefDoctorModal").modal("show");
+
+                $("#refDoctorField").val("");
+                $("#refDoctorSuggestions").hide();
+
+                // reset empty-alert flag so next manual focus behaves normally
+                refEmptyAlertShown = false;
+            }
+        });
+
+    }, 200);
+});
+$("#addRefDoctorModal").on("hidden.bs.modal", function () {
+    setTimeout(() => {
+        $("#refDoctorField").focus();
+    }, 150);
+});
+
+
+/* ================================================================= */
+/* SAVE DOCTOR */
+/* ================================================================= */
+$("#saveDoctorBtn").on("click", function () {
+
+    let name = $("#newDoctorName").val().trim();
+    let phone = $("#newDoctorPhone").val().trim();
+
+    if (!/^[0-9]{10}$/.test(phone)) {
+        alert("❗ Enter valid 10-digit number.");
+        return;
+    }
+
+    $.post(addRefDoctorURL, {
+        name: name,
+        phone: phone,
+        csrfmiddlewaretoken: csrfToken
+    }, function (res) {
+        alert("✔ Doctor added successfully!"); 
+
+        $("#refDoctorField").val(name);
+        $("#newDoctorPhone").val("");
+        $("#addRefDoctorModal").modal("hide");
+
+        refSelectedFinal = true;
+        // after adding a new doctor, make sure the empty-alert flag is cleared
+        refEmptyAlertShown = false;
+    });
+});
+
+$(document).ready(function () {
+
+    // ✅ DEFINE HANDLERS FIRST
+    $("#state").on("change", function () {
+        let state_id = $(this).val();
+        
+
+        $("#district").html('<option value="">Loading...</option>');
+        $("#city").html('<option value="">Select City</option>');
+
+        if (!state_id) return;  // ← ADD THIS guard
+
+        $.get("{% url 'load_districts' %}", { state_id: state_id }, function (data) {
+           
+            let html = '<option value="">Select District</option>';
+            data.forEach(function (d) {
+                html += `<option value="${d.id}">${d.districtname.trim()}</option>`;
+            });
+            $("#district").html(html);
+        });
+    });
+
+    $("#district").on("change", function () {
+        let district_id = $(this).val();
+
+        $("#city").html('<option value="">Loading...</option>');
+
+        if (!district_id) return;  // ← ADD THIS guard
+
+        $.get("{% url 'load_cities' %}", { district_id: district_id }, function (data) {
+            let html = '<option value="">Select City</option>';
+            data.forEach(function (c) {
+                html += `<option value="${c.id}">${c.cityname.trim()}</option>`;
+            });
+            $("#city").html(html);
+        });
+    });
+
+    // ✅ TRIGGER AFTER HANDLERS ARE REGISTERED
+    $("#state").trigger("change");
+
+});
+document.addEventListener("keydown", function (e) {
+    if (e.target.name === "patname" || e.target.name === "fname") {
+
+        // Allow control keys
+        const allowedKeys = ["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete", " "];
+
+        if (allowedKeys.includes(e.key)) return;
+
+        // Block numbers & special chars
+        if (!/^[A-Za-z.]$/.test(e.key)) {
+            e.preventDefault();
+        }
+    }
+});
+
+// Auto-update gender when title changes
+document.addEventListener("DOMContentLoaded", function () {
+    const titleField = document.getElementById("id_title");
+    const genderField = document.getElementById("id_gender");
+
+    function updateGender() {
+        const title = titleField.value.toUpperCase();
+        if (["MR", "MASTER"].includes(title)) {
+            genderField.value = "Male";
+        } else if (["MRS", "MISS", "MS", "BABY"].includes(title)) {
+            genderField.value = "Female";
+        }
+    }
+
+    if (titleField && genderField) {
+        titleField.addEventListener("change", updateGender);
+        updateGender(); // run once on page load too
+    }
+});
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("patname").focus();
+});
+
+</script>
+
+
+
+<style>
+.form-control, .form-select { padding: .45rem .6rem;  border-radius: .45rem; background-color: var(--input-bg); }
+.suggestion-list { display:none; max-height:150px; overflow-y:auto; z-index:1200; background:white; top:calc(100% + .35rem); border-radius:0 .4rem .4rem .4rem; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+
+.form-control, .form-select {
+   padding: .45rem .6rem;
+   
+    border-radius: .45rem; 
+    background-color: var(--input-bg); 
+  }
+
+.list-group-item{
+    padding:0;
+}
+
+
+</style>
+
+{% endblock %}

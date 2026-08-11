@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment Mode Collection Report</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 11px; margin: 10px; }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+
+    th {
+      border-top: 2px solid #000;
+      border-bottom: 2px solid #000;
+      padding: 4px 6px;
+      text-align: left;
+    }
+
+    td {
+      padding: 1px 4px;
+      text-align: left;
+    }
+
+    .text-end { text-align: right; }
+
+    .section {
+      font-weight: bold;
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+    }
+
+    .total-row {
+      font-weight: bold;
+      background: #f8f9fa;
+      border-top: 1px solid #000;
+    }
+
+    @media print {
+      button { display: none !important; }
+      body { margin: 0; }
+    }
+
+    .report-container {
+      border: 2px solid black;
+      padding: 10px;
+      margin: 10px;
+    }
+
+    .header { text-align: center; }
+    .title { text-align: center; font-weight: bold; margin-top: 10px; }
+  </style>
+</head>
+
+<body>
+
+<div class="report-container">
+
+  <div class="header">
+    <h2>{{ hospital.name }}</h2>
+    <p>{{ hospital.address }}</p>
+  </div>
+
+  <hr style="border: 1px solid #333;">
+
+  <div style="text-align:center; margin-bottom:15px;">
+    <div class="title">
+      {{ payment_mode|upper }} PAYMENT MODE REPORT
+    </div>
+    <div style="font-weight:bold;">
+      {{ from_date|date:"d-m-Y H:i:s" }} to {{ to_date|date:"d-m-Y H:i:s" }}
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>SL.NO</th>
+        <th>BILL NO</th>
+        <th>UHID</th>
+        <th>PATIENT NAME</th>
+        <th>CREATED TIME</th>
+        <th>PAYMENT MODE</th>
+<th class="text-end">PAID AMT</th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+    <!-- ================= OP CONSULTATION ================= -->
+    {% if consultation_bills %}
+    <tr class="section">
+      <td colspan="6">OP Consultation</td>
+    </tr>
+
+    {% for c in consultation_bills %}
+<tr>
+  <td>{{ forloop.counter }}</td>
+  <td>{{ c.billno }}</td>
+  <td>{{ c.uhid }}</td>
+  <td>{{ c.patname|upper }}</td>
+  <td>{{ c.regdt|date:"d-m-Y H:i:s" }}</td>
+  <td>{{ payment_mode|upper }}</td>
+  <td class="text-end">
+
+  {% if payment_mode == "Cash" or payment_mode == "CASH" %}
+
+    {{ c.cash_amt|floatformat:2 }}
+
+  {% else %}
+
+      {{ c.online_amt|floatformat:2 }}
+
+   {% endif %}
+
+</td>
+</tr>
+{% endfor %}
+
+    <tr class="total-row">
+      <td colspan="6" class="text-end">Total</td>
+      <td class="text-end">{{ consultation_total|floatformat:2 }}</td>
+    </tr>
+    {% endif %}
+    
+    <!-- ================= OP INVESTIGATIONS ================= -->
+    {% if investigation_bills %}
+    <tr class="section">
+      <td colspan="6">OP Investigations</td>
+    </tr>
+
+    {% for i in investigation_bills %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ i.billno }}</td>
+      <td>{{ i.uhid }}</td>
+      <td>{{ i.patname|upper }}</td>
+      <td>{{ i.generateddate|date:"d-m-Y H:i:s" }}</td>
+      <td>{{ payment_mode|upper }}</td>
+     <td class="text-end">
+
+  {% if payment_mode == "Cash" or payment_mode == "CASH" %}
+
+    {{ i.cash_amt|floatformat:2 }}
+
+  {% else %}
+
+      {{ i.online_amt|floatformat:2 }}
+
+   {% endif %}
+
+</td>
+    </tr>
+    {% endfor %}
+
+    <tr class="total-row">
+      <td colspan="6" class="text-end">Total</td>
+      <td class="text-end">{{ investigation_total|floatformat:2 }}</td>
+    </tr>
+    {% endif %}
+
+
+    <!-- ================= OP PROCEDURES ================= -->
+    {% if procedure_bills %}
+    <tr class="section">
+      <td colspan="6">OP Procedures</td>
+    </tr>
+
+    {% for p in procedure_bills %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ p.billno }}</td>
+      <td>{{ p.uhid }}</td>
+      <td>{{ p.patname|upper }}</td>
+      <td>{{ p.generateddate|date:"d-m-Y H:i:s" }}</td>
+      <td>{{ payment_mode|upper }}</td>
+     <td class="text-end">
+
+  {% if payment_mode == "Cash" or payment_mode == "CASH" %}
+
+    {{ p.cash_amt|floatformat:2 }}
+
+  {% else %}
+
+      {{ p.online_amt|floatformat:2 }}
+
+   {% endif %}
+
+</td>
+    </tr>
+    {% endfor %}
+
+    <tr class="total-row">
+      <td colspan="6" class="text-end">Total</td>
+      <td class="text-end">{{ procedure_total|floatformat:2 }}</td>
+    </tr>
+    {% endif %}
+
+    <!-- ================= OP PAYMENTS ================= -->
+    {% if op_payment_bills %}
+    <tr class="section">
+      <td colspan="6">OP Payments</td>
+    </tr>
+
+    {% for o in op_payment_bills %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ o.invbillno }}</td>
+      <td>{{ o.uhid }}</td>
+      <td>{{ o.patname|upper }}</td>
+      <td>{{ o.billdate|date:"d-m-Y H:i:s" }}</td>
+      <td>{{ payment_mode|upper }}</td>
+     <td class="text-end">
+
+  {% if payment_mode == "Cash" or payment_mode == "CASH" %}
+
+    {{ o.cash_amt|floatformat:2 }}
+
+  {% else %}
+
+      {{ o.online_amt|floatformat:2 }}
+
+   {% endif %}
+
+</td>
+    </tr>
+    {% endfor %}
+
+    <tr class="total-row">
+      <td colspan="6" class="text-end">Total</td>
+      <td class="text-end">{{ op_total|floatformat:2 }}</td>
+    </tr>
+    {% endif %}
+
+    </tbody>
+
+    <tr>
+
+   <td colspan="9" style="padding-top:30px;"></td>
+</tr>
+<tr class="total-row" style="border-top: 1px solid #000;">
+  <td colspan="6" class="text-end"><b>Grand Total </b></td>
+  <td class="text-end"><b>{{ grand_total | floatformat:2 }}</b></td>
+</tr>
+  </table>
+
+  
+
+  
+
+</div>
+<div style="width:50%; margin:auto; margin-top:20px;">
+    <div style="display:flex; justify-content:space-between; font-size:12px;">
+      <div><strong>PRINT BY:</strong> {{ username | upper }}</div>
+      <div><strong>PRINT TIME:</strong> {{ print_time|date:"d-m-Y H:i:s" }}</div>
+    </div>
+  </div>
+</body>
+</html>

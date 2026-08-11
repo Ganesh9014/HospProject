@@ -1,0 +1,247 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Referral Doctor Master</h5>
+    </div>
+    <div class="form-body">
+
+      {% if messages %}
+      <script>
+        {% for msg in messages %}
+        alert("{{ msg|escapejs }}");
+        {% endfor %}
+      </script>
+      {% endif %}
+
+      <form method="post" AUTOCOMPLETE="OFF">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Options:</strong></label><br>
+           <label><input type="radio" name="operation_radio" value="add" {% if operation == 'add' %}checked{% endif %} onchange="window.location.href='?operation=add';"> Add</label>
+<label class="ms-3"><input type="radio" name="operation_radio" value="modify" {% if operation == 'modify' %}checked{% endif %} onchange="window.location.href='?operation=modify';"> Modify</label>
+<label class="ms-3"><input type="radio" name="operation_radio" value="delete" {% if operation == 'delete' %}checked{% endif %} onchange="window.location.href='?operation=delete';"> Delete</label>
+          </div>
+        </div>
+
+        {% if operation == 'add' %}
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label>Enter Doctor Name</label>
+            <input type="text" name="docname" class="form-control" required maxlength="30">
+          </div>
+          <div class="col-md-3">
+            <label>Phone Number</label>
+            <input type="tel" name="phoneno" class="form-control" pattern="^\d{10}$" maxlength="10" minlength="10"
+              required oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10);">
+          </div>
+          <div class="col-md-3">
+            <label>Speciality</label>
+            <select name="specialized" class="form-select" required>
+              <option value="">-- Select --</option>
+              {% for s in specialities %}
+              <option value="{{ s.sno }}">{{ s.speciality }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2 align-self-end">
+            <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+        {% else %}
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <input type="text" name="docname" class="form-control" placeholder="Search by Doctor Name">
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class='col-8'>
+          <div class="table-responsive mt-3">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  {% if operation == 'modify' %}<th>Edit</th>{% elif operation == 'delete' %}<th>Delete</th>{% endif %}
+                  <th>Code</th>
+                  <th>Doctor Name</th>
+                  <th>Phone No</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in doctors %}
+                <tr data-row-id="{{ d.pk }}">
+                  {% if operation == 'modify' %}
+                  <td>
+                    <button type="button" class="btn1 edit-btn" data-id="{{ d.pk }}">Edit</button>
+                    <button type="submit" class="btn1 btn1-update update-btn" name="update_btn" value="{{ d.pk }}"
+                      style="display:none;">Update</button>
+                    <button type="button" class="btn1 btn1-secondary cancel-btn" data-id="{{ d.pk }}"
+                      style="display:none;">Cancel</button>
+                  </td>
+                  {% elif operation == 'delete' %}
+                  <td>
+                    <button type="submit" class="btn1 btn-danger-delete" name="delete_btn" value="{{ d.pk }}"
+                      onclick="return confirm('Delete {{ d.docname }}?');">Delete</button>
+                  </td>
+                  {% endif %}
+                  <td>{{ d.docid }}</td>
+                  <td>
+                    <input type="text" name="docname_{{ d.pk }}"
+                      class="form-control form-control-sm row-input-{{ d.pk }}" value="{{ d.docname }}"
+                      data-original="{{ d.docname }}" {% if operation != 'modify' %}disabled{% endif %} maxlength='40'>
+                  </td>
+                  <td>
+                    <input type="tel" name="phoneno_{{ d.pk }}"
+                      class="form-control form-control-sm row-input-{{ d.pk }}" value="{{ d.phoneno }}"
+                      data-original="{{ d.phoneno }}" {% if operation != 'modify' %}disabled{% endif %}
+                      pattern="^\d{10}$" maxlength="10" minlength="10"
+                      oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10);">
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center">No records found.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if operation == 'add' %}
+<script>
+  document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'RefDoctorMasterView' %}";
+  });
+</script>
+{% endif %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+
+    let activeRowId = null;
+
+    function disableAllRows() {
+      document.querySelectorAll('tr[data-row-id]').forEach(tr => {
+        const id = tr.dataset.rowId;
+        tr.querySelectorAll('.row-input-' + id).forEach(inp => {
+          inp.disabled = true;
+          if (inp.dataset.original !== undefined) {
+            inp.value = inp.dataset.original;
+          }
+        });
+        tr.querySelector('.edit-btn')?.style?.setProperty('display', '');
+        tr.querySelector('.update-btn')?.style?.setProperty('display', 'none');
+        tr.querySelector('.cancel-btn')?.style?.setProperty('display', 'none');
+      });
+      activeRowId = null;
+    }
+
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        disableAllRows();
+        document.querySelectorAll('.row-input-' + id).forEach(inp => {
+          inp.disabled = false;
+          inp.dataset.original = inp.value;
+        });
+        btn.style.display = 'none';
+        document.querySelector(`.update-btn[value="${id}"]`).style.display = '';
+        document.querySelector(`.cancel-btn[data-id="${id}"]`).style.display = '';
+        activeRowId = id;
+      });
+    });
+
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        disableAllRows();
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!activeRowId) return;
+      const activeRow = document.querySelector(`tr[data-row-id="${activeRowId}"]`);
+      if (activeRow && !activeRow.contains(e.target)) {
+        disableAllRows();
+      }
+    });
+
+    const phoneFields = document.querySelectorAll(
+      'input[name="phoneno"], input[name^="phoneno_"]'
+    );
+
+    phoneFields.forEach(phoneField => {
+      let isRefocusing = false;
+
+      phoneField.addEventListener('input', function () {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+      });
+
+      phoneField.addEventListener('keydown', function (e) {
+        if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+          e.preventDefault();
+        }
+      });
+
+      phoneField.addEventListener('blur', function () {
+        if (isRefocusing) {
+          isRefocusing = false;
+          return;
+        }
+        const field = this;
+        const phone = field.value.trim();
+        if (phone === '') return;
+
+        let errorMessage = '';
+        if (!/^[0-9]{10}$/.test(phone)) {
+          errorMessage = '❗ Phone number must be exactly 10 digits.';
+        } else if (!/^[6-9]/.test(phone)) {
+          errorMessage = '❗ Enter valid Indian mobile number.';
+        } else if (/^(\d)\1{9}$/.test(phone)) {
+          errorMessage = '❗ Invalid phone number.';
+        } else {
+          const invalidNumbers = ['0123456789', '1234567890', '9876543210', '0987654321'];
+          if (invalidNumbers.includes(phone)) {
+            errorMessage = '❗ Invalid phone number.';
+          }
+        }
+
+        if (errorMessage !== '') {
+          field.value = '';
+          alert(errorMessage);
+          isRefocusing = true;
+          setTimeout(() => { field.focus(); }, 50);
+        }
+      });
+    });
+
+    disableAllRows();
+  });
+</script>
+
+<style>
+  .table th,
+  .table td {
+    text-align: left;
+  }
+</style>
+{% endblock %}

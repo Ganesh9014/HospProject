@@ -1,0 +1,319 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+{% comment %} <style>
+  .form-control { font-size: 0.7rem; }
+  .table>:not(caption)>*>* { padding: 0px; }
+  .table th { font-size: 0.75rem; }
+  .table td { font-size: 0.7rem; }
+  .table-responsive { max-height: 300px; overflow-y: auto; }
+  .form-control:disabled { background-color: #f8f9fa; cursor: not-allowed; }
+  .alert {
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+  }
+  .alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+  .alert-error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+</style> {% endcomment %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Room Type Master</h5>
+    </div>
+
+    <div class="form-body">
+      <form method="POST" id="roomForm" >
+        {% csrf_token %}
+
+        <!-- ✅ Django Messages -->
+        {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+
+        <!-- Radio Buttons -->
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label>
+              <input type="radio" name="operation" value="add"
+                     {% if operation == 'add' %}checked{% endif %}
+                     onchange="window.location.href='?operation=add';"> Add
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="modify"
+                     {% if operation == 'modify' %}checked{% endif %}
+                     onchange="window.location.href='?operation=modify';"> Modify
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="delete"
+                     {% if operation == 'delete' %}checked{% endif %}
+                     onchange="window.location.href='?operation=delete';"> Delete
+            </label>
+          </div>
+        </div>
+
+        <!-- Input Fields Section -->
+        <div id="fields-section">
+          <div class="row">
+            <div id="roomtype-field" class="col-md-4 mb-3">
+              <label for="roomtype">Room Type:</label>
+              <input type="text" name="roomtype" id="roomtype" class="form-control"
+                     placeholder="Enter Room Type" value="{{ search_term }}" maxlength="40">
+            </div>
+
+            <div id="roomrent-field" class="col-md-4 mb-3">
+              <label for="roomrent">Room Rent:</label>
+              <input type="number" name="roomrent" id="roomrent" class="form-control"
+                     placeholder="Enter Room Rent" oninput="if(this.value.length>10)this.value=this.value.slice(0,10);"
+>
+            </div>
+
+            <div class="col-md-4 mb-3 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary me-2" id="submit-btn">Add</button>
+              <button type="button" class="btn btn-info" onclick="doRoomSearch()">Search</button>
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" name="search_term" id="search_term" value="{{ search_term|default:'' }}">
+        <input type="hidden" name="update_id" id="update_id" value="">
+
+        <!-- Table Section -->
+        <div id="table-section" class="row" style="display:none;">
+          <div class="col-8">
+            <h6 class="mb-1"><strong>Existing Room Types</strong></h6>
+            <div class="table-responsive">
+              <table class="table table-bordered table-s">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 10%;">S.No</th>
+                    <th>Room Type</th>
+                    <th>Room Rent</th>
+                    {% if operation == 'modify' %}
+                      <th style="width: 15%;">Modify</th>
+                    {% elif operation == 'delete' %}
+                      <th style="width: 15%;">Delete</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if roomtypes %}
+                    {% for r in roomtypes %}
+                      <tr id="row-{{ r.pk }}">
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ r.roomtype }}</td>
+                        <td>
+                          <input type="number"  name="roomrent_{{ r.pk }}" id="roomrent_{{ r.pk }}"
+                                 class="form-control form-control-sm"
+                                 value="{{ r.roomrent }}"  oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10);" disabled>
+                        </td>
+
+                        {% if operation == 'modify' %}
+                          <td class="text-center">
+                            <a href="#" class="edit-link" data-id="{{ r.pk }}" id="edit-{{ r.pk }}">Edit</a>
+                            <span id="update-cancel-{{ r.pk }}" style="display:none;">
+                              <a href="#" class="update-link text-success" data-id="{{ r.pk }}">Update</a>
+                              &nbsp;|&nbsp;
+                              <a href="#" class="cancel-link text-danger" data-id="{{ r.pk }}">Cancel</a>
+                            </span>
+                          </td>
+                        {% elif operation == 'delete' %}
+                          <td class="text-center">
+                            <a href="#" class="delete-link text-danger" data-id="{{ r.pk }}">Delete</a>
+                          </td>
+                        {% endif %}
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="{% if operation in 'modify delete' %}4{% else %}3{% endif %}" class="text-center">
+                        {% if operation == 'add' %}
+                          No room types found.
+                        {% elif operation == 'modify' %}
+                          {% if searched %}
+                            No matching room types found.
+                          {% else %}
+                            Enter a room type and click Search.
+                          {% endif %}
+                        {% elif operation == 'delete' %}
+                          No room types found to delete.
+                        {% else %}
+                          Select an operation to show records.
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const currentOp = "{{ operation|default:'' }}";
+    toggleSections(currentOp);
+
+    // Keep radio checked after reload
+    const radios = document.querySelectorAll('input[name="operation"]');
+    radios.forEach(radio => {
+      if (radio.value === currentOp) {
+        radio.checked = true;
+      }
+    });
+
+    // Attach Edit/Cancel/Update/Delete handlers
+    document.querySelectorAll('.edit-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        enterEditMode(link.dataset.id);
+      });
+    });
+
+    document.querySelectorAll('.cancel-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        exitEditMode(link.dataset.id, true);
+      });
+    });
+
+    document.querySelectorAll('.update-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const id = link.dataset.id;
+        document.getElementById('update_id').value = id;
+        document.getElementById('roomForm').submit();
+      });
+    });
+
+    document.querySelectorAll('.delete-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const id = link.dataset.id;
+        if (!confirm('Are you sure you want to delete this room type?')) return;
+        document.getElementById('update_id').value = id;
+        document.querySelector('input[name="operation"][value="delete"]').checked = true;
+        document.getElementById('roomForm').submit();
+      });
+    });
+  });
+
+  function toggleSections(action) {
+    const roomRent = document.getElementById('roomrent-field');
+    const tableSection = document.getElementById('table-section');
+    const submitBtn = document.getElementById('submit-btn');
+
+    if (action === '') {
+      roomRent.style.display = 'block';
+      tableSection.style.display = 'none';
+      submitBtn.innerText = 'Add';
+      return;
+    }
+
+    if (action === 'add') {
+      roomRent.style.display = 'block';
+      tableSection.style.display = 'block';
+      submitBtn.innerText = 'Add';
+    } else if (action === 'modify') {
+      roomRent.style.display = 'none';
+      tableSection.style.display = 'block';
+      submitBtn.style.display = 'none';
+    } else if (action === 'delete') {
+      roomRent.style.display = 'none';
+      tableSection.style.display = 'block';
+      submitBtn.style.display = 'none';
+    }
+  }
+
+  function doRoomSearch() {
+    const name = document.getElementById('roomtype').value || '';
+    const op = document.querySelector('input[name="operation"]:checked');
+    const operation = op ? op.value : 'add';
+    window.location.href = '?operation=' + encodeURIComponent(operation) + '&search=' + encodeURIComponent(name);
+  }
+
+  // Disable all roomrent fields and reset links/buttons
+function disableAllRows() {
+  document.querySelectorAll('input[id^="roomrent_"]').forEach(inp => {
+    inp.disabled = true;
+    inp.classList.remove('active-edit');
+    inp.removeEventListener('focus', preventInputFocus);
+    inp.blur();
+  });
+  document.querySelectorAll('.edit-link').forEach(link => link.style.display = 'inline');
+  document.querySelectorAll('[id^="update-cancel-"]').forEach(span => span.style.display = 'none');
+}
+
+// Prevent focus/cursor on non-editable inputs
+function preventInputFocus(e) {
+  e.target.blur();
+}
+
+// Edit only ONE row, all else locked and not focusable
+function enterEditMode(id) {
+  disableAllRows();
+  var rentInput = document.getElementById('roomrent_' + id);
+  if (rentInput) {
+    rentInput.disabled = false;
+    rentInput.classList.add('active-edit');
+    rentInput.dataset.original = rentInput.value;
+    rentInput.focus();
+    try {
+      var len = rentInput.value.length;
+      rentInput.setSelectionRange(len, len);
+    } catch (err) {}
+  }
+  document.getElementById('edit-' + id).style.display = 'none';
+  document.getElementById('update-cancel-' + id).style.display = 'inline';
+
+  // All other inputs remain disabled and get focus trap
+  document.querySelectorAll('input.form-control.form-control-sm:not(.active-edit)').forEach(function(i) {
+    i.disabled = true;
+    i.addEventListener('focus', preventInputFocus);
+  });
+}
+
+function exitEditMode(id, restore) {
+  var rentInput = document.getElementById('roomrent_' + id);
+  if (rentInput) {
+    if (restore && rentInput.dataset.original !== undefined) {
+      rentInput.value = rentInput.dataset.original;
+    }
+    rentInput.disabled = true;
+    rentInput.classList.remove('active-edit');
+    rentInput.removeEventListener('focus', preventInputFocus);
+    delete rentInput.dataset.original;
+  }
+  document.getElementById('edit-' + id).style.display = 'inline';
+  document.getElementById('update-cancel-' + id).style.display = 'none';
+
+  document.querySelectorAll('input.form-control.form-control-sm').forEach(function(i) {
+    i.disabled = true;
+    i.removeEventListener('focus', preventInputFocus);
+  });
+  document.getElementById('update_id').value = '';
+}
+
+// Trap cursor/keyboarding attempts on disabled rent fields
+document.addEventListener('focusin', function(e) {
+  if (!e.target.classList.contains('active-edit') && e.target.classList.contains('form-control-sm')) {
+    e.target.blur();
+  }
+});
+
+</script>
+
+{% endblock %}

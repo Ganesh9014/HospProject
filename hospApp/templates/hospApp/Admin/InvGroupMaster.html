@@ -1,0 +1,317 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5 class="mb-0">Investigation Group Master</h5>
+    </div>
+
+    <div class="card-body">
+
+      {% if messages %}
+      <script>
+        {% for msg in messages %}
+          alert("{{ msg|escapejs }}");
+        {% endfor %}
+      </script>
+      {% endif %}
+
+      <!-- Operation Selection -->
+      <div class="row mb-3">
+        <div class="col-md-6 col-lg-4">
+          <label class="fw-semibold">Select Operation:</label><br>
+          <label class="me-3">
+            <input type="radio" name="operation_choice" value="add"
+                   {% if operation == 'add' %}checked{% endif %}
+                   onchange="window.location.href='?operation=add';">
+            Add
+          </label>
+          <label class="me-3">
+            <input type="radio" name="operation_choice" value="modify"
+                   {% if operation == 'modify' %}checked{% endif %}
+                   onclick="window.location='?operation=modify&search={{ search_term|urlencode }}';">
+            Modify
+          </label>
+          <label class="me-3">
+            <input type="radio" name="operation_choice" value="delete"
+                   {% if operation == 'delete' %}checked{% endif %}
+                   onclick="window.location='?operation=delete&search={{ search_term|urlencode }}';">
+            Delete
+          </label>
+        </div>
+      </div>
+
+      <!-- ===================== ADD MODE ===================== -->
+      {% if operation == 'add' %}
+
+      <form method="post" class="row g-2 mb-3" autocomplete="off">
+        {% csrf_token %}
+        <div class="col-md-4">
+          <label>Enter Group Name:</label>
+          <input type="text" name="gname" class="form-control form-control-sm"
+                 placeholder="Enter Group Name" maxlength="100">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary btn-sm">Add</button>
+          
+ <button type="button" class="btn btn-secondary" id="cancelBtn" style="margin-left: 10px">Cancel</button>
+        </div>
+
+      </form>
+
+      <!-- Add mode table -->
+      <div class="table-responsive col-6">
+        <table class="table table-bordered table-sm align-middle">
+          <thead class="table-light">
+            <tr class="text-center">
+              <th style="width:15%;">Code</th>
+              <th style="text-align:left">Group Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if records %}
+              {% for r in records %}
+              <tr>
+                <td class="text-center">{{ r.sno }}</td>
+                <td style="text-align:left">{{ r.gname }}</td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="2" class="text-center">No groups found.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===================== MODIFY MODE ===================== -->
+      {% elif operation == 'modify' %}
+
+      <!-- Search form -->
+      <form method="get" class="row g-2 mb-3" autocomplete="off">
+        <input type="hidden" name="operation" value="modify">
+        <div class="col-md-4">
+          <label>Enter Group Name:</label>
+          <div class="input-group input-group-sm">
+            <input type="text" name="search" value="{{ search_term }}"
+                   class="form-control form-control-sm"
+                   placeholder="Search Group Name" maxlength="100">
+            <button class="btn btn-outline-primary btn-sm" type="submit">Search</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Modify table -->
+      <form method="post" id="modify-form">
+        {% csrf_token %}
+        <input type="hidden" name="search" value="{{ search_term }}">
+        <div class="table-responsive col-6">
+          <table class="table table-bordered table-sm align-middle">
+            <thead class="table-light">
+              <tr class="text-center">
+                <th style="width:28%;">Modify</th>
+                <th style="width:8%;">Code</th>
+                <th style="text-align:left">Group Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if records %}
+                {% for r in records %}
+                <tr data-row-id="{{ r.sno }}">
+                  <td class="text-center">
+                    <!-- Edit (default visible) -->
+                    <button type="button" class="btn1 edit-btn"
+                            data-id="{{ r.sno }}" id="edit-{{ r.sno }}">Edit</button>
+                    <!-- Update (hidden by default) -->
+                    <button type="submit" class="btn1 btn1-update update-btn"
+                            name="update_id" value="{{ r.sno }}"
+                            id="update-{{ r.sno }}" style="display:none;">Update</button>
+                    <!-- Cancel (hidden by default) -->
+                    <button type="button" class="btn1 btn1-secondary cancel-btn"
+                            data-id="{{ r.sno }}" id="cancel-{{ r.sno }}"
+                            style="display:none;">Cancel</button>
+                  </td>
+                  <td class="text-center">{{ r.sno }}</td>
+                  <td style="text-align:left">
+                    <input type="text"
+                           name="gname_{{ r.sno }}"
+                           id="gname_{{ r.sno }}"
+                           value="{{ r.gname }}"
+                           class="form-control form-control-sm"
+                           data-original="{{ r.gname }}"
+                           maxlength="100"
+                           disabled>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="3" class="text-center">No groups found.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </form>
+
+      <!-- ===================== DELETE MODE ===================== -->
+      {% elif operation == 'delete' %}
+
+      <!-- Search form -->
+      <form method="get" class="row g-2 mb-3" autocomplete="off"  >
+        <input type="hidden" name="operation" value="delete">
+        <div class="col-md-4">
+          <label>Enter Group Name:</label>
+          <div class="input-group input-group-sm">
+            <input type="text" name="search" value="{{ search_term }}"
+                   class="form-control form-control-sm"
+                   placeholder="Search Group Name" maxlength="100">
+            <button class="btn btn-outline-primary btn-sm" type="submit">Search</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Delete table -->
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="search" value="{{ search_term }}">
+        <div class="table-responsive col-6">
+          <table class="table table-bordered table-sm align-middle">
+            <thead class="table-light">
+              <tr class="text-center">
+                <th style="width:15%;">Delete</th>
+                <th style="width:8%;">Code</th>
+                <th style="text-align:left">Group Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if records %}
+                {% for r in records %}
+                <tr>
+                  <td class="text-left">
+                    <button type="submit" name="delete_id" value="{{ r.sno }}"
+                            class="btn1 btn-danger-delete"
+                            onclick="return confirm('Delete {{ r.gname }} ?');">
+                      Delete
+                    </button>
+                  </td>
+                  <td class="text-center">{{ r.sno }}</td>
+                  <td style="text-align:left">{{ r.gname }}</td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="3" class="text-center">No groups found.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </form>
+
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<script>
+
+const cancelBtn = document.getElementById("cancelBtn");
+
+if (cancelBtn) {
+    cancelBtn.addEventListener("click", function () {
+        window.location.href = "{% url 'InvGroupMasterView' %}";
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  // ── Reset all rows to default locked state ─────────────────────────────
+  function resetAll() {
+    document.querySelectorAll("tr[data-row-id]").forEach(tr => {
+      const id    = tr.dataset.rowId;
+      const input = document.getElementById("gname_" + id);
+      if (!input) return;
+
+      input.value    = input.dataset.original; // ← restore original
+      input.disabled = true;
+      input.classList.remove("editing-input");
+
+      const editBtn   = document.getElementById("edit-"   + id);
+      const updateBtn = document.getElementById("update-" + id);
+      const cancelBtn = document.getElementById("cancel-" + id);
+
+      if (editBtn)   editBtn.style.display   = "";
+      if (updateBtn) updateBtn.style.display = "none";
+      if (cancelBtn) cancelBtn.style.display = "none";
+
+      tr.classList.remove("editing-row");
+    });
+  }
+
+  // ── Edit ───────────────────────────────────────────────────────────────
+  document.querySelectorAll(".edit-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      resetAll(); // reset all others first
+
+      const id    = this.dataset.id;
+      const tr    = this.closest("tr");
+      const input = document.getElementById("gname_" + id);
+
+      input.dataset.original = input.value; // snapshot
+      input.disabled = false;
+      input.classList.add("editing-input");
+      input.focus();
+      // ✅ Cursor to end
+      const len = input.value.length;
+      input.setSelectionRange(len, len);
+
+      tr.classList.add("editing-row");
+
+      document.getElementById("edit-"   + id).style.display = "none";
+      document.getElementById("update-" + id).style.display = "";
+      document.getElementById("cancel-" + id).style.display = "";
+    });
+  });
+
+  // ── Cancel ─────────────────────────────────────────────────────────────
+  document.querySelectorAll(".cancel-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      resetAll(); // restores original value automatically
+    });
+  });
+
+  // ── Empty field validation on Update ───────────────────────────────────
+  document.querySelectorAll(".update-btn").forEach(btn => {
+    btn.addEventListener("click", function (e) {
+      const id  = this.value;
+      const inp = document.getElementById("gname_" + id);
+      if (!inp || inp.value.trim() === "") {
+        e.preventDefault();
+        alert("Group name cannot be empty.");
+        inp.focus();
+      }
+    });
+  });
+
+  // ── Click outside active row → cancel edit ─────────────────────────────
+  document.addEventListener("click", function (e) {
+    const activeEditBtn = document.querySelector(".edit-btn[style*='display: none']");
+    if (!activeEditBtn) return;
+
+    const activeRow = activeEditBtn.closest("tr");
+    if (activeRow && !activeRow.contains(e.target)) {
+      resetAll(); // restores original value automatically
+    }
+  });
+
+  resetAll(); // initial lock on page load
+});
+</script>
+
+
+{% endblock %}

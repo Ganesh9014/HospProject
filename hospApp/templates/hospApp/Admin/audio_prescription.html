@@ -1,0 +1,286 @@
+<div class="audio-prescription-wrapper">
+
+  <div class="audio-header">
+    <h5>🎤 Audio Prescription</h5>
+    <p>Record and auto-convert doctor instructions</p>
+  </div>
+
+  <div class="audio-body">
+
+    <div class="audio-controls">
+      <button type="button" id="startRecord" class="btn btn-primary">🎤 Start Recording</button>
+      <button type="button" id="stopRecord" class="btn btn-danger" disabled>⏹ Stop</button>
+    </div>
+
+    <div id="recordingStatus" style="display:none; text-align:center; margin-top:10px;">
+      <span class="record-dot"></span>
+      <strong>Recording in progress...</strong>
+      <span id="recordTimer">00:00</span>
+    </div>
+
+    <audio id="audioPlayback" controls style="display:none;"></audio>
+
+    <div class="form-group mt-3">
+      <label>📝 Converted Text</label>
+      <textarea id="convertedText" class="form-control"
+                rows="5"
+                name="audio_text"
+                placeholder="Live transcription will appear here..."></textarea>
+    </div>
+
+    <input type="file" id="audioFileInput" name="audio" hidden>
+
+    <div class="audio-save mt-3 text-center">
+      <button type="submit" class="btn btn-success btn-lg">
+        💾 Save Audio Prescription
+      </button>
+    </div>
+
+    <div class="audio-note mt-2 text-center">
+      <small>Microphone access requires HTTPS or localhost.</small>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== STYLES ===================== -->
+<style>
+/* ========== AUDIO PRESCRIPTION UI ========== */
+
+.audio-prescription-wrapper {
+  border: 1px solid #c9defc;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 20px;
+  margin-top: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.audio-header {
+  text-align: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #c9defc;
+}
+
+.audio-header h5 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0056b3;
+}
+
+.audio-header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #555;
+}
+
+.audio-body {
+  padding-top: 10px;
+}
+
+.audio-body .form-group {
+  margin-bottom: 15px;
+}
+
+.audio-body label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.audio-controls {
+  display: flex;
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.audio-controls button {
+  flex: 1;
+  font-size: 14px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+#audioPlayback {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.audio-body textarea {
+  font-size: 14px;
+  resize: vertical;
+}
+
+.audio-save {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.audio-save button {
+  padding: 10px 25px;
+  font-size: 15px;
+  border-radius: 25px;
+}
+
+.audio-note {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #666;
+}
+
+/* 🔴 Recording Indicator */
+.record-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: red;
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.2; }
+  100% { opacity: 1; }
+}
+
+#recordTimer {
+  margin-left: 10px;
+  font-weight: 600;
+  color: #b30000;
+}
+
+/* ✅ Mobile Friendly */
+@media (max-width: 768px) {
+  .audio-controls {
+    flex-direction: column;
+  }
+}
+</style>
+
+<!-- ===================== SCRIPT ===================== -->
+<script>
+(function() {
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  const hasMediaRecorder = !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+  const startBtn = document.getElementById("startRecord");
+  const stopBtn = document.getElementById("stopRecord");
+  const audioPlayback = document.getElementById("audioPlayback");
+  const convertedText = document.getElementById("convertedText");
+  const audioFileInput = document.getElementById("audioFileInput");
+  const recordStatus = document.getElementById("recordingStatus");
+  const recordTimer = document.getElementById("recordTimer");
+  const saveBtn = document.querySelector(".audio-save button");
+
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let recognition = null;
+  let finalTranscript = "";
+  let seconds = 0;
+  let recordInterval = null;
+
+  if (!hasMediaRecorder) {
+    startBtn.disabled = true;
+    startBtn.textContent = "Recording not supported";
+  }
+
+  startBtn.addEventListener("click", async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data && e.data.size > 0) audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(audioBlob);
+        audioPlayback.src = url;
+        audioPlayback.style.display = "block";
+
+        const file = new File([audioBlob], `prescription-${Date.now()}.webm`, { type: 'audio/webm' });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        audioFileInput.files = dt.files;
+      };
+
+      mediaRecorder.start();
+
+      // ✅ Status & Timer
+      recordStatus.style.display = "block";
+      saveBtn.disabled = true;
+
+      seconds = 0;
+      recordInterval = setInterval(() => {
+        seconds++;
+        const min = String(Math.floor(seconds / 60)).padStart(2, "0");
+        const sec = String(seconds % 60).padStart(2, "0");
+        recordTimer.textContent = `${min}:${sec}`;
+      }, 1000);
+
+      // ✅ Speech Recognition
+      if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        finalTranscript = "";
+
+        recognition.onresult = (event) => {
+          let interim = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript + " ";
+            } else {
+              interim += event.results[i][0].transcript;
+            }
+          }
+          convertedText.value = (finalTranscript + interim).trim();
+        };
+
+        try { recognition.start(); } catch (e) {}
+      }
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+
+    } catch (err) {
+      alert("Microphone access denied: " + err.message);
+    }
+  });
+
+  stopBtn.addEventListener("click", () => {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop();
+    }
+
+    if (recognition) {
+      try { recognition.stop(); } catch (e) {}
+    }
+
+    clearInterval(recordInterval);
+    recordStatus.style.display = "none";
+    saveBtn.disabled = false;
+
+    if (finalTranscript && !convertedText.value.trim()) {
+      convertedText.value = finalTranscript.trim();
+    }
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  });
+
+})();
+</script>

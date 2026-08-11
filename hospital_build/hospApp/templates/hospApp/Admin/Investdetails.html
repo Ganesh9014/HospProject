@@ -1,0 +1,865 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<!-- Quill CSS -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+
+<style>
+.suggestion-list {
+  display: none;
+  max-height: 100px;
+  overflow-y: auto;
+  z-index: 1200;
+  background: #ffffff;
+  position: absolute;
+  width: 100%;
+  left: 0;
+  top: 100%;
+  border-radius: 0 0 .5rem .5rem;
+  border: 1px solid #d1d9ee;
+  border-top: none;
+  box-shadow: 0 14px 30px rgba(15,23,42,0.18);
+}
+.suggestion-list .list-group-item {
+  padding: 0;
+  font-size: .75rem;
+  border: none;
+  border-bottom: 1px solid #edf0fb;
+  cursor: pointer;
+}
+.suggestion-list .list-group-item:hover {
+  background: #eef3ff;
+  color: #1d4ed8;
+}
+.suggestion-list .list-group-item.active {
+  background-color: #0d6efd;
+  color: #fff;
+}
+.delete-col {
+  display: none;
+}
+.table-responsive {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Quill editor styling */
+#radiology_quill_editor {
+    min-height: 300px;
+    background: #fff;
+    font-size: 0.85rem;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+}
+.ql-toolbar.ql-snow {
+    border: 1px solid #ced4da;
+    border-radius: 4px 4px 0 0;
+    background: #f8f9fa;
+}
+.ql-container.ql-snow {
+    border: none;
+}
+.ql-editor {
+    cursor: text !important;
+    pointer-events: all !important;
+    min-height: 300px;
+}
+.ql-container {
+    pointer-events: all !important;
+}
+.ql-toolbar .ql-picker-options {
+    z-index: 9999 !important;
+}
+.ql-editor {
+    caret-color: #000000 !important;
+}
+#radiology-section,
+#radiology-section *,
+#radiology_quill_editor,
+.ql-container,
+.ql-editor {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    pointer-events: auto !important;
+    cursor: text !important;
+}
+.ql-toolbar,
+.ql-toolbar * {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+.ql-editor {
+    caret-color: #ff0505 !important;
+    outline: none !important;
+}
+#radiology_quill_editor p,
+#radiology_quill_editor span,
+#radiology_quill_editor td,
+#radiology_quill_editor li,
+.ql-editor p,
+.ql-editor span,
+.ql-editor li {
+    caret-color: #000000 !important;
+    cursor: text !important;
+}
+.ql-editor {
+    caret-color: #000000 !important;
+    cursor: text !important;
+}
+</style>
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Investigation Details Filling</h5>
+    </div>
+
+    <div class="form-body">
+      <form method="POST" autocomplete="off" id="mainForm">
+        {% csrf_token %}
+
+        {% if messages %}
+        <script>
+          {% for msg in messages %}
+            alert("{{ msg|escapejs }}");
+          {% endfor %}
+        </script>
+        {% endif %}
+
+        <!-- Operation Selection -->
+        <div class="row mb-1">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label>
+              <input type="radio" name="operation" value="add" checked>
+              Add
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="modify">
+              Modify
+            </label>
+          </div>
+        </div>
+
+        <!-- Investigation + Department -->
+        <div class="row">
+          <div id="inv-field" class="col-md-5 mb-2 position-relative">
+            <div class="d-flex align-items-center w-100">
+              <label class="form-label col-3">Investigation</label>
+              <div class="position-relative w-100">
+                <input type="text" id="invname" class="form-control" maxlength="50" autocomplete="off">
+                <input type="hidden" name="inv_id" id="inv_id">
+                <ul id="invSuggestions" class="suggestion-list list-group"></ul>
+              </div>
+            </div>
+          </div>
+
+          <div id="dept-field" class="col-md-6 col-lg-4">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-5">Department</label>
+              <select class="form-select" id="department" disabled>
+                {% for department in departments %}
+                <option value="{{ department.dno }}">{{ department.department }}</option>
+                {% endfor %}
+              </select>
+              <input type="hidden" name="department" id="department_hidden">
+            </div>
+          </div>
+        </div>
+
+        <!-- NORMAL TABLE (hidden for Radiology) -->
+        <div id="normal-table-section" class="row">
+          <div class="col-12">
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm align-middle">
+                <thead class="table-light text-center" style="position: sticky; top: 0; z-index: 1;">
+                  <tr>
+                    <th style="width:5%">SNo</th>
+<th style="width:12%">Header</th>
+<th style="width:12%">Test</th>
+<th style="width:12%">Method</th>
+<th style="width:8%">Default</th>
+<th style="width:8%">Units</th>
+<th style="width:18%">Normal Values</th>
+<th style="width:20%">Result Type / Range</th>
+<th class="delete-col" style="width:5%">❌</th>
+                  </tr>
+                </thead>
+                <tbody id="investigationTableBody">
+                 <tr>
+                    <td class="text-center">1</td>
+                    <td><input class="form-control form-control-sm" name="header[]"></td>
+                    <td><input class="form-control form-control-sm" name="test[]"></td>
+                    <td><input class="form-control form-control-sm" name="method[]"></td>
+                    <td><input class="form-control form-control-sm" name="default[]"></td>
+                    <td><input class="form-control form-control-sm" name="units[]"></td>
+                    <td>
+                      <textarea class="form-control form-control-sm" name="normal_values[]" rows="2"
+                        style="resize: vertical; min-height: 38px; max-height: 80px;"></textarea>
+                    </td>
+                    <td>
+                      <select class="form-select form-select-sm result-type-select" name="result_type[]">
+                        <option value="numeric" selected>Numeric</option>
+                        <option value="text_choice">Text choice</option>
+                        <option value="free_text">Free text</option>
+                      </select>
+                      <!-- RANGE MODE TOGGLE -->
+                      <div class="numeric-range-fields mt-1">
+                        <div class="d-flex gap-2 mb-1 range-mode-toggle">
+                          <div class="form-check form-check-inline mb-0">
+                            <input class="form-check-input range-mode-radio" type="radio" name="range_mode_0" value="common" checked>
+                            <label class="form-check-label" style="font-size:0.72rem;font-weight:600;color:#0369a1">Common</label>
+                          </div>
+                          <div class="form-check form-check-inline mb-0">
+                            <input class="form-check-input range-mode-radio" type="radio" name="range_mode_0" value="split">
+                            <label class="form-check-label" style="font-size:0.72rem;font-weight:600;color:#6b7280">M/F/Child</label>
+                          </div>
+                          <input type="hidden" name="range_mode[]" class="range-mode-hidden" value="common">
+                        </div>
+                        <!-- Common fields -->
+                        <div class="common-range-row d-flex gap-1">
+                          <input type="number" step="any" class="form-control form-control-sm" name="male_low[]" placeholder="Low" style="width:65px;" title="Common Low">
+                          <input type="number" step="any" class="form-control form-control-sm" name="male_high[]" placeholder="High" style="width:65px;" title="Common High">
+                          <input type="hidden" name="female_low[]" value="">
+                          <input type="hidden" name="female_high[]" value="">
+                          <input type="hidden" name="child_low[]" value="">
+                          <input type="hidden" name="child_high[]" value="">
+                          <input type="hidden" name="child_age_cutoff[]" value="12">
+                        </div>
+                        <!-- Split fields (hidden by default) -->
+                        <div class="split-range-row d-none" style="display:flex; flex-wrap:wrap; gap:2px;">
+                          <input type="number" step="any" class="form-control form-control-sm" name="male_low_split[]" placeholder="M low" style="width:60px;">
+                          <input type="number" step="any" class="form-control form-control-sm" name="male_high_split[]" placeholder="M high" style="width:60px;">
+                          <input type="number" step="any" class="form-control form-control-sm" name="female_low_split[]" placeholder="F low" style="width:60px;">
+                          <input type="number" step="any" class="form-control form-control-sm" name="female_high_split[]" placeholder="F high" style="width:60px;">
+                          <input type="number" step="any" class="form-control form-control-sm" name="child_low_split[]" placeholder="Child↓" style="width:60px;">
+                          <input type="number" step="any" class="form-control form-control-sm" name="child_high_split[]" placeholder="Child↑" style="width:60px;">
+                          <input type="number" step="any" class="form-control form-control-sm" name="child_age_cutoff_split[]" placeholder="Age cut" value="12" style="width:65px;">
+                        </div>
+                      </div>
+                      <input type="text" class="form-control form-control-sm abnormal-values-field mt-1 d-none"
+                             name="abnormal_values[]" placeholder="Positive, Reactive">
+                    </td>
+                    <td class="delete-col"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <button type="button" class="btn btn-sm btn-secondary" id="addRowBtn">Add New Row</button>
+          </div>
+        </div>
+
+        <!-- RADIOLOGY SECTION — Quill rich text editor, hidden by default -->
+        <div id="radiology-section" class="row mt-2 d-none">
+          <div class="col-md-12">
+            <label><strong>Report / Findings:</strong></label>
+            <div id="radiology_quill_editor"></div>
+            <input type="hidden" name="radiology_report" id="radiology_report">
+          </div>
+        </div>
+
+        <!-- Method & Impression -->
+        <div class="row mt-1">
+          <div class="col-md-6 mb-2" id="overall-method-section">
+            <label><strong>Method:</strong></label>
+            <input type="text" class="form-control form-control-sm" name="overall_method" maxlength="150">
+          </div>
+
+          <div class="col-md-12 mt-1">
+            <label><strong>Impression:</strong></label>
+            <textarea class="form-control" name="impression" id="impression" rows="4"></textarea>
+          </div>
+        </div>
+
+        <!-- Save / Update / Cancel -->
+        <div class="row mt-3">
+          <div class="col-12">
+            <button type="submit" class="btn btn-success" id="saveBtn">Save</button>
+            <button type="submit" class="btn btn-warning ms-2 d-none" id="updateBtn">Update</button>
+            <button type="button" class="btn btn-secondary ms-2" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     HIGHLIGHT MATCH HELPER
+================================================================ -->
+<script>
+function highlightMatch(text, query) {
+    if (!query) return text;
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+}
+</script>
+
+
+<!-- ================================================================
+     SAVE / UPDATE BUTTON TOGGLE
+================================================================ -->
+<script>
+const saveBtn   = document.getElementById("saveBtn");
+const updateBtn = document.getElementById("updateBtn");
+
+document.querySelectorAll('input[name="operation"]').forEach(radio => {
+    radio.addEventListener("change", function () {
+        if (this.value === "add") {
+            saveBtn.classList.remove("d-none");
+            updateBtn.classList.add("d-none");
+        }
+        if (this.value === "modify") {
+            saveBtn.classList.add("d-none");
+            updateBtn.classList.remove("d-none");
+        }
+    });
+});
+</script>
+
+
+<!-- ================================================================
+     MAIN INVESTIGATION LOGIC
+================================================================ -->
+<script>
+const tbody     = document.getElementById("investigationTableBody");
+const addRowBtn = document.getElementById("addRowBtn");
+
+/* ============================
+   buildRowHTML — generates a complete table row
+   r = row data object (can be empty {})
+   rangeMode = 'common' | 'split'
+============================ */
+let _rowCounter = 0;
+function buildRowHTML(index, r, rangeMode) {
+    rangeMode = rangeMode || 'common';
+    const rMode = rangeMode;
+    const rt = r.result_type || 'numeric';
+    const rc = _rowCounter++;
+
+    // In split mode, use dedicated split field names
+    // In common mode, use male_low/male_high with female/child as hidden empty
+    const commonLow  = (rMode === 'common') ? (r.male_low  ?? '') : '';
+    const commonHigh = (rMode === 'common') ? (r.male_high ?? '') : '';
+    const mLow  = (rMode === 'split') ? (r.male_low   ?? '') : '';
+    const mHigh = (rMode === 'split') ? (r.male_high  ?? '') : '';
+    const fLow  = (rMode === 'split') ? (r.female_low ?? '') : '';
+    const fHigh = (rMode === 'split') ? (r.female_high ?? '') : '';
+    const cLow  = (rMode === 'split') ? (r.child_low  ?? '') : '';
+    const cHigh = (rMode === 'split') ? (r.child_high ?? '') : '';
+    const cAge  = r.child_age_cutoff ?? 12;
+
+    return `
+        <td class="text-center"></td>
+        <td><input class="form-control form-control-sm" name="header[]"  value="${r.header   || ''}"></td>
+        <td><input class="form-control form-control-sm" name="test[]"    value="${r.test     || ''}"></td>
+        <td><input class="form-control form-control-sm" name="method[]"  value="${r.submethod|| ''}"></td>
+        <td><input class="form-control form-control-sm" name="default[]" value="${r.defaults || ''}"></td>
+        <td><input class="form-control form-control-sm" name="units[]"   value="${r.units    || ''}"></td>
+        <td><textarea class="form-control form-control-sm" name="normal_values[]" rows="2"
+              style="resize:vertical;min-height:38px;max-height:80px;">${r.normal || ''}</textarea></td>
+        <td>
+          <select class="form-select form-select-sm result-type-select" name="result_type[]">
+            <option value="numeric"     ${rt === 'numeric'     || !rt ? 'selected' : ''}>Numeric</option>
+            <option value="text_choice" ${rt === 'text_choice'        ? 'selected' : ''}>Text choice</option>
+            <option value="free_text"   ${rt === 'free_text'          ? 'selected' : ''}>Free text</option>
+          </select>
+          <!-- RANGE MODE TOGGLE -->
+          <div class="numeric-range-fields mt-1" style="display:${rt === 'text_choice' ? 'none' : 'block'}">
+            <div class="d-flex gap-2 mb-1 range-mode-toggle">
+              <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input range-mode-radio" type="radio" name="range_mode_rc${rc}" value="common" ${rMode==='common' ? 'checked' : ''}>
+                <label class="form-check-label" style="font-size:0.72rem;font-weight:600;color:#0369a1">Common</label>
+              </div>
+              <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input range-mode-radio" type="radio" name="range_mode_rc${rc}" value="split" ${rMode==='split' ? 'checked' : ''}>
+                <label class="form-check-label" style="font-size:0.72rem;font-weight:600;color:#6b7280">M/F/Child</label>
+              </div>
+              <input type="hidden" name="range_mode[]" class="range-mode-hidden" value="${rMode}">
+            </div>
+            <!-- Common fields -->
+            <div class="common-range-row d-flex gap-1 ${rMode === 'split' ? 'd-none' : ''}">
+              <input type="number" step="any" class="form-control form-control-sm" name="male_low[]"  value="${commonLow}"  placeholder="Low"  style="width:65px;" title="Common Low">
+              <input type="number" step="any" class="form-control form-control-sm" name="male_high[]" value="${commonHigh}" placeholder="High" style="width:65px;" title="Common High">
+              <input type="hidden" name="female_low[]"       value="">
+              <input type="hidden" name="female_high[]"      value="">
+              <input type="hidden" name="child_low[]"        value="">
+              <input type="hidden" name="child_high[]"       value="">
+              <input type="hidden" name="child_age_cutoff[]" value="12">
+            </div>
+            <!-- Split fields -->
+            <div class="split-range-row ${rMode === 'split' ? '' : 'd-none'}" style="flex-wrap:wrap;gap:2px;">
+              <input type="number" step="any" class="form-control form-control-sm" name="male_low_split[]"        value="${mLow}"  placeholder="M low"    style="width:60px;">
+              <input type="number" step="any" class="form-control form-control-sm" name="male_high_split[]"       value="${mHigh}" placeholder="M high"   style="width:60px;">
+              <input type="number" step="any" class="form-control form-control-sm" name="female_low_split[]"      value="${fLow}"  placeholder="F low"    style="width:60px;">
+              <input type="number" step="any" class="form-control form-control-sm" name="female_high_split[]"     value="${fHigh}" placeholder="F high"   style="width:60px;">
+              <input type="number" step="any" class="form-control form-control-sm" name="child_low_split[]"       value="${cLow}"  placeholder="Child↓" style="width:60px;">
+              <input type="number" step="any" class="form-control form-control-sm" name="child_high_split[]"      value="${cHigh}" placeholder="Child↑" style="width:60px;">
+              <input type="number" step="any" class="form-control form-control-sm" name="child_age_cutoff_split[]" value="${cAge}" placeholder="Age cut"  style="width:65px;">
+            </div>
+          </div>
+          <input type="text" class="form-control form-control-sm abnormal-values-field mt-1 ${rt === 'text_choice' ? '' : 'd-none'}"
+                 name="abnormal_values[]" value="${r.abnormal_values || ''}" placeholder="Positive, Reactive">
+        </td>
+        <td class="delete-col">
+          <button type="button" class="btn btn-sm btn-danger"
+                  onclick="deleteExistingRow(this, '${r.sno || ''}')">❌</button>
+        </td>`;
+}
+
+/* ============================
+   initRangeModeRow — wire up Common/Split radio toggle for a single <tr>
+============================ */
+function initRangeModeRow(tr) {
+    const radios       = tr.querySelectorAll('.range-mode-radio');
+    const hiddenInput  = tr.querySelector('.range-mode-hidden');
+    const commonRow    = tr.querySelector('.common-range-row');
+    const splitRow     = tr.querySelector('.split-range-row');
+
+    function applyMode(mode) {
+        if (!commonRow || !splitRow) return;
+        hiddenInput.value = mode;
+        if (mode === 'common') {
+            commonRow.classList.remove('d-none');
+            splitRow.classList.add('d-none');
+            splitRow.style.display = '';
+        } else {
+            commonRow.classList.add('d-none');
+            splitRow.classList.remove('d-none');
+            splitRow.style.display = 'flex';
+        }
+    }
+
+    radios.forEach(radio => {
+        radio.addEventListener('change', function () {
+            applyMode(this.value);
+        });
+    });
+
+    // Init display on load
+    const checked = tr.querySelector('.range-mode-radio:checked');
+    if (checked) applyMode(checked.value);
+}
+
+// Init the first static row on page load
+document.querySelectorAll('#investigationTableBody tr').forEach(tr => initRangeModeRow(tr));
+
+/* ============================
+   SHOW / HIDE DELETE COLUMN
+============================ */
+function showDeleteColumn() {
+    document.querySelectorAll(".delete-col").forEach(el => el.style.display = "table-cell");
+}
+function hideDeleteColumn() {
+    document.querySelectorAll(".delete-col").forEach(el => el.style.display = "none");
+}
+hideDeleteColumn();
+
+/* ============================
+   SYNC HIDDEN DEPARTMENT INPUT
+============================ */
+function syncDepartmentHidden() {
+    document.getElementById("department_hidden").value =
+        document.getElementById("department").value;
+}
+document.getElementById("investigationTableBody").addEventListener("change", function (e) {
+    if (!e.target.classList.contains("result-type-select")) return;
+    const tr = e.target.closest("tr");
+    const numFields  = tr.querySelector(".numeric-range-fields");
+    const textField  = tr.querySelector(".abnormal-values-field");
+    numFields.style.display  = e.target.value === "numeric" ? "flex" : "none";
+    textField.classList.toggle("d-none", e.target.value !== "text_choice");
+});
+/* ============================
+   RADIOLOGY MODE TOGGLE
+   — isRadiology flag comes from the server (get_investigation_department)
+   — NO hardcoded dept IDs here
+============================ */
+function applyRadiologyMode(isRadiology) {
+    const normalSection = document.getElementById("normal-table-section");
+    const radioSection  = document.getElementById("radiology-section");
+    const methodSection = document.getElementById("overall-method-section");
+
+    if (isRadiology) {
+        normalSection.classList.add("d-none");
+        addRowBtn.classList.add("d-none");
+        methodSection.classList.add("d-none");
+        radioSection.classList.remove("d-none");
+    } else {
+        normalSection.classList.remove("d-none");
+        addRowBtn.classList.remove("d-none");
+        methodSection.classList.remove("d-none");
+        radioSection.classList.add("d-none");
+    }
+}
+
+/* ============================
+   RENUMBER ROWS
+============================ */
+function renumber() {
+    document.querySelectorAll("#investigationTableBody tr").forEach((tr, i) => {
+        tr.cells[0].innerText = i + 1;
+    });
+}
+
+/* ============================
+   ADD ROW
+============================ */
+addRowBtn.onclick = () => {
+    const rowIndex = tbody.querySelectorAll('tr').length;
+    const tr = document.createElement("tr");
+    tr.innerHTML = buildRowHTML(rowIndex, {});
+    tbody.appendChild(tr);
+    initRangeModeRow(tr);
+    renumber();
+};
+
+/* ============================
+   CHECK IF INVESTIGATION EXISTS (Add mode)
+============================ */
+function checkInvestigationExists(invId, invName) {
+    fetch(`/fetch-investigation-details/?inv_id=${invId}`)
+        .then(res => res.json())
+        .then(data => {
+            const operation = document.querySelector('input[name="operation"]:checked');
+
+            if (operation && operation.value === "add" && data.rows.length > 0) {
+                alert(`Investigation "${invName}" already exists.\nPlease use Modify option.`);
+                document.getElementById("invname").value             = "";
+                document.getElementById("inv_id").value              = "";
+                document.getElementById("department").selectedIndex  = 0;
+                document.getElementById("department_hidden").value   = "";
+                document.getElementById("impression").value          = "";
+
+                if (window.quill) window.quill.setText("");
+
+                tbody.innerHTML = `
+                    <tr>
+                        <td class="text-center">1</td>
+                        <td><input class="form-control form-control-sm" name="header[]"></td>
+                        <td><input class="form-control form-control-sm" name="test[]"></td>
+                        <td><input class="form-control form-control-sm" name="method[]"></td>
+                        <td><input class="form-control form-control-sm" name="default[]"></td>
+                        <td><input class="form-control form-control-sm" name="units[]"></td>
+                        <td><textarea class="form-control form-control-sm" name="normal_values[]" rows="2"
+                              style="resize: vertical; min-height: 38px; max-height: 80px;"></textarea></td>
+                        <td class="delete-col"></td>
+                    </tr>`;
+
+                applyRadiologyMode(false);
+            }
+        });
+}
+
+/* ============================
+   LOAD INVESTIGATION FOR MODIFY
+   — isRadiology passed from selectItem (server flag)
+============================ */
+function loadInvestigationForUpdate(invId, isRadiology) {
+    fetch(`/fetch-investigation-details/?inv_id=${invId}`)
+        .then(res => res.json())
+        .then(data => {
+
+            // RADIOLOGY — fill Quill editor from defaults of first row
+            if (isRadiology) {
+                if (data.rows.length > 0) {
+                    const content = data.rows[0].defaults || "";
+                    if (window.quill) {
+                        if (content.includes('<')) {
+                            window.quill.root.innerHTML = content;
+                        } else {
+                            window.quill.setText(content);
+                        }
+                    }
+                    document.getElementById("impression").value = data.rows[0].impression || "";
+                }
+                return;
+            }
+
+            // Normal departments — populate table
+            tbody.innerHTML = "";
+
+            if (data.rows.length > 0) {
+                document.querySelector('input[name="overall_method"]').value = data.rows[0].method || "";
+                document.getElementById("impression").value = data.rows[0].impression || "";
+            }
+
+            data.rows.forEach((r, i) => {
+                // Detect range mode: if male_low == female_low == child_low (all same or only male set) → common
+                const hasFemale = r.female_low != null || r.female_high != null;
+                const hasChild  = r.child_low  != null || r.child_high  != null;
+                const rangeMode = (hasFemale || hasChild) ? 'split' : 'common';
+
+                const tr = document.createElement("tr");
+                tr.innerHTML = buildRowHTML(i, r, rangeMode);
+                tbody.appendChild(tr);
+                initRangeModeRow(tr);
+            });
+
+            showDeleteColumn();
+        });
+}
+
+/* ============================
+   DELETE EXISTING ROW (DB)
+============================ */
+function deleteExistingRow(btn, sno) {
+    if (!confirm("Delete row?")) return;
+    fetch("/delete-investigation-row/", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `sno=${sno}`
+    }).then(() => {
+        btn.closest("tr").remove();
+        renumber();
+    });
+}
+</script>
+
+
+<!-- ================================================================
+     OPERATION RADIO — RESET TABLE ON SWITCH
+================================================================ -->
+<script>
+document.querySelectorAll('input[name="operation"]').forEach(radio => {
+    radio.addEventListener("change", function () {
+        const tbody = document.getElementById("investigationTableBody");
+
+        if (this.value === "add") {
+            tbody.innerHTML = '';
+            const tr = document.createElement('tr');
+            tr.innerHTML = buildRowHTML(0, {});
+            tbody.appendChild(tr);
+            initRangeModeRow(tr);
+            hideDeleteColumn();
+        }
+
+        if (this.value === "modify") {
+            tbody.innerHTML = "";
+            hideDeleteColumn();
+        }
+
+        // reset to non-radiology mode when switching operations
+        applyRadiologyMode(false);
+    });
+});
+</script>
+
+
+<!-- ================================================================
+     INVESTIGATION AUTOCOMPLETE
+================================================================ -->
+<script>
+(function () {
+
+    const input = document.getElementById("invname");
+    const box   = document.getElementById("invSuggestions");
+
+    let currentIndex = -1;
+    let itemClicked  = false;
+    let itemSelected = false;
+
+    input.addEventListener("input", function () {
+        currentIndex = -1;
+        itemSelected = false;
+        document.getElementById("inv_id").value = "";
+
+        const q = this.value.trim();
+        box.innerHTML     = "";
+        box.style.display = "none";
+        if (!q) return;
+
+        fetch(`/search-investigation/?q=${encodeURIComponent(q)}`)
+            .then(res => res.json())
+            .then(data => {
+                const list = data.results || [];
+                if (!list.length) return;
+
+                let html = "";
+                list.forEach((item, i) => {
+                    html += `
+                        <li class="list-group-item inv-suggest-item"
+                            data-inv_id="${item.inv_id}"
+                            data-name="${item.invname}"
+                            data-index="${i}">
+                            ${highlightMatch(item.invname, q)}
+                        </li>`;
+                });
+                box.innerHTML     = html;
+                box.style.display = "block";
+            });
+    });
+
+    input.addEventListener("keydown", function (e) {
+        const items = box.querySelectorAll(".inv-suggest-item");
+        if (!items.length || box.style.display === "none") return;
+
+        if (e.key === "Escape") {
+            box.style.display = "none";
+            currentIndex = -1;
+            items.forEach(el => el.classList.remove("active"));
+            return;
+        }
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            currentIndex = e.key === "ArrowDown"
+                ? (currentIndex + 1) % items.length
+                : (currentIndex - 1 + items.length) % items.length;
+            highlightItem(items);
+            return;
+        }
+        if (e.key === "Enter") {
+            e.preventDefault();
+            if (currentIndex === -1) currentIndex = 0;
+            selectItem(items[currentIndex]);
+            return;
+        }
+        if (e.key === "Tab") {
+            if (itemSelected) { itemSelected = false; return; }
+            e.preventDefault();
+            if (currentIndex === -1) currentIndex = 0;
+            selectItem(items[currentIndex]);
+        }
+    });
+
+    function highlightItem(items) {
+        items.forEach(el => el.classList.remove("active"));
+        const active = items[currentIndex];
+        if (!active) return;
+        active.classList.add("active");
+        const a = active.getBoundingClientRect();
+        const c = box.getBoundingClientRect();
+        if (a.top < c.top)            box.scrollTop -= (c.top - a.top);
+        else if (a.bottom > c.bottom) box.scrollTop += (a.bottom - c.bottom);
+    }
+
+    function selectItem(item) {
+        const inv_id = item.dataset.inv_id;
+        const name   = item.dataset.name;
+
+        input.value                              = name;
+        document.getElementById("inv_id").value = inv_id;
+
+        box.style.display = "none";
+        currentIndex      = -1;
+        itemSelected      = true;
+
+        // reset dept before fetching
+        document.getElementById("department").selectedIndex = 0;
+        document.getElementById("department_hidden").value  = "";
+
+        fetch(`/get-investigation-department/?inv_id=${encodeURIComponent(inv_id)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.department_id) {
+                    document.getElementById("department").value        = data.department_id;
+                    document.getElementById("department_hidden").value = data.department_id;
+                }
+
+                // ✅ use server-returned flag — no hardcoded ID
+                const isRadiology = data.is_radiology || false;
+                applyRadiologyMode(isRadiology);
+
+                const operation = document.querySelector('input[name="operation"]:checked');
+                if (operation && operation.value === "modify") {
+                    loadInvestigationForUpdate(inv_id, isRadiology);
+                } else {
+                    checkInvestigationExists(inv_id, name);
+                }
+            });
+    }
+
+    box.addEventListener("mousedown", function () { itemClicked = true; });
+    box.addEventListener("click", function (e) {
+        const item = e.target.closest(".inv-suggest-item");
+        if (!item) return;
+        selectItem(item);
+        setTimeout(() => itemClicked = false, 150);
+    });
+
+    input.addEventListener("blur", function () {
+        setTimeout(() => {
+            if (itemClicked) return;
+            box.style.display = "none";
+            const typedValue = input.value.trim();
+            const selectedId = document.getElementById("inv_id").value;
+            if (typedValue && !selectedId) {
+                alert("⚠️ Investigation not found. Please select a valid investigation from the list.");
+                input.value = "";
+                input.focus();
+            }
+        }, 200);
+    });
+
+})();
+</script>
+
+
+<!-- ================================================================
+     CANCEL BUTTON
+================================================================ -->
+<script>
+document.getElementById("cancelBtn").addEventListener("click", function () {
+
+    document.querySelector('input[name="operation"][value="add"]').checked = true;
+
+    document.getElementById("saveBtn").classList.remove("d-none");
+    document.getElementById("updateBtn").classList.add("d-none");
+
+    document.getElementById("invname").value            = "";
+    document.getElementById("inv_id").value             = "";
+    document.getElementById("department").selectedIndex = 0;
+    document.getElementById("department_hidden").value  = "";
+
+    document.querySelector('input[name="overall_method"]').value = "";
+    document.getElementById("impression").value = "";
+
+    if (window.quill) window.quill.setText("");
+
+    document.getElementById("investigationTableBody").innerHTML = '';
+    const firstTr = document.createElement('tr');
+    firstTr.innerHTML = buildRowHTML(0, {});
+    document.getElementById('investigationTableBody').appendChild(firstTr);
+    initRangeModeRow(firstTr);
+
+    hideDeleteColumn();
+    applyRadiologyMode(false);
+});
+</script>
+
+
+<!-- ================================================================
+     QUILL RICH TEXT EDITOR
+================================================================ -->
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+window.quill = new Quill('#radiology_quill_editor', {
+    theme: 'snow',
+    placeholder: 'Enter radiology findings / report...',
+    modules: {
+        toolbar: [
+            ['bold', 'italic', 'underline'],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'size': ['small', false, 'large', 'huge'] }],
+            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+            [{ 'indent': '-1' }, { 'indent': '+1' }],
+            ['clean']
+        ]
+    }
+});
+
+document.getElementById("mainForm").addEventListener("submit", function () {
+    const html = window.quill.root.innerHTML;
+    document.getElementById("radiology_report").value =
+        (html === "<p><br></p>") ? "" : html;
+});
+</script>
+
+{% endblock %}

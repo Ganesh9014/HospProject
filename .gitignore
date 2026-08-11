@@ -1,0 +1,26 @@
+# Environment variables (DO NOT PUSH SECRETS TO GITHUB)
+.env
+
+# Python / Virtual Environment
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database & SQLite
+*.sqlite3
+
+# Large build archives and generated output
+hospital_build.zip
+output.pdf
+
+# Static files / collected static
+staticfiles/
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

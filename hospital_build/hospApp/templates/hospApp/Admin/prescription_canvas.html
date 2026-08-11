@@ -1,0 +1,116 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-header bg-success text-white">
+      <h5>✍ Digital Prescription</h5>
+    </div>
+
+    <div class="card-body">
+      <form method="POST">
+        {% csrf_token %}
+
+        <input type="hidden" name="stroke_data" id="strokeData">
+        <input type="hidden" name="image" id="imageData">
+
+        <canvas id="canvas" width="800" height="600"
+          style="border:1px solid #000; background:#fff;"></canvas>
+
+        <!-- ✅ TOOLS -->
+        <div class="mt-2">
+          <button type="button" onclick="setPen()">🖊 Pen</button>
+          <button type="button" onclick="setEraser()">🧽 Eraser</button>
+          <input type="color" onchange="setColor(this.value)">
+          <input type="range" min="1" max="10" value="2" onchange="setSize(this.value)">
+        </div>
+
+        <!-- ✅ VITALS -->
+        <div class="row mt-3">
+          <div class="col"><input name="temp" class="form-control" placeholder="Temp" value="{{ prescription.temp|default:'' }}"></div>
+          <div class="col"><input name="bp" class="form-control" placeholder="BP" value="{{ prescription.bp|default:'' }}"></div>
+          <div class="col"><input name="pr" class="form-control" placeholder="PR" value="{{ prescription.pr|default:'' }}"></div>
+          <div class="col"><input name="spo2" class="form-control" placeholder="SpO2" value="{{ prescription.spo2|default:'' }}"></div>
+          <div class="col"><input name="weight" class="form-control" placeholder="Weight" value="{{ prescription.weight|default:'' }}"></div>
+        </div>
+
+        <button type="submit" class="btn btn-success mt-3" onclick="saveCanvas()">
+          ✅ Save & Print
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let drawing = false;
+let strokes = {{ prescription.stroke_data|default:"[]"|safe }};
+let currentStroke = [];
+let color = "black";
+let size = 2;
+let eraser = false;
+
+// ✅ LOAD OLD STROKES (REVISIT)
+function redraw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  strokes.forEach(stroke => {
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.size;
+    ctx.beginPath();
+    stroke.points.forEach((p, i) => {
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.stroke();
+  });
+}
+redraw();
+
+// ✅ DRAWING SYSTEM
+canvas.onmousedown = e => {
+  drawing = true;
+  currentStroke = [];
+};
+
+canvas.onmousemove = e => {
+  if (!drawing) return;
+  const r = canvas.getBoundingClientRect();
+  const x = e.clientX - r.left;
+  const y = e.clientY - r.top;
+
+  currentStroke.push({ x, y });
+
+  ctx.strokeStyle = eraser ? "#fff" : color;
+  ctx.lineWidth = size;
+  ctx.lineTo(x, y);
+  ctx.stroke();
+};
+
+canvas.onmouseup = () => {
+  drawing = false;
+  strokes.push({
+    color: eraser ? "#fff" : color,
+    size: size,
+    points: currentStroke
+  });
+  ctx.beginPath();
+};
+
+// ✅ TOOLS
+function setPen() { eraser = false; }
+function setEraser() { eraser = true; }
+function setColor(c) { color = c; }
+function setSize(s) { size = s; }
+
+// ✅ SAVE CANVAS
+function saveCanvas() {
+  document.getElementById("strokeData").value = JSON.stringify(strokes);
+  document.getElementById("imageData").value = canvas.toDataURL("image/png");
+}
+</script>
+
+{% endblock %}

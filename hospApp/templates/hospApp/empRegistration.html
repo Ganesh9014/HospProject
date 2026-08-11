@@ -1,0 +1,188 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>🧑‍⚕️ Employee Registration</h5>
+    </div>
+
+    <div class="form-body">
+      <form method="POST" autocomplete="off" id="empForm">
+          {% if messages %}
+  <script>
+    {% for message in messages %}
+      alert("{{ message|escapejs }}");
+    {% endfor %}
+  </script>
+{% endif %}
+
+        {% csrf_token %}
+
+        <div class="col-md-4 mb-2">
+    <div class="d-flex align-items-center">
+        <label class="form-label col-4">EMP ID</label>
+        {{ form.emp_id }}
+    </div>
+</div>
+
+<div class="col-md-4 mb-2">
+    <div class="d-flex align-items-center">
+        <label class="form-label col-4">EMP Name</label>
+        {{ form.emp_name }}
+    </div>
+</div>
+
+<div class="col-md-4 mb-2">
+    <div class="d-flex align-items-center">
+        <label class="form-label col-4">Designation</label>
+        {{ form.designation }}
+    </div>
+</div>
+
+<div class="col-md-4 mb-2">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Age</label>
+              {{ form.age }}
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-2">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">DOJ</label>
+              {{ form.doj }}
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-2">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Phone</label>
+              {{ form.phone }}
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-2">
+            <div class="d-flex align-items-start">
+              <label class="form-label col-4">Address</label>
+              <div class="flex-grow-1">
+                {{ form.address }}
+              </div>
+            </div>
+          </div>
+
+<!-- Continue same pattern for all fields -->
+
+        <div class="text-center mt-4">
+          <button type="submit" class="btn btn-success me-2">Save</button>
+          <a href="{% url 'empRegistration' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+      </form>
+      </div>
+      </div>
+      </div>
+      <script>
+  let alertFocusField = null;
+
+  function showAlert(message, fieldId) {
+    document.getElementById('alertMessage').textContent = message;
+    alertFocusField = fieldId || null;
+    const modal = document.getElementById('validationAlert');
+    modal.style.display = 'flex';
+  }
+
+  function closeAlert() {
+    document.getElementById('validationAlert').style.display = 'none';
+    if (alertFocusField) {
+      const el = document.getElementById(alertFocusField);
+      if (el) {
+        el.value = '';       // clear only the errored field
+        el.focus();
+      }
+      alertFocusField = null;
+    }
+  }
+
+  // ── Set today's date as default for DOJ ──────────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    const dojField = document.getElementById('id_doj');
+    if (dojField && !dojField.value) {
+      const today = new Date().toISOString().split('T')[0];
+      dojField.value = today;
+    }
+
+    // ── Block letters + e/+/- in Age and Phone ───────────────────
+    ['id_age', 'id_phone'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      el.addEventListener('keydown', function (e) {
+        // Allow: backspace, delete, tab, arrows, home, end
+        const allowed = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'];
+        if (allowed.includes(e.key)) return;
+        // Block e, E, +, - (default number-input chars)
+        if (['e','E','+','-','.'].includes(e.key)) { e.preventDefault(); return; }
+        // Block anything that isn't a digit
+        if (!/^\d$/.test(e.key)) { e.preventDefault(); }
+      });
+
+      el.addEventListener('paste', function (e) {
+        e.preventDefault();   // no pasting in numeric fields
+      });
+    });
+
+    // ── Block numbers in emp_name ─────────────────────────────────
+    const nameField = document.getElementById('id_emp_name');
+    if (nameField) {
+      nameField.addEventListener('keypress', function (e) {
+        if (/[0-9]/.test(e.key)) e.preventDefault();
+      });
+    }
+
+    // ── Client-side validation before submit ─────────────────────
+    document.getElementById('empForm').addEventListener('submit', function (e) {
+      const phone = document.getElementById('id_phone');
+      const age   = document.getElementById('id_age');
+
+      if (age && age.value) {
+        const ageVal = parseInt(age.value, 10);
+        if (ageVal < 18 || ageVal > 80) {
+          e.preventDefault();
+          showAlert('Age must be between 18 and 80.', 'id_age');
+          return;
+        }
+      }
+
+      if (phone && phone.value) {
+        const digits = phone.value.replace(/\D/g, '');
+        if (digits.length !== 10) {
+          e.preventDefault();
+          showAlert('Enter a valid phone number (10 digits).', 'id_phone');
+          return;
+        }
+      }
+    });
+
+    // ── Show server-side phone/age errors as alert ────────────────
+    {% for field in form %}
+      {% if field.errors and field.html_name == 'phone' %}
+        showAlert('{{ field.errors|striptags|escapejs }}', 'id_phone');
+      {% endif %}
+      {% if field.errors and field.html_name == 'age' %}
+        showAlert('{{ field.errors|striptags|escapejs }}', 'id_age');
+      {% endif %}
+    {% endfor %}
+  });
+</script>
+
+<style>
+.textarea {
+   
+    height: 50px;       /* adjust as needed */
+}
+
+</style>  
+{% endblock %}

@@ -1,0 +1,435 @@
+{% extends "hospApp/admin/base_blank.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="prescription-container">
+
+  <!-- HEADER -->
+  <div class="prescription-header">
+    <div class="hospital-info">
+      <h2 class="hospital-name">AUDIO PRESCRIPTION (REVISIT)</h2>
+      <p class="hospital-sub">Revised Outpatient Record</p>
+    </div>
+
+    <div class="patient-info">
+      <div><strong>UHID:</strong> {{ consult.uhid }}</div>
+      <div><strong>Name:</strong> {{ pres.patient_name|upper }}</div>
+      <div><strong>Age/Gender:</strong> {{ consult.age }}/{{ consult.gender |upper}}</div>
+    
+      <div><strong>Phone:</strong> {{ consult.phone }}</div>
+    </div>
+
+
+<table style="width:100%; font-size:13px; margin-top:10px;" >
+        <tr>
+            <td style="font-weight:bold; width:60px;">TEMP</td>
+            <td style="width:90px;">: <input id="temp" value="{{ pres.temp }}" type="text" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off">
+
+</td>
+
+            <td style="font-weight:bold; width:60px;">BP</td>
+            <td style="width:90px;">: <input id="bp" type="text" value="{{ pres.bp }}" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off"></td>
+
+            <td style="font-weight:bold; width:60px;">PR</td>
+            <td style="width:90px;">: 
+<input id="pr" type="text" value="{{ pres.pr }}" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off"></td>
+
+            <td style="font-weight:bold; width:60px;">SPO2</td>
+            <td style="width:90px;">: <input id="spo2" value="{{ pres.spo2 }}" type="text" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off">
+</td>
+
+            <td style="font-weight:bold; width:70px;">WEIGHT</td>
+            <td style="width:90px;">: <input id="weight" value="{{ pres.weight }}" type="text" style="width:70px; border:none; border-bottom:1px dotted #000;" maxlength="7" autocomplete="off">
+</td>
+        </tr>
+    </table>
+
+
+
+
+    <!-- ✅ VITALS -->
+    
+  </div>
+
+  <!-- ✅ AUDIO REVISIT FORM -->
+  <div class="prescription-main-card">
+
+    <form id="audioRevisitForm" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <input type="hidden" name="consult_id" value="{{ consult.id }}">
+      <input type="hidden" id="temp_hidden" name="temp">
+      <input type="hidden" id="bp_hidden" name="bp">
+      <input type="hidden" id="pr_hidden" name="pr">
+      <input type="hidden" id="spo2_hidden" name="spo2">
+      <input type="hidden" id="weight_hidden" name="weight">
+
+      {% comment %} <!-- ✅ OLD AUDIO -->
+      {% if pres.audio %}
+      <div style="margin-bottom:15px;">
+        <label><b>Previous Audio:</b></label><br>
+        <audio controls>
+          <source src="{{ pres.audio.url }}">
+        </audio>
+      </div>
+      {% endif %} {% endcomment %}
+
+      <!-- ✅ EXISTING TEXT -->
+      
+
+      <!-- ✅ YOUR ORIGINAL AUDIO UI (REUSED) -->
+
+      <div class="audio-prescription-wrapper">
+
+        <div class="audio-header">
+          <h5>🎤 Add New Audio (Revisit)</h5>
+          <p>Record and auto-convert new instructions</p>
+        </div>
+
+        <div class="audio-body">
+
+          <div class="audio-controls">
+            <button type="button" id="startRecord" class="btn btn-primary">🎤 Start Recording</button>
+            <button type="button" id="stopRecord" class="btn btn-danger" disabled>⏹ Stop</button>
+          </div>
+
+          <div id="recordingStatus" style="display:none; text-align:center; margin-top:10px;">
+            <span class="record-dot"></span>
+            <strong>Recording in progress...</strong>
+            <span id="recordTimer">00:00</span>
+          </div>
+            <div class="form-group mt-3">
+        <label>📝Exisiting Audio Text</label>
+        <textarea id="existingText" class="form-control" rows="5" readonly>{{ pres.audio_text }}</textarea>
+      </div>
+          <audio id="audioPlayback" controls style="display:none;"></audio>
+
+          <div class="form-group mt-3">
+            <label>📝 New Converted Text (Will be appended)</label>
+            <textarea id="convertedText" class="form-control"
+              rows="5"
+              name="audio_text"
+              placeholder="Live transcription will appear here..."></textarea>
+          </div>
+
+          <input type="file" id="audioFileInput" name="audio" hidden>
+
+          <div class="audio-save mt-3 text-center">
+            <button type="submit" class="btn btn-success btn-lg">
+              💾 Save Audio Revisit
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ✅ STYLES (SAME AS NORMAL AUDIO) -->
+<style>
+<!-- Add this CSS to your existing prescription.html style section -->
+
+/* RESPONSIVE IMPROVEMENTS */
+.prescription-container {
+    max-width: 100%;
+    width: 100%;
+    padding: 15px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .prescription-container { padding: 10px; }
+    .patient-info {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    #prescriptionCanvas {
+        height: 600px !important; /* Mobile friendly */
+    }
+}
+
+@media (max-width: 480px) {
+    #prescriptionCanvas {
+        height: 450px !important;
+    }
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .tool-btn, .save-btn {
+        width: 100%;
+        margin: 2px 0;
+    }
+}
+
+/* Enhanced toolbar */
+.toolbar {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 12px;
+    border-radius: 8px;
+    margin: 15px 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+
+/* Container */
+.prescription-container {
+    width: 100%;
+    max-width: 900px;
+    margin: auto;
+    padding: 15px;
+}
+
+/* Header */
+.prescription-header {
+    background: #f0f7ff;
+    border: 1px solid #d3e4ff;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.hospital-info {
+    text-align: center;
+}
+
+.hospital-name {
+    font-size: 22px;
+    font-weight: bold;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.hospital-sub {
+    font-size: 14px;
+    margin: 0;
+    color: #555;
+}
+
+.patient-info {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 5px 15px;
+    font-size: 14px;
+}
+
+/* Main Card */
+.prescription-main-card {
+    border: 1px solid #ccc;
+    padding: 15px;
+    background: #fff;
+    border-radius: 6px;
+}
+
+/* Canvas Section */
+.section-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.canvas-wrapper {
+    width: 100%;
+    border: 1px solid #444;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+/* ⭐ FIXED HEIGHT (MOST IMPORTANT FIX) ⭐ */
+#prescriptionCanvas {
+    width: 100%;
+    height: 820px; /* <-- FIXED CANVAS HEIGHT FOR PEN/MOUSE */
+    background: #fff;
+    touch-action: none;
+}
+
+/* Toolbar */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.tool-btn, .save-btn {
+    padding: 6px 14px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+}
+
+.pen-btn { background: #007bff; color: white; }
+.eraser-btn { background: #dc3545; color: white; }
+.undo-btn { background: #ffc107; }
+.redo-btn { background: #17a2b8; color: white; }
+.clear-btn { background: #6c757d; color: white; }
+.save-btn { background: #28a745; color: white; margin-left: auto; }
+
+.color-picker {
+    padding: 4px 10px;
+}
+
+/* Patient Field */
+.patient-field {
+    margin-top: 12px;
+}
+
+.patient-field input {
+    width: 100%;
+    padding: 6px;
+}
+
+/* PRINT MODE */
+@media print {
+    .no-print { display: none !important; }
+    .prescription-container {
+        max-width: 100%;
+        padding: 0;
+    }
+    .prescription-main-card {
+        border: none;
+    }
+}
+
+</style>
+
+<!-- ✅ ✅ ✅ SCRIPT (APPEND TEXT + RECORDING WORKS) -->
+<script>
+(function() {
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  const hasMediaRecorder = !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+  const startBtn = document.getElementById("startRecord");
+  const stopBtn = document.getElementById("stopRecord");
+  const audioPlayback = document.getElementById("audioPlayback");
+  const convertedText = document.getElementById("convertedText");
+  const existingText = document.getElementById("existingText");
+  const audioFileInput = document.getElementById("audioFileInput");
+  const recordStatus = document.getElementById("recordingStatus");
+  const recordTimer = document.getElementById("recordTimer");
+
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let recognition = null;
+  let finalTranscript = "";
+  let seconds = 0;
+  let recordInterval = null;
+
+  if (!hasMediaRecorder) {
+    startBtn.disabled = true;
+    startBtn.textContent = "Recording not supported";
+  }
+
+  startBtn.addEventListener("click", async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      audioPlayback.src = URL.createObjectURL(audioBlob);
+      audioPlayback.style.display = "block";
+
+      const file = new File([audioBlob], `revisit-${Date.now()}.webm`, { type: 'audio/webm' });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      audioFileInput.files = dt.files;
+    };
+
+    mediaRecorder.start();
+
+    recordStatus.style.display = "block";
+    seconds = 0;
+    recordInterval = setInterval(() => seconds++, 1000);
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      finalTranscript = "";
+
+      recognition.onresult = (event) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + " ";
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        convertedText.value = (finalTranscript + interim).trim();
+      };
+
+      recognition.start();
+    }
+
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+  });
+
+  stopBtn.addEventListener("click", () => {
+    mediaRecorder.stop();
+    if (recognition) recognition.stop();
+
+    clearInterval(recordInterval);
+    recordStatus.style.display = "none";
+
+    // ✅ ✅ ✅ APPEND NEW TEXT TO OLD TEXT
+    if (convertedText.value.trim()) {
+      existingText.value =
+        existingText.value.trim() + "\n" + convertedText.value.trim();
+    }
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  });
+
+})();
+</script>
+
+<!-- ✅ SUBMIT WITH AJAX -->
+<script>
+function fillVitals() {
+  temp_hidden.value = temp.value;
+  bp_hidden.value = bp.value;
+  pr_hidden.value = pr.value;
+  spo2_hidden.value = spo2.value;
+  weight_hidden.value = weight.value;
+}
+
+document.getElementById("audioRevisitForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  fillVitals();
+
+  const formData = new FormData(this);
+
+  fetch("{% url 'revisit_audio_prescription' consult.id %}", {
+    method: "POST",
+    body: formData,
+    headers: {
+      "X-CSRFToken": document.querySelector("#audioRevisitForm input[name='csrfmiddlewaretoken']").value
+    }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "success") {
+      window.location.replace(data.print_url);
+    } else {
+      alert("Audio revisit failed");
+    }
+  });
+});
+</script>
+
+{% endblock %}

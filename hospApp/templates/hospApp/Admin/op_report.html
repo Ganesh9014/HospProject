@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OP Report</title>
+    <style>
+        body {
+            font-family: "Times New Roman", serif;
+            font-size: 10px;
+        }
+
+        .report-container {
+            width: 95%;
+            margin: 10px auto;
+        }
+
+        .header {
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .header p {
+            margin: 2px 0;
+        }
+
+        .title {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        th {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 4px 6px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 3px 6px;
+            vertical-align: top;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #000;
+        }
+
+        /* Column-specific alignment */
+        .col-sno   { text-align: center; width: 40px; }
+        .col-uhid  { text-align: left;   white-space: nowrap; }
+        .col-name  { text-align: left; }
+        .col-rel   { text-align: left; }
+        .col-age   { text-align: center; white-space: nowrap; width: 60px; }
+        .col-phone { text-align: left;   white-space: nowrap; }
+        .col-case  { text-align: center; white-space: nowrap; }
+        .col-pro   { text-align: left; }
+        .col-ref   { text-align: left; }
+        .col-date  { text-align: left;   white-space: nowrap; font-size: 12px; }
+
+        .footer-bar {
+            width: 50%;
+            margin: 20px auto 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="report-container">
+
+    <div class="header">
+        <h2>{{ hospital.name }}</h2>
+        <p>{{ hospital.address }}</p>
+    </div>
+
+    <hr style="border: 1px solid #333;">
+
+    <div style="text-align:center;">
+        <div class="title">Patient Information</div>
+        <div style="font-weight: bold;">{{ from_date|date:"d-m-Y" }} to {{ to_date|date:"d-m-Y" }}</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th class="col-sno">S.NO</th>
+                <th class="col-uhid">UHID</th>
+                <th class="col-name">PATIENT NAME</th>
+                <th class="col-rel">RELATION</th>
+                <th class="col-age">AGE</th>
+                <th class="col-phone">PHONE</th>
+                <th class="col-case">CASETYPE</th>
+                <th class="col-pro">PRO</th>
+                <th class="col-ref">REF.DOC</th>
+                <th class="col-date">CREATED TIME</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                <td class="col-sno">{{ forloop.counter }}</td>
+                <td class="col-uhid">{{ row.uhid|upper }}</td>
+                <td class="col-name">{{ row.patname|upper }}</td>
+                <td class="col-rel">{{ row.fname|upper }}</td>
+                <td class="col-age">{{ row.age }}/{{ row.gender|upper }}</td>
+                <td class="col-phone">{{ row.mobile }}</td>
+                <td class="col-case">{{ row.casetype|default:"-"|upper }}</td>
+                <td class="col-pro">{{ row.pro|default:"-"|upper }}</td>
+                <td class="col-ref">{{ row.refdoc|default:"-"|upper }}</td>
+                <td class="col-date">{{ row.regdt|date:"Y-m-d" }} {{ row.regdt|time:"H:i:s" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="10" style="text-align:center;">No records found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer-bar">
+        <div><strong>PRINT BY:</strong> {{ username | upper }}</div>
+        <div><strong>PRINT TIME:</strong> {{ print_time|date:"d-m-Y H:i:s" }}</div>
+    </div>
+
+</div>
+
+</body>
+</html>

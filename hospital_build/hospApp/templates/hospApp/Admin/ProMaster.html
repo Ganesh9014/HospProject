@@ -1,0 +1,233 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+  .btn1 { padding: 1px 6px; font-size: 0.7rem; }
+  .btn-danger-delete { padding: 1px 6px; font-size: 0.7rem; background:red; color:white; border:none; border-radius:3px; }
+</style>
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header"><h5>PRO Master</h5></div>
+
+    <div class="form-body">
+
+        {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+      <!-- FORM (ALWAYS POST) -->
+      <form method="post" id="promaster-form" autocomplete="off">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+        <!-- Operation Switch -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label><b>Choose:</b></label><br>
+
+            <label>
+              <input type="radio" value="add" name="operation_radio"
+                     {% if operation == 'add' %}checked{% endif %}
+                     onclick="window.location.href='?operation=add';">
+              Add
+            </label>
+
+            <label class="ms-3">
+              <input type="radio" value="modify" name="operation_radio"
+                     {% if operation == 'modify' %}checked{% endif %}
+                     onclick="window.location.href='?operation=modify';">
+              Modify
+            </label>
+
+            <label class="ms-3">
+              <input type="radio" value="delete" name="operation_radio"
+                     {% if operation == 'delete' %}checked{% endif %}
+                     onclick="window.location.href='?operation=delete';">
+              Delete
+            </label>
+          </div>
+        </div>
+
+        <!-- ADD MODE -->
+        {% if operation == 'add' %}
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label>Pro Name</label>
+            <input type="text" name="pro_name" class="form-control" required>
+          </div>
+
+          <div class="col-md-3">
+            <label>Phone</label>
+            <input type="text" name="phone" class="form-control" maxlength="10"
+                   oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10);" required>
+          </div>
+
+          <div class="col-md-2 align-self-end">
+            <button type="submit" name="add_btn" class="btn btn-primary">Add</button>
+            <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+
+        {% else %}
+        <!-- SEARCH BOX (GET REQUEST) -->
+        <div class="row mb-2">
+          <div class="col-md-4">
+            <input type="text" name="search_text" value="{{ search_text }}" class="form-control"
+                   placeholder="Search by name or phone">
+          </div>
+
+          <div class="col-md-2">
+            <button type="button" class="btn btn-secondary btn-sm"
+                    onclick="window.location.href='?operation={{ operation }}&search_text=' + document.getElementsByName('search_text')[0].value;">
+              Search
+            </button>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- TABLE -->
+        
+        <div class="table-responsive mt-3 col-8">
+          <table class="table table-bordered">
+            <thead class="table-light">
+              <tr>
+                {% if operation == 'modify' %}<th>Edit</th>{% endif %}
+                {% if operation == 'delete' %}<th>Delete</th>{% endif %}
+                <th>Code</th>
+                <th>Name</th>
+                <th>Phone</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for p in promaster_list %}
+              <tr data-row="{{ p.pk }}">
+
+                {% if operation == 'modify' %}
+                <td>
+                  <button class="btn1 edit-btn" type="button" data-id="{{ p.pk }}">Edit</button>
+
+                  <!-- Update button (POST submit) -->
+                  <button class="btn1 btn-success update-btn" type="submit"
+                          name="update_btn" value="{{ p.pk }}" style="display:none">Update</button>
+
+                  <button class="btn1 btn-secondary cancel-btn" type="button"
+                          style="display:none" data-id="{{ p.pk }}">Cancel</button>
+                </td>
+                {% endif %}
+
+                {% if operation == 'delete' %}
+                <td>
+                  <button class="btn-danger-delete delete-btn" type="button"
+                          data-id="{{ p.pk }}" data-name="{{ p.pro_name }}">Delete</button>
+                </td>
+                {% endif %}
+
+                <td>{{ p.pk }}</td>
+
+                <td>
+                  <input type="text" class="form-control form-control-sm row-input-{{ p.pk }}"
+                         name="pro_name_{{ p.pk }}" value="{{ p.pro_name }}"
+                         data-original="{{ p.pro_name }}" disabled>
+                </td>
+
+                <td>
+                  <input type="text" class="form-control form-control-sm row-input-{{ p.pk }}"
+                         name="phone_{{ p.pk }}" value="{{ p.phone }}" maxlength="10"
+                         oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10);"
+                         data-original="{{ p.phone }}" disabled>
+                </td>
+              </tr>
+
+              {% empty %}
+              <tr><td colspan="5" class="text-center">No Records</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- INLINE EDIT / UPDATE / DELETE JS -->
+<script>
+
+
+const cancelBtn = document.getElementById("cancelBtn");
+
+if (cancelBtn) {
+    cancelBtn.addEventListener("click", function () {
+        window.location.href = "{% url 'ProMaster' %}";
+    });
+}
+document.addEventListener("DOMContentLoaded", () => {
+
+    function resetAll() {
+        document.querySelectorAll("tr[data-row]").forEach(tr => {
+            let id = tr.dataset.row;
+
+            tr.querySelectorAll(".row-input-" + id).forEach(inp => {
+                inp.value = inp.dataset.original;
+                inp.disabled = true;
+            });
+
+            tr.querySelector(".edit-btn")?.style.setProperty("display", "");
+            tr.querySelector(".update-btn")?.style.setProperty("display", "none");
+            tr.querySelector(".cancel-btn")?.style.setProperty("display", "none");
+        });
+    }
+
+    // Edit
+    document.querySelectorAll(".edit-btn").forEach(btn => {
+        btn.onclick = () => {
+            resetAll();
+            let id = btn.dataset.id;
+
+            document.querySelectorAll(".row-input-" + id).forEach(inp => inp.disabled = false);
+
+            btn.style.display = "none";
+            document.querySelector(`.update-btn[value="${id}"]`).style.display = "";
+            document.querySelector(`.cancel-btn[data-id="${id}"]`).style.display = "";
+        };
+    });
+
+    // Cancel
+    document.querySelectorAll(".cancel-btn").forEach(btn => {
+        btn.onclick = () => resetAll();
+    });
+
+    // DELETE
+    document.querySelectorAll(".delete-btn").forEach(btn => {
+        btn.onclick = () => {
+            if (!confirm("Delete " + btn.dataset.name + "?")) return;
+
+            let form = document.createElement("form");
+            form.method = "POST";
+            form.action = "?operation=delete";
+            form.style.display = "none";
+
+            form.innerHTML = `
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="delete">
+                <input type="hidden" name="delete_btn" value="${btn.dataset.id}">
+            `;
+
+            document.body.appendChild(form);
+            form.submit();
+        };
+    });
+
+    resetAll();
+});
+</script>
+
+{% endblock %}

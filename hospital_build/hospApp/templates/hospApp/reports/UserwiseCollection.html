@@ -1,0 +1,274 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+
+    <div class="form-header py-2">
+      <h6>Collection Report</h6>
+    </div>
+
+    <div class="card-body">
+  <form method="get"
+        action="{% url 'userwise_collection_report1' %}"
+        id="userwiseForm"
+        class="row g-2 mb-3">
+          {% csrf_token %}
+        
+<fieldset class="custom-fieldset mb-3">
+        <legend class="custom-legend mb-4">
+  <span class="legend-text">Collection Report</span>
+</legend>
+
+    <div class='row'>
+      <div class="col-md-4">
+        <div class="d-flex align-items-center">
+      <label class="form-label rpt-label">From Date</label>
+      <input type="datetime-local"
+       name="from_date"
+       id="from_date"
+       class="form-control"
+       required
+       
+       onblur="validateDate(this)" required>
+
+      
+
+
+
+
+        </div>
+    </div>
+
+   <div class="col-md-4">
+        <div class="d-flex align-items-center">
+      <label class="form-label rpt-label">To Date</label>
+      <input type="datetime-local"
+       name="to_date"
+       id="to_date"
+       class="form-control"
+       required
+       
+       onblur="validateDate(this)" required>
+    </div>
+    </div> </div>
+
+    <div class='row mt-2'>
+      <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label rpt-label">select User</label>
+
+                <select class="form-select" id="username" name="username" required>
+                  <option value="">--Select--</option>
+                  <option value="">All</option>
+                  {% for user in users %}
+                  <option value="{{ user.username }}">{{ user.username }}</option>
+                  {% endfor %}  
+                 
+
+                </select>
+
+                      
+</div>
+
+            </div>
+    </div>
+<div class='row mt-2  mb-2'>
+  <div class="col-md-3">
+    <div class="d-flex align-items-center">
+      <label class="form-label rpt-label">Report Type</label>
+
+      <input type="radio" name="report_type" value="DETAIL" checked> Detailed <span style="padding-left: 10px"></span>
+      <input type="radio" name="report_type" value="SUMMARY" > Summary
+    </div>
+  </div>
+</div>
+
+<fieldset class="custom-fieldset mb-3" style="width: 50%;">
+ <legend class="custom-legend mb-4">
+  <span class="legend-text" style="font-size: 14px">Types  :</span>
+  <a href="#" id="selectAll" style="padding-left: 10px">All</a>
+  <a href="#" id="selectNone" style="padding-left: 10px">None</a>
+</legend>
+
+  <label><input type="checkbox" name="services[]" value="OP Consultation"> OP Consultation</label><br>
+<label><input type="checkbox" name="services[]" value="OP Procedures"> OP Procedures</label><br>
+
+
+<label><input type="checkbox" name="services[]" value="OP Payments"> OP Payments</label><br>
+<label><input type="checkbox" name="services[]" value="OP Investigations"> OP Investigations</label><br>
+
+<label><input type="checkbox" name="services[]" value="OP Cancellations"> OP Cancellations</label><br>
+<label><input type="checkbox" name="services[]" value="Refunds"> Refunds</label><br>
+<label><input type="checkbox" name="services[]" value="EXPENDITURE"> Expenditure</label><br>
+
+</fieldset>
+
+
+
+
+
+<div class="row align-items-center mt-4">
+          <div class="col-md-3">
+            
+          </div>
+
+          <div class="col-md-4 text-center">
+           <button type="submit" class="btn btn-success btn-sm">
+        📊Submit
+      </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="cancelBtn">Clear</button>
+          </div>
+        </div>
+
+
+  
+  </div>
+  </form>
+</div>
+</div>
+</div>
+</div>
+<style>
+  
+.custom-fieldset {
+  border: 1px solid #9ca3af;
+  border-radius: .5rem;
+  padding: .45rem 1rem 1rem;
+}
+
+.custom-legend {
+  font-size: .9rem;
+  font-weight: 700;
+  padding: 0 .5rem;
+  color: green;
+}
+.legend-text {
+  font-size: .8rem;
+  font-weight: 700;
+  display: inline-block;          /* important */
+  border-bottom: 2px solid #111827;
+  line-height: 1.2;
+}
+
+</style>
+<script>
+ 
+document.getElementById("userwiseForm").addEventListener("submit", function (e) {
+    e.preventDefault(); // stop normal submit
+
+    // 🔴 CHECKBOX VALIDATION
+    const checkedServices = document.querySelectorAll(
+        'input[name="services[]"]:checked'
+    );
+
+    if (checkedServices.length === 0) {
+        alert("Please select at least one service type.");
+        return; // ❌ STOP SUBMISSION
+    }
+    const from = new Date(document.getElementById("from_date").value);
+const to = new Date(document.getElementById("to_date").value);
+
+if (from > to) {
+    alert("From DateTime cannot be greater than To DateTime");
+    return;
+}
+
+    // ✅ Continue only if at least one checkbox is selected
+    const form = e.target;
+    const params = new URLSearchParams(new FormData(form)).toString();
+    const url = form.action + "?" + params;
+
+    window.open(
+        url,
+        "ReceiptWindow",
+        "width=980,height=650,left=200,top=100," +
+        "menubar=no,toolbar=no,location=no,status=no," +
+        "scrollbars=yes,resizable=yes"
+    );
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const now = new Date();
+
+    const pad = (n) => n.toString().padStart(2, "0");
+
+    // ✅ TODAY DATE (yyyy-MM-dd)
+    const todayDate =
+        now.getFullYear() + "-" +
+        pad(now.getMonth() + 1) + "-" +
+        pad(now.getDate());
+
+    // ✅ CURRENT TIME (HH:mm)
+    const currentTime =
+        pad(now.getHours()) + ":" +
+        pad(now.getMinutes());
+
+    // ✅ From Date → Today 00:00
+    const fromDateTime = todayDate + "T00:00";
+
+    // ✅ To Date → Now
+    const toDateTime = todayDate + "T" + currentTime;
+
+    const fromDate = document.getElementById("from_date");
+    const toDate = document.getElementById("to_date");
+
+    fromDate.value = fromDateTime;
+    toDate.value = toDateTime;
+
+    // prevent future selection
+    const maxDateTime = todayDate + "T" + currentTime;
+    fromDate.max = maxDateTime;
+    toDate.max = maxDateTime;
+});
+
+function validateDate(input) {
+    const now = new Date();
+    const selected = new Date(input.value);
+
+    if (!input.value) {
+        alert("Invalid date.");
+        return;
+    }
+
+    if (selected > now) {
+        alert("Future date/time not allowed");
+
+        // reset only THIS field properly
+        const pad = (n) => n.toString().padStart(2, "0");
+
+        const correctValue =
+            now.getFullYear() + "-" +
+            pad(now.getMonth() + 1) + "-" +
+            pad(now.getDate()) + "T" +
+            pad(now.getHours()) + ":" +
+            pad(now.getMinutes());
+
+        input.value = correctValue;
+    }
+}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const checkboxes = document.querySelectorAll(
+    'input[type="checkbox"][name="services[]"]'
+  );
+
+  document.getElementById("selectAll").addEventListener("click", function (e) {
+    e.preventDefault();
+    checkboxes.forEach(cb => cb.checked = true);
+  });
+
+  document.getElementById("selectNone").addEventListener("click", function (e) {
+    e.preventDefault();
+    checkboxes.forEach(cb => cb.checked = false);
+  });
+
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+
+    <div class="form-header py-2">
+      <h6>Expenditure Report</h6>
+    </div>
+
+    <div class="card-body">
+ <form method="get"
+      action="{% url 'userwise_collection_report' %}"
+      id="userwiseForm"
+      onsubmit="openReportPopup(event)" >
+          {% csrf_token %}
+        
+<fieldset class="custom-fieldset mb-3">
+        <legend class="custom-legend mb-4">
+  <span class="legend-text">Expenditure Report</span>
+</legend>
+
+    <div class='row'>
+      <div class="col-md-3">
+        <div class="d-flex align-items-center">
+      <label class="form-label rpt-label">From Date</label>
+      <input type="date"
+       name="from_date"
+       id="from_date"
+       class="form-control"
+       required
+       max=""
+       onblur="validateDate(this)">
+
+
+
+        </div>
+    </div>
+
+   <div class="col-md-3">
+        <div class="d-flex align-items-center">
+      <label class="form-label rpt-label">To Date</label>
+      <input type="date"
+       name="to_date"
+       id="to_date"
+       class="form-control"
+       required
+       max=""
+       onblur="validateDate(this)">
+    </div>
+    </div> </div>
+
+    <div class='row mt-2'>
+      <div class="col-md-3">
+              <div class="d-flex align-items-center">
+                <label class="form-label rpt-label">select User</label>
+
+                <select class="form-select" id="username" name="username" required>
+                  <option value="">--Select--</option>
+                    <option value="ALL">All</option>
+                  {% for user in users %}
+                  <option value="{{ user.username }}">{{ user.username }}</option>
+                  {% endfor %}  
+                 
+
+                </select>
+
+                      
+</div>
+
+            </div>
+            <div class="col-md-3">
+              <div class="d-flex align-items-center">
+                <label class="form-label rpt-label">Expenditure</label>
+
+                <select class="form-select" id="expenditure" name="expenditure" required>
+                  <option value="">--Select--</option>
+                    <option value="ALL">All</option>
+                   {% for e in expenditures   %}
+              <option value="{{ e.sno }}">{{ e.expenditure_name }}</option>
+            {% endfor %}
+                 
+
+                </select>
+
+                      
+</div>
+
+            </div>
+    </div>
+<div class='row mt-2  mb-2'>
+  <div class="col-md-3">
+    <div class="d-flex align-items-center">
+      <label class="form-label rpt-label">Report Type</label>
+
+      <input type="radio" name="report_type" value="DETAIL" checked> Detailed <span style="padding-left: 10px"></span>
+      <input type="radio" name="report_type" value="SUMMARY" > Summary
+    </div>
+  </div>
+</div>
+
+
+
+
+<div class="row align-items-center mt-4">
+          <div class="col-md-3">
+            
+          </div>
+
+          <div class="col-md-4 text-center">
+           <button type="submit" class="btn btn-success btn-sm">
+        📊Submit
+      </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="cancelBtn">Clear</button>
+          </div>
+        </div>
+
+
+  
+  </div>
+  </form>
+</div>
+</div>
+</div>
+</div>
+<style>
+  
+.custom-fieldset {
+  border: 1px solid #9ca3af;
+  border-radius: .5rem;
+  padding: .45rem 1rem 1rem;
+}
+
+.custom-legend {
+  font-size: .9rem;
+  font-weight: 700;
+  padding: 0 .5rem;
+  color: green;
+}
+.legend-text {
+  font-size: .8rem;
+  font-weight: 700;
+  display: inline-block;          /* important */
+  border-bottom: 2px solid #111827;
+  line-height: 1.2;
+}
+</style>
+
+
+<script>
+  function validateDate(input) {
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const today     = new Date(Date.now() + istOffset).toISOString().split('T')[0];
+
+    const selectedDate = input.value;
+
+    if (!selectedDate) {
+        alert("Invalid date. Date cannot be empty.");
+        input.value = today;
+        return;
+    }
+
+    if (selectedDate > today) {
+        alert("Future dates are not allowed.");
+        input.value = today;
+        return;
+    }
+}
+</script>
+<script>
+function openReportPopup(event) {
+    event.preventDefault(); // stop normal submit
+
+    const form = document.getElementById("userwiseForm");
+
+    // Build query string manually
+    const params = new URLSearchParams(new FormData(form)).toString();
+
+    const url = form.action + "?" + params;
+
+    window.open(
+        url,
+        "ExpenditureReport",
+        "width=950,height=650,left=200,top=100," +
+        "menubar=no,toolbar=no,location=no,status=no," +
+        "scrollbars=yes,resizable=yes"
+    );
+}
+</script>
+{% endblock %}

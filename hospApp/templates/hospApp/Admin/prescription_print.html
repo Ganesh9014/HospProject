@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Prescription Print</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Times New Roman", serif;
+            font-size: 12px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* ===== OUTER WRAPPER ===== */
+        .print-wrapper {
+            width: 210mm;
+            height: 297mm;
+            padding: 5mm 6mm;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== HEADER ===== */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 3px;
+            margin-bottom: 3px;
+        }
+
+        .hospital-header {
+            flex: 1;
+            text-align: center;
+        }
+
+        .hospital-name {
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hospital-sub {
+            font-size: 10px;
+            margin-top: 1px;
+            color: #333;
+        }
+
+        #header-qrcode {
+            border: 1px solid #000;
+            padding: 2px;
+            flex-shrink: 0;
+        }
+
+        .qr-spacer {
+            width: 46px;
+            flex-shrink: 0;
+        }
+
+        /* ===== PATIENT INFO TABLE ===== */
+        .patient-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2px;
+        }
+
+        .patient-table td {
+            padding: 1px 3px;
+            vertical-align: top;
+            font-size: 11.5px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #003366;
+            white-space: nowrap;
+            width: 70px;
+        }
+
+        .value {
+            color: #111;
+            width: 200px;
+        }
+
+        .label-right {
+            font-weight: bold;
+            color: #003366;
+            white-space: nowrap;
+            width: 70px;
+            padding-left: 10px;
+        }
+
+        /* ===== BARCODE ROW ===== */
+        .barcode-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 2px 0;
+        }
+
+        .barcode-box {
+            text-align: center;
+        }
+
+        /* ===== VITALS ===== */
+        .vitals-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            margin-bottom: 3px;
+            font-size: 11px;
+        }
+
+        .vitals-row span {
+            flex: 1;
+            text-align: center;
+        }
+
+        /* ===== PRESCRIPTION IMAGE BOX ===== */
+      .rx-text {
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    padding: 2mm;
+    font-family: "Times New Roman", serif;
+}
+
+        .rx-symbol {
+            font-size: 28px;
+            font-weight: bold;
+            color: #003366;
+            line-height: 1;
+        }
+
+        .rx-box {
+            flex: 1;               /* fill all remaining vertical space */
+            position: relative;    /* for the absolute-positioned signature */
+            overflow: hidden;
+            border: 1.5px solid #000;   /* visible box border */
+            border-radius: 3px;
+            padding: 4mm 4mm 12mm 4mm;  /* extra bottom padding for signature */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rx-header {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 2px;
+            margin-bottom: 4px;
+        }
+
+        .rx-symbol {
+            font-size: 30px;
+            font-weight: bold;
+            font-style: italic;
+            color: #002060;
+            line-height: 1;
+            font-family: "Times New Roman", serif;
+        }
+
+        .rx-label {
+            font-size: 10px;
+            color: #555;
+            font-style: italic;
+            padding-bottom: 2px;
+        }
+
+        .rx-content {
+            flex: 1;
+        }
+
+        .rx-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+        }
+
+        .signature {
+            position: absolute;
+            right: 8mm;
+            bottom: 8mm;
+            font-weight: bold;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        /* ===== FOOTER NOTE ===== */
+        .footer-note {
+            text-align: center;
+            font-size: 10.5px;
+            font-style: italic;
+            padding-top: 3px;
+            border-top: 1px dashed #555;
+            color: #333;
+            /* Always stick to bottom — no margin-top needed since rx-box fills the space */
+            flex-shrink: 0;
+        }
+
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="print-wrapper">
+
+    <!-- ===== HEADER ===== -->
+    <div class="header-section">
+        <div class="qr-spacer"></div>
+
+        <div class="hospital-header">
+            <div class="hospital-name">{{ hospital.name }}</div>
+            <div class="hospital-sub">{{ hospital.address }}</div>
+        </div>
+
+        <div id="header-qrcode"></div>
+    </div>
+
+    <!-- ===== PATIENT DETAILS ===== -->
+    <table class="patient-table">
+        <tr>
+            <td class="label">PT NAME</td>
+            <td class="value">: <strong>{{ prescription.patient_name|upper }}</strong> ./<b>{{ patient.age }}/{{ patient.gender|upper }}</b></td>
+            <td class="label-right">UHID</td>
+            <td class="value">: {{ prescription.uhid }}</td>
+        </tr>
+        <tr>
+            <td class="label">PHONE</td>
+            <td class="value">: {{ patient.phone }}</td>
+            <td class="label-right">ADDRESS</td>
+            <td class="value">: {{ patient.area|upper }}</td>
+        </tr>
+        <tr>
+            <td class="label">BILL NO</td>
+            <td class="value">: {{ consult.billno }}</td>
+            <td class="label-right">DATE</td>
+            <td class="value">: {% if consult.is_revisit %}{{ prescription.updated_at|date:"d-m-Y h:i:s A" }}{% else %}{{ prescription.created_at|date:"d-m-Y h:i:s A" }}{% endif %}</td>
+        </tr>
+        <tr>
+            <td class="label">DOCTOR</td>
+            <td class="value" colspan="3">
+                <b>: {{ doctor.docname|upper }}</b>, {{ doctor.speciality|upper }},<br>
+                <span style="margin-left:15px;">{{ doctor.qualification|upper }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ===== BARCODE ROW ===== -->
+    <div class="barcode-row">
+        <div class="barcode-box">
+            <svg id="uhid-barcode"></svg>
+        </div>
+        <div class="barcode-box">
+            <svg id="bill-barcode"></svg>
+        </div>
+    </div>
+
+    <!-- ===== VITALS ===== -->
+    <div class="vitals-row">
+        <span><b>TEMP</b> : {{ prescription.temp|default:"________" }}</span>
+        <span><b>BP</b> : {{ prescription.bp|default:"________" }}</span>
+        <span><b>PR</b> : {{ prescription.pr|default:"________" }}</span>
+        <span><b>SPO2</b> : {{ prescription.spo2|default:"________" }}</span>
+        <span><b>WEIGHT</b> : {{ prescription.weight|default:"________" }}</span>
+    </div>
+
+
+    <!-- ===== PRESCRIPTION BOX ===== -->
+    <div class="rx-box">
+
+        <!-- Rx Header -->
+        <div class="rx-header">
+            <span class="rx-symbol">&#8478;</span>
+            <span class="rx-label">Prescription</span>
+        </div>
+
+        <!-- Prescription content -->
+        <div class="rx-content">
+            {% if prescription.recognized_text %}
+                <div class="rx-text">{{ prescription.recognized_text|linebreaksbr }}</div>
+            {% else %}
+                <img src="{{ prescription.image.url }}" alt="Prescription" style="width:100%; height:100%; object-fit:fill;">
+            {% endif %}
+        </div>
+
+        <!-- Doctor Signature -->
+        <div class="signature">
+            ______________________<br>
+            {{ doctor.docname|upper }}<br>
+            <span style="font-weight:normal; font-size:10px;">{{ doctor.qualification|upper }}</span>
+        </div>
+
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <div class="footer-note">
+        Valid upto {% if consult.is_revisit %}{{ valid_upto|date:"d-m-Y h:i:s A" }}{% else %}{{ valid_upto|date:"d-m-Y" }}{% endif %}
+        &nbsp;&mdash;&nbsp; (or) &nbsp; 1 Visit &nbsp;&mdash;&nbsp; whichever is earliest
+    </div>
+
+</div>
+
+<script>
+    const uhid   = "{{ prescription.uhid }}";
+    const billno = "{{ consult.billno }}";
+
+    new QRCode(document.getElementById("header-qrcode"), {
+        text: uhid,
+        width: 44,
+        height: 44
+    });
+
+    JsBarcode("#uhid-barcode", uhid, {
+        format: "CODE128",
+        width: 0.9,
+        height: 28,
+        displayValue: false
+    });
+
+    JsBarcode("#bill-barcode", billno, {
+        format: "CODE128",
+        width: 0.9,
+        height: 28,
+        displayValue: false
+    });
+
+    window.onafterprint = function () {
+        window.close();
+    };
+</script>
+
+</body>
+</html>

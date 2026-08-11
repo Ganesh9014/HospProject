@@ -1,0 +1,382 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+
+    <div class="form-header py-2">
+      <h6>Service Report</h6>
+    </div>
+
+    <div class="card-body">
+      <form method="GET" action="{% url 'ServiceReportResultView' %}" onsubmit="openReportPopup(event)" id="userwiseForm">
+        {% csrf_token %}
+
+        <fieldset class="custom-fieldset mb-3">
+          <legend class="custom-legend mb-4">
+            <span class="legend-text">Service Report</span>
+          </legend>
+
+          <div class='row'>
+            <div class="col-md-3">
+              <div class="d-flex align-items-center">
+                <label class="form-label rpt-label">From Date</label>
+                <input type="date" name="from_date" id="from_date"
+                  class="form-control" required max="" onblur="validateDate(this)" style="width: 120px;">
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="d-flex align-items-center">
+                <label class="form-label rpt-label">To Date</label>
+                <input type="date" name="to_date" id="to_date"
+                  class="form-control" required max="" onblur="validateDate(this)">
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center">
+                <label class="form-label rpt-label">Services</label>
+                <div class="position-relative flex-grow-1">
+                  <input type="text" id="service" class="form-control form-control-sm"
+                    placeholder="Type to search service..." autocomplete="off">
+                  <ul id="serviceSuggestions" class="list-group suggestion-list"></ul>
+                  <input type="hidden" id="ser_id" name="ser_id">
+                  <input type="hidden" id="ser_name" name="ser_name">
+                </div>
+              </div>
+            </div>
+          </div>
+
+         
+          
+
+          <div class="row align-items-center button-row">
+    <div class="col-md-3"></div>
+
+    <div class="col-md-4 text-center">
+        <button type="submit" class="btn btn-success btn-sm">
+            📊 Submit
+        </button>
+
+        <button type="button"
+                class="btn btn-secondary btn-sm"
+                id="cancelBtn">
+            Clear
+        </button>
+    </div>
+</div>
+
+        </fieldset>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .button-row{
+    margin-top: 90px;
+}
+.custom-fieldset {
+  border: 1px solid #9ca3af;
+  border-radius: .5rem;
+  padding: .45rem 1rem 1rem;
+  height: 280px;
+}
+.custom-legend {
+  font-size: .9rem;
+  font-weight: 700;
+  padding: 0 .5rem;
+  color: green;
+}
+.legend-text {
+  font-size: .8rem;
+  font-weight: 700;
+  display: inline-block;
+  border-bottom: 2px solid #111827;
+  line-height: 1.2;
+}.suggestion-list {
+    display: none;
+    max-height: 200px;
+    overflow-y: auto;
+    position: absolute;
+    top: 100%;        /* ← add this */
+    left: 0;          /* ← add this */
+    width: 100%;
+    z-index: 9999;    /* ← increase from 999 to 9999 */
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+.suggestion-list .list-group-item {
+  cursor: pointer;
+  padding: 0px;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.suggestion-list .list-group-item:hover,
+.suggestion-list .list-group-item.active-item {
+  background-color: #0d6efd;
+  color: #fff;
+}
+</style>
+
+<script>
+function validateDate(input) {
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const today     = new Date(Date.now() + istOffset).toISOString().split('T')[0];
+
+    const selectedDate = input.value;
+
+    if (!selectedDate) {
+        alert("Invalid date. Date cannot be empty.");
+        input.value = today;
+        return;
+    }
+
+    if (selectedDate > today) {
+        alert("Future dates are not allowed.");
+        input.value = today;
+        return;
+    }
+}
+// ================= SUGGESTION BOX =================
+const serviceInput    = document.getElementById("service");
+const suggestionList  = document.getElementById("serviceSuggestions");
+const serIdInput      = document.getElementById("ser_id");
+const serNameInput    = document.getElementById("ser_name");
+
+let currentIndex     = -1;
+let serviceClicked   = false;
+let serviceSelected  = false;
+let debounceTimer    = null;
+
+function highlightMatch(text, query) {
+    if (!query) return text;
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+}
+
+// ── Fetch suggestions ──
+serviceInput.addEventListener("input", function () {
+    currentIndex     = -1;
+    serviceSelected  = false;
+    serIdInput.value = "";   // clear stale ID on new typing
+
+    const q = this.value.trim();
+    clearTimeout(debounceTimer);
+    hideSuggestions();
+    if (!q) return;
+
+    debounceTimer = setTimeout(() => {
+        fetch(`/search-service/?q=${encodeURIComponent(q)}`)
+            .then(res => res.json())
+            .then(data => renderSuggestions(data.results || [], q))
+            .catch(() => hideSuggestions());
+    }, 300);
+});
+
+// ── Render ──
+function renderSuggestions(results, q) {
+    suggestionList.innerHTML = "";
+    currentIndex = -1;
+
+    if (!results.length) { hideSuggestions(); return; }
+
+    results.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className       = "list-group-item service-suggestion-item";
+        li.innerHTML       = highlightMatch(item.name, q);
+        li.dataset.id      = item.id;
+        li.dataset.name    = item.name;
+        li.dataset.index   = index;
+
+        li.addEventListener("mousedown", () => { serviceClicked = true; });
+        li.addEventListener("click", (e) => {
+            e.preventDefault();
+            selectService(item.id, item.name);
+            setTimeout(() => { serviceClicked = false; }, 150);
+        });
+
+        suggestionList.appendChild(li);
+    });
+
+    suggestionList.style.display = "block";
+}
+
+// ── Keyboard nav ──
+serviceInput.addEventListener("keydown", function (e) {
+    const items = suggestionList.querySelectorAll(".service-suggestion-item");
+
+    if (!suggestionList.style.display === "block" || !items.length) {
+        serviceSelected = false;
+        return;
+    }
+
+    if (e.key === "Escape") {
+        hideSuggestions();
+        return;
+    }
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        currentIndex = e.key === "ArrowDown"
+            ? (currentIndex + 1) % items.length
+            : (currentIndex - 1 + items.length) % items.length;
+        highlightItem(items);
+        return;
+    }
+
+    if (e.key === "Enter") {
+        e.preventDefault();
+        if (currentIndex === -1) currentIndex = 0;
+        const item = items[currentIndex];
+        if (item) selectService(item.dataset.id, item.dataset.name);
+        return;
+    }
+
+    if (e.key === "Tab") {
+        // Second Tab after a selection → allow normal tab flow
+        if (serviceSelected) { serviceSelected = false; return; }
+
+        // First Tab → select top/highlighted item if list open
+        if (suggestionList.style.display === "block" && items.length) {
+            e.preventDefault();
+            if (currentIndex === -1) currentIndex = 0;
+            const item = items[currentIndex];
+            if (item) selectService(item.dataset.id, item.dataset.name);
+        }
+    }
+});
+
+// ── Highlight ──
+function highlightItem(items) {
+    items.forEach(i => i.classList.remove("active-item"));
+    const active = items[currentIndex];
+    if (!active) return;
+    active.classList.add("active-item");
+    active.scrollIntoView({ block: "nearest" });
+}
+
+// ── Select ──
+function selectService(id, name) {
+    serIdInput.value    = id;
+    serNameInput.value  = name;
+    serviceInput.value  = name;
+    serviceSelected     = true;
+    hideSuggestions();
+    serviceInput.focus();
+}
+
+// ── Blur validation ──
+serviceInput.addEventListener("blur", function () {
+    setTimeout(() => {
+        if (serviceClicked) return;
+
+        const name       = serviceInput.value.trim();
+        const existingId = serIdInput.value.trim();
+
+        // Empty is fine — service is optional
+        if (!name) {
+            serIdInput.value   = "";
+            serNameInput.value = "";
+            hideSuggestions();
+            return;
+        }
+
+        // Already resolved
+        if (existingId) {
+            hideSuggestions();
+            return;
+        }
+
+        // User typed manually — validate
+        fetch(`/search-service/?q=${encodeURIComponent(name)}`)
+            .then(res => res.json())
+            .then(data => {
+                const match = (data.results || [])
+                    .find(x => x.name.toUpperCase() === name.toUpperCase());
+
+                if (match) {
+                    serIdInput.value   = match.id;
+                    serNameInput.value = match.name;
+                } else {
+                    alert("❗ Service not found! Please select from suggestions.");
+                    serviceInput.value = "";
+                    serIdInput.value   = "";
+                    serNameInput.value = "";
+                    serviceInput.focus();
+                }
+            });
+
+        hideSuggestions();
+    }, 200);
+});
+
+// ── Outside click ──
+document.addEventListener("click", function (e) {
+    if (!serviceInput.contains(e.target) && !suggestionList.contains(e.target)) {
+        hideSuggestions();
+    }
+});
+
+function hideSuggestions() {
+    suggestionList.style.display = "none";
+    suggestionList.innerHTML     = "";
+    currentIndex                 = -1;
+}
+
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    document.getElementById("userwiseForm").reset();
+    serIdInput.value   = "";
+    serNameInput.value = "";
+
+    const today = new Date().toLocaleDateString('en-CA');
+    document.getElementById("from_date").value = today;
+    document.getElementById("to_date").value   = today;
+});
+
+// ── Hide suggestions on outside click ──
+document.addEventListener("click", function (e) {
+    if (!serviceInput.contains(e.target) && !suggestionList.contains(e.target)) {
+        hideSuggestions();
+    }
+});
+
+function hideSuggestions() {
+    suggestionList.style.display = "none";
+    suggestionList.innerHTML = "";
+    currentIndex = -1;
+}
+
+// ================= POPUP =================
+function openReportPopup(event) {
+    event.preventDefault();
+
+    const name = document.getElementById("service").value.trim();
+    const id   = serIdInput.value.trim();
+
+    // Typed something but didn't select from list
+    if (name && !id) {
+        alert("❗ Please select a service from the suggestions list.");
+        serviceInput.focus();
+        return;
+    }
+
+    const form   = document.getElementById("userwiseForm");
+    const params = new URLSearchParams(new FormData(form)).toString();
+    window.open(
+        form.action + "?" + params,
+        "ServiceReport",
+        "width=980,height=650,left=200,top=100,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes"
+    );
+}
+</script>
+{% endblock %}

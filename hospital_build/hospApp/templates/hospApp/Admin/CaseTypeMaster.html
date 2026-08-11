@@ -1,0 +1,254 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header"><h5>Case Type Master</h5></div>
+    <div class="form-body">
+
+        {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+      <form method="post" autocomplete="off">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+        <!-- Operation selection -->
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Options:</strong></label><br>
+            <label><input type="radio" name="operation_radio" value="add" {% if operation == 'add' %}checked{% endif %} onchange="window.location.href='?operation=add';"> Add</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="modify" {% if operation == 'modify' %}checked{% endif %} onchange="window.location.href='?operation=modify';"> Modify</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="delete" {% if operation == 'delete' %}checked{% endif %} onchange="window.location.href='?operation=delete';"> Delete</label>
+          </div>
+        </div>
+
+        {% if operation == 'add' %}
+        <!-- Add form -->
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label>Enter Case Type:</label>
+            <input type="text" name="casetype" class="form-control" maxlength="50" required>
+          </div>
+          <div class="col-md-2 align-self-end">
+            <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+        {% else %}
+        <!-- Modify/Delete Search -->
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <input type="text" name="casetype" class="form-control" placeholder="Search by Case Type" maxlength="50">
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Table -->
+        <div class='col-6'>
+            <div class="table-responsive mt-3">
+          <table class="table table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                {% if operation == 'modify' %}<th>Edit</th>{% elif operation == 'delete' %}<th>Delete</th>{% endif %}
+               <th>ID</th> 
+                <th>Case Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in casetypes %}
+              <tr data-row-id="{{ c.pk }}">
+                {% if operation == 'modify' %}
+                <td>
+                  <button type="button" class="btn1 edit-btn" data-id="{{ c.pk }}">Edit</button>
+                  <button type="submit" class="btn1 btn1-update update-btn" name="update_btn" value="{{ c.pk }}" style="display:none;">Update</button>
+                  <button type="button" class="btn1 btn1-secondary cancel-btn" data-id="{{ c.pk }}" style="display:none;">Cancel</button>
+                </td>
+                {% elif operation == 'delete' %}
+                <td>
+                  <button type="submit" class="btn1 btn-danger-delete" name="delete_btn" value="{{ c.pk }}" onclick="return confirm('Delete {{ c.casetype }}?');">Delete</button>
+                </td>
+                {% endif %}
+           <td>{{ c.sno }}</td>
+                <td>
+                  <input type="text" name="casetype_{{ c.pk }}" class="form-control form-control-sm row-input-{{ c.pk }}" 
+                         value="{{ c.casetype }}" data-original="{{ c.casetype }}" {% if operation != 'modify' %}disabled{% endif %} maxlength="100" >
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center">No records found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const cancelBtn = document.getElementById("cancelBtn");
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", function () {
+            window.location.href = "{% url 'CaseTypeMasterView' %}";
+        });
+    }
+
+});
+
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    // ✅ Disable all rows
+    function disableAllRows() {
+
+        document.querySelectorAll('tr[data-row-id]').forEach(tr => {
+
+            const id = tr.dataset.rowId;
+
+            // disable inputs
+            tr.querySelectorAll('.row-input-' + id).forEach(inp => {
+
+                inp.disabled = true;
+            });
+
+            // show edit button
+            tr.querySelector('.edit-btn')?.style?.setProperty('display', '');
+
+            // hide update/cancel
+            tr.querySelector('.update-btn')?.style?.setProperty('display', 'none');
+
+            tr.querySelector('.cancel-btn')?.style?.setProperty('display', 'none');
+
+        });
+
+    }
+
+    // ✅ Edit button
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+
+        btn.addEventListener('click', function(e) {
+
+            e.preventDefault();
+
+            e.stopPropagation();
+
+            const id = this.dataset.id;
+
+            // close all rows first
+            disableAllRows();
+
+            // enable current row
+            document.querySelectorAll('.row-input-' + id).forEach(inp => {
+
+                inp.disabled = false;
+
+                // store original value
+                inp.dataset.original = inp.value;
+            });
+
+            // hide edit button
+            this.style.display = 'none';
+
+            // show update/cancel
+            document.querySelector(`.update-btn[value="${id}"]`).style.display = '';
+
+            document.querySelector(`.cancel-btn[data-id="${id}"]`).style.display = '';
+
+        });
+
+    });
+
+    // ✅ Cancel button
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+
+        btn.addEventListener('click', function(e) {
+
+            e.preventDefault();
+
+            e.stopPropagation();
+
+            const id = this.dataset.id;
+
+            // restore original values
+            document.querySelectorAll('.row-input-' + id).forEach(inp => {
+
+                inp.value = inp.dataset.original;
+
+                inp.disabled = true;
+
+            });
+
+            disableAllRows();
+
+        });
+
+    });
+
+    // ✅ Click anywhere outside row closes edit mode
+    document.addEventListener('click', function(e) {
+
+        // currently active editing row
+        const activeEditBtn = document.querySelector(
+            '.edit-btn[style*="display: none"]'
+        );
+
+        // no row is open
+        if (!activeEditBtn) return;
+
+        const activeRow = activeEditBtn.closest('tr');
+
+        // click happened outside active row
+        if (activeRow && !activeRow.contains(e.target)) {
+
+            const id = activeEditBtn.dataset.id;
+
+            // restore original values
+            document.querySelectorAll('.row-input-' + id).forEach(inp => {
+
+                inp.value = inp.dataset.original;
+
+                inp.disabled = true;
+
+            });
+
+            disableAllRows();
+
+        }
+
+    });
+
+    // initial load
+    disableAllRows();
+
+});
+</script>
+
+
+<style>
+  .table th, .table td {
+    text-align: left;
+  }
+  .form-control{
+    text-align: left;
+  }
+  </style>
+ 
+
+
+{% endblock %}

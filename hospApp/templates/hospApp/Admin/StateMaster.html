@@ -1,0 +1,177 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+{% comment %} <style>
+  .form-control, .form-select { font-size: 0.7rem; }
+  .btn1 { font-weight: 400; padding: 2px 4px; font-size: 0.6rem; }
+  .edit-btn { background-color: orange; color: white; border: none; }
+  .btn1-update { background-color: #2e7d32; color: white; border: none; }
+  .btn-danger-delete { background-color: red; color: white; border: none; }
+  .btn1-secondary { background-color: #6c757d; color: white; border: none; }
+  .table th, .table td { text-align:center; font-size:0.7rem; padding:4px 6px !important; }
+  .table-responsive { max-height: 300px; overflow-y:auto; }
+</style> {% endcomment %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header"><h5>State Master</h5></div>
+
+    <div class="form-body">
+      <form method="post" id="state-form" autocomplete="off">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+          {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+        <!-- Operation -->
+        <div class="row mb-2">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label><input type="radio" name="operation_radio" value="add" {% if operation == 'add' %}checked{% endif %} onchange="window.location.href='?operation=add';"> Add</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="modify" {% if operation == 'modify' %}checked{% endif %} onchange="window.location.href='?operation=modify';"> Modify</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="delete" {% if operation == 'delete' %}checked{% endif %} onchange="window.location.href='?operation=delete';"> Delete</label>
+          </div>
+        </div>
+
+        <!-- Fields -->
+        {% if operation == 'add' %}
+        <div class="row align-items-end mb-2">
+          <div class="col-md-3">
+            <label>State Name</label>
+            <input type="text" name="statename" id="statename" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <button type="submit" class="btn btn-primary btn-sm me-2" name="add_btn">Save</button>
+             <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+
+        {% elif operation == 'modify' or operation == 'delete' %}
+        <div class="row align-items-end mb-2">
+          <div class="col-md-3">
+            <label>Search State</label>
+            <input type="text" name="search_term" class="form-control" value="{{ search_term }}">
+          </div>
+          <div class="col-md-3">
+            <button type="submit" class="btn btn-info btn-sm me-2" name="search_btn">Search</button>
+
+           <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Table -->
+        <div class="row mt-3" {% if not states %}style="display:none;"{% endif %}>
+          <div class="col-6">
+            <h6><strong>Existing States</strong></h6>
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead class="table-light">
+                  <tr>
+                    {% if operation == 'modify' %}<th>Actions</th>{% elif operation == 'delete' %}<th>Delete</th>{% endif %}
+                    <th>Code</th>
+                    <th>State Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if states %}
+                    {% for s in states %}
+                    <tr>
+                      {% if operation == 'modify' %}
+                        <td>
+                          <button type="button" class="btn1 edit-btn" data-id="{{ s.sno }}">Edit</button>
+                          <button type="submit" class="btn1 btn1-update update-btn" name="update_btn" value="{{ s.sno }}" style="display:none;">Update</button>
+                          <button type="button" class="btn1 btn1-secondary cancel-btn" data-id="{{ s.sno }}" style="display:none;">Cancel</button>
+                        </td>
+                      {% elif operation == 'delete' %}
+                        <td>
+                          <button type="submit" class="btn1 btn-danger-delete" name="delete_btn" value="{{ s.sno }}" onclick="return confirm('Delete state {{ s.statename }}?')">Delete</button>
+                        </td>
+                      {% endif %}
+                      <td>{{ s.sno }}</td>
+                      <td>
+                        <input type="text" name="statename_{{ s.sno }}" id="statename_{{ s.sno }}" class="form-control form-control-sm row-input-{{ s.sno }}" value="{{ s.statename }}" data-original="{{ s.statename }}" {% if operation != 'modify' %}disabled{% endif %}>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr><td colspan="3" class="text-center">No data found.</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'StateMasterView' %}";
+});
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        btn.style.display = 'none';
+        document.querySelector('.update-btn[value="' + id + '"]').style.display = '';
+        document.querySelector('.cancel-btn[data-id="' + id + '"]').style.display = '';
+        document.querySelectorAll('.row-input-' + id).forEach(el => {
+          el.disabled = false;
+          el.classList.add('border');
+        });
+      });
+    });
+
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        btn.style.display = 'none';
+        document.querySelector('.update-btn[value="' + id + '"]').style.display = 'none';
+        document.querySelector('.edit-btn[data-id="' + id + '"]').style.display = '';
+        document.querySelectorAll('.row-input-' + id).forEach(el => {
+          el.value = el.dataset.original;
+          el.disabled = true;
+          el.classList.remove('border');
+        });
+      });
+    });
+  });
+
+
+  // ✅ Click outside active row → cancel edit
+document.addEventListener('click', function(e) {
+  const activeEditBtn = document.querySelector('.edit-btn[style*="display: none"]');
+  if (!activeEditBtn) return;
+
+  const activeRow = activeEditBtn.closest('tr');
+  if (activeRow && !activeRow.contains(e.target)) {
+    const id = activeEditBtn.dataset.id;
+
+    document.querySelectorAll('.row-input-' + id).forEach(el => {
+      if (el.dataset.original !== undefined) el.value = el.dataset.original;
+      el.disabled = true;
+      el.classList.remove('border');
+    });
+
+    activeEditBtn.style.display = '';
+    const updateBtn = document.querySelector('.update-btn[value="' + id + '"]');
+    const cancelBtn = document.querySelector('.cancel-btn[data-id="' + id + '"]');
+    if (updateBtn) updateBtn.style.display = 'none';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+  }
+});
+</script>
+
+{% endblock %}

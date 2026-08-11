@@ -1,0 +1,201 @@
+<style>
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    table-layout: fixed;
+    border-top: 2px solid #000;   /* top line */
+}
+
+thead th {
+    border-bottom: 2px solid #000;  /* header bottom line */
+}
+
+th, td {
+    padding: 6px;
+    word-wrap: break-word;
+}
+
+td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.center { text-align: center; }
+.right { text-align: right; }
+
+.section-title {
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+.total-row {
+    font-weight: bold;
+    border-top: 2px solid #000;
+}
+</style>
+
+
+<!-- ================= INVESTIGATION ================= -->
+<div class="section-title">Investigation Dues</div>
+<table>
+
+    <colgroup>
+    <col style="width:6%">
+    <col style="width:18%">
+    <col style="width:10%">
+    <col style="width:5%">
+   <col style="width:7%">
+    <col style="width:7%">
+    <col style="width:7%">
+   <col style="width:8%">
+    <col style="width:13%">
+     <col style="width:17%">
+</colgroup>
+<thead>
+<tr>
+<th>S.No</th>
+<th>Patient</th>
+<th>UHID</th>
+<th>Bill</th>
+<th class="right">Total</th>
+<th class="right">Paid</th>
+<th class="right">Due</th>
+
+<th>User</th>
+<th>Date</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+{% for row in investigation %}
+<tr>
+<td class="center">{{ forloop.counter }}</td>
+<td class='center'>{{ row.patname|upper }}</td>
+<td class='center'>{{ row.uhid }}</td>
+<td class='center'>{{ row.billno }}</td>
+<td class="right">{{ row.total }}</td>
+<td class="right">{{ row.paid }}</td>
+<td class="right" style="color:red"><b>{{ row.due }}</b></td>
+
+<td class='center'>{{ row.user|default:"-" }}</td>
+<td class='center'>{{ row.date|date:"d-m-Y H:i" }}</td>
+<td class='center'>{{ row.reason|default:"-" }}</td>
+</tr>
+{% endfor %}
+<tr class="total-row">
+<td colspan="6" class="right">Total</td>
+<td class="right" style="color:red; font-weight:bold">{{ total_due_inv }}</td>
+<td colspan="2"></td>
+</tr>
+</tbody>
+</table>
+
+<!-- ================= CONSULTATION ================= -->
+<div class="section-title">Consultation Dues</div>
+<table>
+    <colgroup>
+    <col style="width:6%">
+    <col style="width:18%">
+    <col style="width:10%">
+    <col style="width:5%">
+   <col style="width:7%">
+    <col style="width:7%">
+    <col style="width:7%">
+   <col style="width:8%">
+    <col style="width:13%">
+     <col style="width:17%">
+</colgroup>
+<thead>
+<tr>
+<th>S.No</th><th>Patient</th><th>UHID</th><th>Bill</th>
+<th class="right">Total</th>
+<th class="right">Paid</th><th class="right">Due</th>
+
+<th>User</th>
+<th>Date</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+{% for row in consultation %}
+<tr>
+<td class="center">{{ forloop.counter }}</td>
+<td class='center'>{{ row.patname|upper }}</td>
+<td class='center'>{{ row.uhid }}</td>
+<td class='center'>{{ row.billno }}</td>
+<td class="right">{{ row.total }}</td>
+<td class="right">{{ row.paid }}</td>
+<td class="right" style="color:red"><b>{{ row.due }}</b></td>
+
+<td class='center'>{{ row.user|default:"-" }}</td>
+<td class='center'>{{ row.date|date:"d-m-Y H:i" }}</td>
+<td class='center'>{{ row.reason|default:"-" }}</td>
+</tr>
+{% endfor %}
+<tr class="total-row">
+<td colspan="6" class="right">Total</td>
+<td class="right" style="color:red; font-weight:bold">{{ total_due_cons }}</td>
+<td colspan="2"></td>
+</tr>
+</tbody>
+</table>
+
+<!-- ================= PROCEDURE ================= -->
+<!-- ================= PROCEDURE ================= -->
+<div class="section-title">Procedure Dues</div>
+<table>
+    <colgroup>
+   <col style="width:6%">
+    <col style="width:18%">
+    <col style="width:10%">
+    <col style="width:5%">
+   <col style="width:7%">
+    <col style="width:7%">
+    <col style="width:7%">
+   <col style="width:8%">
+    <col style="width:13%">
+     <col style="width:17%">
+</colgroup>
+<thead>
+<tr>
+<th>S.No</th>
+<th>Patient</th>  <!-- ✅ ADD -->
+<th>UHID</th>
+<th>Bill</th>
+<th class="right">Total</th>
+<th class="right">Paid</th>
+<th class="right" style="color:red">Due</th>
+
+<th>User</th>
+<th>Date</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+
+{% for row in procedure %}
+<tr>
+<td class="center">{{ forloop.counter }}</td>
+<td class='center'>{{ row.patname|default:"-"|upper }}</td> <!-- ✅ ADD -->
+<td class='center'>{{ row.uhid }}</td>
+<td class='center'>{{ row.billno }}</td>
+<td class="right">{{ row.total }}</td>
+<td class="right">{{ row.paid }}</td>
+<td class="right" style="color:red"><b>{{ row.due }}</b></td>
+
+<td class='center'>{{ row.user|default:"-" }}</td>
+<td class='center'>{{ row.date|date:"d-m-Y H:i" }}</td>
+<td class='center'>{{ row.reason|default:"-" }}</td>
+</tr>
+{% endfor %}
+
+<tr class="total-row">
+<td colspan="6" class="right">Total</td>
+<td class="right" style="color:red; font-weight:bold">{{ total_due_proc }}</td>
+<td colspan="2"></td>
+</tr>
+
+</tbody>
+</table>

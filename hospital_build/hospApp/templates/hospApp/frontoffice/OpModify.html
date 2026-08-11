@@ -1,0 +1,1150 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5 class="mb-0">OP-Modify</h5>
+    </div>
+
+
+    <div class="form-body">
+      {% if show_invalid_usercode %}
+<script>
+    alert("Invalid User Code!");
+</script>
+{% endif %}
+
+
+      {% if error %}
+        <div class="alert alert-danger py-1 px-2">{{ error }}</div>
+      {% endif %}
+      {% if success %}
+        <div class="alert alert-success py-1 px-2">{{ success }}</div>
+      {% endif %}
+{% if messages %}
+<script>
+    {% for message in messages %}
+        alert("{{ message }}");
+    {% endfor %}
+</script>
+{% endif %}
+      <!-- Important -->
+   <form id="opForm" method="POST" autocomplete="off">
+        {% csrf_token %}
+
+
+        <!-- UHID -->
+        <div class="row g-2 mb-2">
+          <div class="col-md-6">
+            <div class="d-flex align-items-center mb-2">
+              <label class="me-2 mb-0" style="width:130px;">UHID</label>
+              <div class="input-group" style="max-width:220px;">
+                <input type="text" id="uhid" name="uhid"
+                       class="form-control form-control-sm"
+                       placeholder="Enter UHID"
+                       maxlength="10"
+                       required tabindex="1">
+                <button type="button" id="getBtn"
+                        class="btn btn-primary btn-sm">
+                  Get
+                </button>
+              </div>
+            </div>
+          </div>
+
+
+
+        <!-- Patient Details -->
+        <div id="patient-details" class="mt-4">
+
+
+  <div class="row g-2 mb-2">
+
+
+    <!-- LEFT -->
+    <div class="col-md-5">
+
+
+      <div class="d-flex align-items-center mb-2">
+        <label class="me-2 mb-0" style="width:130px;">Patient Name</label>
+        <input type="text" id="patname" name="patname"
+               class="form-control form-control-sm"
+               style="max-width:220px;" tabindex="1" maxlength="50" required>
+      </div>
+
+
+      <div class="d-flex align-items-center mb-2">
+        <label class="me-2 mb-0" style="width:130px;">Age</label>
+        <input type="text" id="age" name="age"
+               class="form-control form-control-sm"
+               style="max-width:220px;" tabindex="3" maxlength="3" required>
+      </div>
+
+
+      <div class="d-flex align-items-center mb-2">
+        <label class="me-2 mb-0" style="width:130px;">Age Type</label>
+        <select id="agetype" name="agetype"
+                class="form-select form-select-sm"
+                style="max-width:220px;" tabindex="5" required>
+          <option value="">-- Select --</option>
+          <option>Years</option>
+          <option>Months</option>
+          <option>Days</option>
+        </select>
+      </div>
+
+
+<div class="d-flex align-items-center mb-2 position-relative">
+        <label class="me-2 mb-0" style="width:130px;">PRO</label>
+
+
+        <div style="max-width:220px; width:100%;">
+          <input type="text" id="proField" name="pro_name"
+                 class="form-control form-control-sm"  required tabindex="7" maxlength="50" >
+
+
+          <div id="proSuggestions"
+               class="list-group position-absolute suggestion-list " style="width:220px"></div>
+
+
+          <input type="hidden" id="pro_id_field" name="pro_id">
+        </div>
+      </div>
+
+
+     
+
+
+      
+ <div class="d-flex align-items-center mb-2">
+  <label class="me-2 mb-0" style="width:130px;" >Address</label>
+
+
+  <textarea id="address" name="address"
+          class="form-control form-control-sm"
+          style="max-width:220px; height:50px;" tabindex="9" maxlength="100" required></textarea>
+</div>
+    </div>
+
+
+    <!-- RIGHT -->
+    <div class="col-md-6">
+
+
+      <div class="d-flex align-items-center mb-2">
+        <label class="me-2 mb-0" style="width:130px;">Guardian</label>
+        <input type="text" id="fname" name="fname"
+               class="form-control form-control-sm"
+               style="max-width:220px;" tabindex="2" maxlength="50" required>
+      </div>
+
+
+      <div class="d-flex align-items-center mb-2">
+        <label class="me-2 mb-0" style="width:130px;">Gender</label>
+        <select id="gender" name="gender" style="max-width:220px;"  class="form-select form-select-sm" tabindex="4" required>
+          <option value="">-- Select --</option>
+          <option>Male</option>
+          <option>Female</option>
+          <option>Other</option>
+        </select>
+     
+      </div>
+
+
+      <div class="d-flex align-items-center mb-2">
+        <label class="me-2 mb-0" style="width:130px;">Phone</label>
+        <input type="text" id="phone" name="phone"
+               class="form-control form-control-sm"
+               style="max-width:220px;" tabindex="6" maxlength="12" required>
+      </div>
+
+
+      
+ <div class="d-flex align-items-center mb-2 position-relative">
+        <label class="me-2 mb-0" style="width:130px;">Ref Doctor</label>
+
+
+        <div style="max-width:220px; width:100%;">
+          <div class="input-group">
+            <input type="text" id="refDoctorField" name="refdoctor"
+  class="form-control form-control-sm" value="SELF" required tabindex="8" maxlength="50"> 
+            <button type="button" class="btn btn-primary" style="height:28px;"
+                    id="addRefDoctorBtn">Add</button>
+          </div>
+
+
+          <div id="refDoctorSuggestions"
+               class="list-group position-absolute suggestion-list" style="width:220px"></div>
+                <input type="hidden" id="refdoctor_id" name="refdoctor_id">
+        </div>
+      </div>
+     
+
+
+    </div>
+  </div>
+
+
+</div>
+         
+        
+           <div class="bottom d-flex align-items-center mt-3">
+
+
+  <!-- Left: User Code -->
+  <div class="col-md-2">
+    <input type="password"
+           id="usercode"
+           name="usercode"
+           class="form-control form-control-sm"
+           autocomplete="new-password"
+           required
+           oninput="if(this.value.length>8)this.value=this.value.slice(0,8);"
+           placeholder="Enter user code" style='background-color: yellow;' tabindex="10" maxlength="10">
+  </div>
+
+
+  <!-- Center: Buttons -->
+  <div class="flex-grow-1 text-center">
+    <button type="submit" class="btn btn-success btn-sm me-2" tabindex="11">💾 Save</button>
+    <button type="button" class="btn btn-secondary btn-sm" id="cancelBtn" tabindex="12">Cancel</button>
+  </div>
+
+
+  <!-- Right spacer (keeps buttons perfectly centered) -->
+  <div style="width:200px;"></div>
+
+
+</div>
+
+
+        </div>
+      </form>
+      <div class="modal fade" id="addRefDoctorModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Add New Doctor</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label>Doctor Name</label>
+          <input type="text" id="newDoctorName" class="form-control">
+        </div>
+        <div>
+          <label>Phone</label>
+          <input type="text" id="newDoctorPhone" class="form-control" maxlength="10">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-bs-dismiss="modal">Cancel</button>
+        <button id="saveDoctorBtn" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+    </div>
+  </div>
+</div>
+
+
+<style>
+.form-control, .form-select { padding: .45rem .6rem;  border-radius: .45rem; background-color: var(--input-bg); }
+.suggestion-list { display:none; max-height:150px; overflow-y:auto; z-index:1200; background:white; top:calc(100% + .35rem); border-radius:0 .4rem .4rem .4rem; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+
+
+.form-control, .form-select {
+   padding: .45rem .6rem;
+   
+    border-radius: .45rem; 
+    background-color: var(--input-bg); 
+  }
+
+
+
+
+ /* Make readonly fields behave like disabled */
+input[readonly],
+select:disabled,
+textarea[readonly] {
+    pointer-events: none;            /* Disable clicking */
+    background-color: #e9ecef !important; /* Same as Bootstrap disabled */
+    color: #6c757d !important;        /* Disabled text color */
+    border-color: #ced4da !important;
+    cursor: not-allowed !important;   /* Show disabled cursor */
+    caret-color: transparent !important; /* Prevent text cursor */
+    font-weight:600;
+}
+.suggestion-list .active {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+.suggestion-list .list-group-item {
+    padding: 0;
+    border: none;
+    border-bottom: 1px solid #dee2e6;
+}
+.suggestion-list .list-group-item:last-child {
+    border-bottom: none;
+}
+</style>
+<script>
+/* ---------------------------------------------------
+   GLOBAL FLAGS - INITIALIZE ALL
+--------------------------------------------------- */
+let isAutoFilling = false;
+let proIndex = -1;
+let refIndex = -1;
+let proClicked = false;
+let refClicked = false;
+let proSelectedFinal = false;
+let refSelectedFinal = false;
+let proSkipBlur = false;
+let refSkipBlur = false;
+let proEmptyAlertShown = false;
+let refEmptyAlertShown = false;
+let proTabSelected = false;
+let refTabSelected = false;
+
+
+/* ---------------------------------------------------
+   FETCH PATIENT DETAILS (REUSABLE)
+--------------------------------------------------- */
+async function fetchPatientDetails(uhid) {
+    if (!uhid) return;
+
+
+    try {
+        const res = await fetch(`/get-patient-details-simple/?uhid=${uhid}`);
+        if (!res.ok) throw new Error("Request failed");
+
+
+        const data = await res.json();
+
+
+        if (!data.success) {
+            alert("❗ No patient found with this UHID");
+            resetForm();
+            return;
+        }
+
+
+        const d = data.data;
+
+
+        isAutoFilling = true;
+
+
+        // Autofill fields
+        document.getElementById("patname").value = d.patname || '';
+        document.getElementById("age").value = d.age || '';
+        document.getElementById("agetype").value = d.agetype || '';
+        document.getElementById("gender").value = d.gender || '';
+        document.getElementById("fname").value = d.fname || '';
+        document.getElementById("phone").value = d.phone || '';
+
+
+        document.getElementById("refDoctorField").value = d.refdoctor || '';
+        document.getElementById("refdoctor_id").value = d.refdoctor_id || '';
+
+
+        document.getElementById("proField").value = d.pro_name || '';
+        document.getElementById("pro_id_field").value = d.pro_id || '';
+
+
+        document.getElementById("address").value = d.address || "";
+
+
+        $("#refDoctorSuggestions").hide();
+        $("#proSuggestions").hide();
+
+
+        setTimeout(() => {
+            isAutoFilling = false;
+        }, 300);
+
+
+    } catch (err) {
+        console.error("Error fetching patient:", err);
+        alert("⚠️ Error fetching patient details");
+    }
+}
+
+
+
+/* ---------------------------------------------------
+   RESET FORM (SAFE CLEAR)
+--------------------------------------------------- */
+function resetForm() {
+    document.getElementById("patname").value = '';
+    document.getElementById("age").value = '';
+    document.getElementById("agetype").value = '';
+    document.getElementById("gender").value = '';
+    document.getElementById("fname").value = '';
+    document.getElementById("phone").value = '';
+    document.getElementById("refDoctorField").value = '';
+    document.getElementById("refdoctor_id").value = '';
+    document.getElementById("proField").value = '';
+    document.getElementById("pro_id_field").value = '';
+    document.getElementById("address").value = '';
+}
+
+
+
+/* ---------------------------------------------------
+   ON PAGE LOAD
+--------------------------------------------------- */
+window.addEventListener("DOMContentLoaded", function () {
+    const params = new URLSearchParams(window.location.search);
+    const uhid = params.get("uhid");
+
+
+    if (uhid) {
+        document.getElementById("uhid").value = uhid;
+        fetchPatientDetails(uhid);
+    }
+});
+
+
+
+/* ---------------------------------------------------
+   UHID INPUT BLUR (MANUAL ENTRY)
+--------------------------------------------------- */
+document.getElementById("uhid").addEventListener("blur", function () {
+    const uhid = this.value.trim();
+    if (uhid) {
+        fetchPatientDetails(uhid);
+    }
+});
+
+
+
+/* ---------------------------------------------------
+   GET BUTTON (SEARCH PAGE REDIRECT)
+--------------------------------------------------- */
+document.getElementById("getBtn").addEventListener("click", function () {
+    window.location.href = "/op/RegistrationUhidFinder";
+});
+
+
+</script>
+
+
+<!-- ================================================================= -->
+<!-- PRO FIELD FULL SCRIPT -->
+<!-- ================================================================= -->
+<script>
+const proSuggestURL = "{% url 'suggest_pros' %}";
+const csrfToken = "{{ csrf_token }}";
+
+
+/* ================================================================= */
+/* RESET FLAGS ON FOCUS */
+/* ================================================================= */
+$("#proField").on("focus", function () {
+    proSelectedFinal = false;
+    proIndex = -1;
+    proEmptyAlertShown = false;
+});
+
+
+/* Also reset when user types */
+$("#proField").on("input", function() {
+    proEmptyAlertShown = false;
+});
+
+
+/* ================================================================= */
+/* INPUT → show suggestions */
+/* ================================================================= */
+$("#proField").on("input", function () {
+    if (isAutoFilling) return;
+    
+    proIndex = -1;
+    proSelectedFinal = false;
+
+
+    let q = $(this).val().trim();
+    $("#proSuggestions").empty().hide();
+
+
+    if (q.length < 1) return;
+
+
+    $.get(proSuggestURL, { term: q }, function (data) {
+
+
+        if (!data.length) return;
+
+
+        let html = "";
+        data.forEach((item, i) => {
+            html += `
+                <a href="#" class="list-group-item list-group-item-action pro-item"
+                   data-id="${item.proid}" data-name="${item.pro_name}" data-index="${i}">
+                    ${item.pro_name}
+                </a>`;
+        });
+
+
+        $("#proSuggestions").html(html).show();
+    });
+});
+
+
+/* ================================================================= */
+/* KEYBOARD NAVIGATION */
+/* ================================================================= */
+$("#proField").on("keydown", function (e) {
+
+
+    const items = $(".pro-item");
+
+
+    // If list NOT visible → normal TAB
+    if (!$("#proSuggestions").is(":visible") || items.length === 0) {
+        proTabSelected = false;
+        return;
+    }
+
+
+    // --- ARROW KEYS ---
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+
+
+        if (e.key === "ArrowDown") proIndex = (proIndex + 1) % items.length;
+        else proIndex = (proIndex - 1 + items.length) % items.length;
+
+
+        items.removeClass("active");
+        $(items[proIndex]).addClass("active");
+        return;
+    }
+
+
+    // --- ENTER = SELECT ---
+    if (e.key === "Enter") {
+        e.preventDefault();
+        let item = $(items[proIndex]);
+        $("#proField").val(item.data("name"));
+        $("#pro_id_field").val(item.data("id"));
+        $("#proSuggestions").hide();
+        proTabSelected = true;
+        return;
+    }
+
+
+    // --- TAB KEY BEHAVIOR ---
+    if (e.key === "Tab") {
+
+
+        // If already selected → allow normal TAB
+        if (proTabSelected) {
+            proTabSelected = false;
+            return; // normal tab
+        }
+
+
+        e.preventDefault(); // stop default TAB
+        proTabSelected = true;
+
+
+        // If nothing selected → select 1st item
+        if (proIndex === -1) proIndex = 0;
+
+
+        let item = $(items[proIndex]);
+        $("#proField").val(item.data("name"));
+        $("#pro_id_field").val(item.data("id"));
+        $("#proSuggestions").hide();
+        return;
+    }
+});
+
+
+
+/* ================================================================= */
+/* CLICK select */
+/* ================================================================= */
+$(document).on("mousedown", ".pro-item", function () {
+    proClicked = true;
+});
+$(document).on("click", ".pro-item", function (e) {
+    e.preventDefault();
+
+
+    $("#proField").val($(this).data("name"));
+    $("#pro_id_field").val($(this).data("id"));
+    $("#proSuggestions").hide();
+    proSelectedFinal = true;
+
+
+    setTimeout(() => proClicked = false, 150);
+});
+
+
+/* ================================================================= */
+/* BLUR validation for PRO */
+/* ================================================================= */
+$("#proField").on("blur", function () {
+
+
+    setTimeout(function () {
+
+
+        if (proClicked || proSkipBlur) {
+            proSkipBlur = false;
+            return;
+        }
+
+
+        let name = $("#proField").val().trim();
+
+
+        if (!name) {
+            // Show a single clear message and avoid infinite alert loops
+            if (!proEmptyAlertShown) {
+                proEmptyAlertShown = true;
+                alert("❗ Please enter a PRO name, or type 'SELF' if patient is self.");
+                // focus back once after a short delay so that the browser finishes the blur lifecycle
+                setTimeout(() => $("#proField").focus(), 200);
+            }
+            return;
+        }
+
+
+        if (name.toUpperCase() === "SELF") return;
+
+
+        $.get(proSuggestURL, { term: name }, function (data) {
+
+
+            let exists = data.some(x =>
+                x.pro_name.toUpperCase() === name.toUpperCase()
+            );
+
+
+            if (!exists) {
+                // avoid repeated alerts for the same invalid input
+                if (!proEmptyAlertShown) {
+                    proEmptyAlertShown = true;
+                    alert("❗ PRO name does not exist! Please select a name from the suggestions.");
+                    $("#proField").val("");
+                    $("#pro_id_field").val("");
+                    // focus back for correction
+                    setTimeout(() => $("#proField").focus(), 200);
+                }
+            }
+        });
+
+
+    }, 200);
+});
+</script>
+
+
+<!-- ================================================================= -->
+<!-- REF DOCTOR FIELD FULL SCRIPT -->
+<!-- ================================================================= -->
+<script>
+const refDoctorSuggestURL = "{% url 'suggest_refdoctors1' %}";
+const addRefDoctorURL = "{% url 'add_refdoctor_ajax' %}";
+
+
+/* ================================================================= */
+/* RESET FLAGS ON FOCUS */
+/* ================================================================= */
+$("#refDoctorField").on("focus", function () {
+    refSelectedFinal = false;
+    refIndex = -1;
+    refEmptyAlertShown = false;
+});
+
+
+/* Also reset when user types */
+$("#refDoctorField").on("input", function() {
+    refEmptyAlertShown = false;
+});
+
+
+/* ================================================================= */
+/* INPUT → show suggestions */
+/* ================================================================= */
+$("#refDoctorField").on("input", function () {
+    if (isAutoFilling) return;
+    
+    refIndex = -1;
+    refSelectedFinal = false;
+
+
+    let q = $(this).val().trim();
+    $("#refdoctor_id").val("");
+    $("#refDoctorSuggestions").empty().hide();
+
+
+    if (q.length < 1) return;
+
+
+    $.get(refDoctorSuggestURL, { term: q }, function (data) {
+
+
+        if (!data.length) return;
+
+
+        let html = "";
+        data.forEach((doc, i) => {
+            html += `
+                <a href="#" class="list-group-item list-group-item-action ref-item"
+                   data-id="${doc.id}" data-name="${doc.name}" data-index="${i}">
+                    ${doc.name}
+                </a>`;
+        });
+
+
+        $("#refDoctorSuggestions").html(html).show();
+    });
+});
+
+
+/* ================================================================= */
+/* KEYBOARD NAVIGATION */
+/* ================================================================= */
+$("#refDoctorField").on("keydown", function (e) {
+
+
+    const items = $(".ref-item");
+
+
+    // If list NOT visible → normal TAB
+    if (!$("#refDoctorSuggestions").is(":visible") || items.length === 0) {
+        refTabSelected = false;
+        return;
+    }
+
+
+    // --- ARROW KEYS ---
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+
+
+        if (e.key === "ArrowDown") refIndex = (refIndex + 1) % items.length;
+        else refIndex = (refIndex - 1 + items.length) % items.length;
+
+
+        items.removeClass("active");
+        $(items[refIndex]).addClass("active");
+        return;
+    }
+
+
+    // --- ENTER = SELECT ---
+    if (e.key === "Enter") {
+        e.preventDefault();
+        let item = $(items[refIndex]);
+        $("#refDoctorField").val(item.data("name"));
+        $("#refdoctor_id").val(item.data("id"));
+        $("#refDoctorSuggestions").hide();
+        refTabSelected = true;
+        return;
+    }
+
+
+    // --- TAB KEY BEHAVIOR ---
+    if (e.key === "Tab") {
+
+
+        // If already selected → allow normal TAB
+        if (refTabSelected) {
+            refTabSelected = false;
+            return; // normal tab
+        }
+
+
+        e.preventDefault(); // stop default TAB
+        refTabSelected = true;
+
+
+        // If nothing selected → select 1st item
+        if (refIndex === -1) refIndex = 0;
+
+
+        let item = $(items[refIndex]);
+        $("#refDoctorField").val(item.data("name"));
+        $("#refdoctor_id").val(item.data("id"));
+        $("#refDoctorSuggestions").hide();
+        return;
+    }
+});
+
+
+
+/* ================================================================= */
+/* CLICK select */
+/* ================================================================= */
+$(document).on("mousedown", ".ref-item", function () {
+    refClicked = true;
+});
+$(document).on("click", ".ref-item", function (e) {
+    e.preventDefault();
+
+
+    $("#refDoctorField").val($(this).data("name"));
+    $("#refdoctor_id").val($(this).data("id"));
+    $("#refDoctorSuggestions").hide();
+    refSelectedFinal = true;
+
+
+    setTimeout(() => refClicked = false, 150);
+});
+
+
+/* ================================================================= */
+/* BLUR validation for REF DOCTOR */
+/* ================================================================= */
+$("#refDoctorField").on("blur", function () {
+
+
+    setTimeout(function () {
+
+
+        if (refClicked || refSkipBlur) {
+            refSkipBlur = false;
+            return;
+        }
+
+
+        let name = $("#refDoctorField").val().trim();
+
+
+        if (!name) {
+            // Show a single clear message and avoid infinite alert loops
+            if (!refEmptyAlertShown) {
+                refEmptyAlertShown = true;
+                alert("❗ Ref Doctor cannot be empty. Enter a doctor name or type 'SELF'.");
+                setTimeout(() => $("#refDoctorField").focus(), 200);
+            }
+            return;
+        }
+
+
+        if (name.toUpperCase() === "SELF") return;
+
+
+        $.get(refDoctorSuggestURL, { term: name }, function (data) {
+
+
+            let exists = data.some(x =>
+                x.name.toUpperCase() === name.toUpperCase()
+            );
+
+
+            if (!exists) {
+                // prevent re-triggering the blur when we open modal
+                refSkipBlur = true;
+
+
+                $("#newDoctorName").val(name);
+                $("#addRefDoctorModal").modal("show");
+
+
+                $("#refDoctorField").val("");
+                $("#refDoctorSuggestions").hide();
+
+
+                // reset empty-alert flag so next manual focus behaves normally
+                refEmptyAlertShown = false;
+            }
+        });
+
+
+    }, 200);
+});
+
+
+/* ================================================================= */
+/* MODAL CLOSED - FOCUS BACK */
+/* ================================================================= */
+$("#addRefDoctorModal").on("hidden.bs.modal", function () {
+    setTimeout(() => {
+        $("#refDoctorField").focus();
+    }, 150);
+});
+
+
+/* ================================================================= */
+/* SAVE DOCTOR */
+/* ================================================================= */
+$("#saveDoctorBtn").on("click", function () {
+
+
+    let name = $("#newDoctorName").val().trim();
+    let phone = $("#newDoctorPhone").val().trim();
+
+
+    if (!/^[0-9]{10}$/.test(phone)) {
+        alert("❗ Enter valid 10-digit number.");
+        return;
+    }
+
+
+    $.post(addRefDoctorURL, {
+        name: name,
+        phone: phone,
+        csrfmiddlewaretoken: csrfToken
+    }, function (res) {
+        alert("✔ Doctor added successfully!");
+
+
+        $("#refDoctorField").val(name);
+        $("#refdoctor_id").val(res.docid);
+        $("#newDoctorPhone").val("");
+        $("#addRefDoctorModal").modal("hide");
+
+
+        refSelectedFinal = true;
+        // after adding a new doctor, make sure the empty-alert flag is cleared
+        refEmptyAlertShown = false;
+    });
+});
+</script>
+
+
+<!-- ================================================================= -->
+<!-- FORM SUBMISSION SCRIPT -->
+<!-- ================================================================= -->
+<script>
+$("#opForm").on("submit", function(e){
+    e.preventDefault();
+
+
+    let form = $(this);
+    let btn = form.find("button[type='submit']");
+
+
+    btn.prop("disabled", true).text("Saving...");
+
+
+    $.ajax({
+        url: "{% url 'update_consultation' %}",
+        type: "POST",
+        data: form.serialize(),
+
+
+        success: function(res){
+            btn.prop("disabled", false).text("💾 Save");
+
+
+            if(res.status === "error"){
+                alert(res.message);
+
+
+                // 🔥 focus back to usercode
+                $("#usercode").val("").focus();
+            } 
+            else if(res.status === "success"){
+                alert(res.message);
+
+
+                // OPTIONAL: clear only usercode
+               window.location.href = window.location.pathname;
+
+
+                // OPTIONAL: keep form OR reset
+                // form[0].reset();
+            }
+        },
+
+
+        error: function(){
+            btn.prop("disabled", false).text("💾 Save");
+            alert("⚠️ Something went wrong");
+        }
+    });
+});
+
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+$.ajaxSetup({
+    headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+    }
+});
+</script>
+<script>
+/* ================================
+   TEXT ONLY (max 50 chars auto)
+================================ */
+function allowOnlyText(input) {
+    input.value = input.value
+        .replace(/[^a-zA-Z\s]/g, '')  // only letters
+        .slice(0, 50);                // max 50
+}
+
+document.getElementById("patname").addEventListener("input", function() {
+    allowOnlyText(this);
+});
+
+document.getElementById("fname").addEventListener("input", function() {
+    allowOnlyText(this);
+});
+
+
+/* ================================
+   AGE → only numbers, max 3 digits
+================================ */
+let ageField = document.getElementById("age");
+
+ageField.addEventListener("input", function() {
+    this.value = this.value
+        .replace(/[^0-9]/g, '')  // only numbers
+        .slice(0, 3);            // max 3 digits
+});
+
+ageField.addEventListener("keydown", function(e) {
+    if (["e", "E", "+", "-", "."].includes(e.key)) {
+        e.preventDefault();
+    }
+});
+
+
+/* ================================
+   PHONE → only numbers, max 12
+================================ */
+let phoneField = document.getElementById("phone");
+
+/* Only numbers + max 10 digits */
+phoneField.addEventListener("input", function() {
+    this.value = this.value
+        .replace(/[^0-9]/g, '')
+        .slice(0, 10);
+});
+
+/* Block e,E,+,-,. */
+phoneField.addEventListener("keydown", function(e) {
+    if (["e", "E", "+", "-", "."].includes(e.key)) {
+        e.preventDefault();
+    }
+});
+
+let phoneAlertShown = false;
+
+phoneField.addEventListener("focus", function () {
+    phoneAlertShown = false;
+});
+
+phoneField.addEventListener("blur", function () {
+
+    let phone = this.value.trim();
+
+    if (phone === "") return;
+
+    // prevent repeated alerts
+    if (phoneAlertShown) return;
+
+    /* Must be exactly 10 digits */
+    if (!/^[0-9]{10}$/.test(phone)) {
+        phoneAlertShown = true;
+
+        alert("❗ Phone number must be exactly 10 digits.");
+
+        this.value = "";
+
+        setTimeout(() => {
+            this.focus();
+        }, 100);
+
+        return;
+    }
+
+    /* Must start with 6/7/8/9 */
+    if (!/^[6-9]/.test(phone)) {
+        phoneAlertShown = true;
+
+        alert("❗ Enter valid Indian mobile number.");
+
+        this.value = "";
+
+        setTimeout(() => {
+            this.focus();
+        }, 100);
+
+        return;
+    }
+
+    /* Reject same digits */
+    if (/^(\d)\1{9}$/.test(phone)) {
+        phoneAlertShown = true;
+
+        alert("❗ Invalid phone number.");
+
+        this.value = "";
+
+        setTimeout(() => {
+            this.focus();
+        }, 100);
+
+        return;
+    }
+
+    /* Reject sequential numbers */
+    const invalidNumbers = [
+        "0123456789",
+        "1234567890",
+        "9876543210",
+        "0987654321"
+    ];
+
+    if (invalidNumbers.includes(phone)) {
+        phoneAlertShown = true;
+
+        alert("❗ Invalid phone number.");
+
+        this.value = "";
+
+        setTimeout(() => {
+            this.focus();
+        }, 100);
+
+        return;
+    }
+
+});
+
+
+/* ================================
+   ADDRESS → max 50 characters
+================================ */
+document.getElementById("address").addEventListener("input", function() {
+    this.value = this.value.slice(0, 50);
+});
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'OpModify' %}";
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("uhid").focus();
+});
+</script>
+{% endblock %}

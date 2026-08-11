@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Report</title>
+    <style>
+        body {
+            font-family: "Times New Roman", serif;
+            font-size: 11px;
+        }
+
+        .report-container {
+            border: 2px solid black;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        .header {
+            text-align: center;
+            line-height: 1.5;
+            border-bottom: 2px solid black;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .header p {
+            margin: 2px 0;
+        }
+
+        .title {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .filters {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 5px;
+        }
+
+        
+
+        table, td {
+            border: none;
+            font-size: 11px;    
+        }
+
+        .total-row td {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+<div class="report-container">
+
+    <!-- 🏥 Header -->
+    <div class="header">
+        <h2>{{ hospital.name }}</h2>
+        <p>{{ hospital.address }}</p>
+    </div>
+
+    <!-- 📋 Title -->
+    <div class="title">
+        {% if ser_name %}
+            {{ ser_name|upper }} SERVICE REPORT
+        {% else %}
+            ALL SERVICES REPORT
+        {% endif %}
+    </div>
+
+    <!-- 📅 Filters -->
+    <div class="filters">
+        From Date: {{ from_date|date:"d-m-Y" }} &nbsp;&nbsp; To Date: {{ to_date|date:"d-m-Y" }}
+    </div>
+
+    <!-- 📊 Table -->
+    <table>
+    <tr style="border-bottom: 2px solid black; border-top: 2px solid black;">
+        <th>S.NO</th>
+        <th>UHID</th>
+        <th>PT NAME</th>
+        <th>USER</th>
+        <th>DATE</th>
+        <th style="text-align:right;">QTY</th>
+        <th style="text-align:right;">COST</th>
+       
+    </tr>
+
+    {% for row in data %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ row.uhid }}</td>
+        <td>{{ row.patname|upper|default:"-" }}</td>
+        <td>{{ row.createdby|upper|default:"-" }}</td>
+        <td>{{ row.generateddate|date:"d-m-Y H:i:s" }}</td>
+        <td style="text-align:right;">{{ row.qty|default:"0" }}</td>
+        <td style="text-align:right;">{{ row.amount|floatformat:2 }}</td>
+        
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="7" style="text-align:center; padding:10px;">No records found.</td>
+    </tr>
+    {% endfor %}
+
+    <tr style="border-top: 2px solid black; font-weight: bold;">
+        <td colspan="6" style="text-align:right;">Total</td>
+        <td style="text-align:right;">{{ total_amount|floatformat:2 }}</td>
+    </tr>
+</table>
+
+</div>
+
+<!-- 🖨️ Print Info -->
+<div style="width:50%; margin:auto; margin-top:20px;">
+    <div style="display:flex; justify-content:space-between; font-size:12px;">
+        <div><strong>Print By:</strong> {{ logged_user | upper }}</div>
+        <div><strong>Print Time:</strong> {{ print_time|date:"d-m-Y H:i:s" }}</div>
+    </div>
+</div>
+
+</body>
+</html>

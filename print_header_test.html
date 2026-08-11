@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Print Header Test - Collection Report</title>
+  <style>
+    /* ===== SCREEN STYLES ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+
+    .page-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    /* ---- FIRST PAGE HEADER (Page 1 only) ---- */
+    .first-page-header {
+      text-align: center;
+      padding: 10px 0 16px;
+      border-bottom: 2px solid #333;
+      margin-bottom: 14px;
+    }
+
+    .first-page-header h1 {
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .first-page-header h2 {
+      font-size: 15px;
+      color: #444;
+      margin-top: 4px;
+    }
+
+    .first-page-header p {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    /* ---- REPEAT HEADER (hidden on screen) ---- */
+    .repeat-header-container {
+      display: none;
+    }
+
+    /* ---- TABLE STYLES ---- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    thead th {
+      background: #2c3e50;
+      color: white;
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f7f7f7;
+    }
+
+    tbody td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #ddd;
+      font-size: 12px;
+    }
+
+    tfoot td {
+      padding: 8px 10px;
+      font-weight: bold;
+      border-top: 2px solid #333;
+      background: #ecf0f1;
+    }
+
+    .print-btn {
+      display: block;
+      margin: 16px auto;
+      padding: 10px 30px;
+      background: #2c3e50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .print-btn:hover {
+      background: #1a252f;
+    }
+
+    .notice {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    /* ===== @PAGE RULES ===== */
+    @page {
+      margin: 15mm 15mm 15mm 15mm;
+    }
+
+    /* ===== PRINT STYLES ===== */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+
+      .page-wrapper {
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+
+      .print-btn,
+      .notice {
+        display: none !important;
+      }
+
+      /* Force page break before the second table */
+      .page-break {
+        display: block;
+        page-break-before: always;
+        break-before: page;
+      }
+
+      /* Render the repeating mini-header at the top of pages 2+ */
+      .repeat-header-container {
+        display: table-row !important;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      tbody tr {
+        page-break-inside: avoid;
+      }
+
+      /* Force background colors to print */
+      thead th {
+        background: #2c3e50 !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #f7f7f7 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      tfoot td {
+        background: #ecf0f1 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrapper">
+
+    <!-- FIRST PAGE HEADER -->
+    <div class="first-page-header">
+      <h1>CITY GENERAL HOSPITAL</h1>
+      <h2>COLLECTION REPORT</h2>
+      <p>Period: 01-Jul-2026 to 13-Jul-2026 &nbsp;|&nbsp; Printed on: 13-Jul-2026 &nbsp;|&nbsp; Printed by: Admin</p>
+    </div>
+
+    <p class="notice">This report has 60 rows. Click Print below to test the header behavior across pages.</p>
+    <button class="print-btn" onclick="window.print()">Print This Page</button>
+
+    <!-- TABLE 1: ONLY FOR PAGE 1 -->
+    <table id="tablePage1">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Patient Name</th>
+          <th>OP/IP No.</th>
+          <th>Doctor</th>
+          <th>Service</th>
+          <th>Date</th>
+          <th>Amount (Rs.)</th>
+          <th>Mode</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody1">
+        <!-- JS will render Page 1 rows here (e.g. first 20 rows) -->
+      </tbody>
+    </table>
+
+    <!-- DIVIDER FOR PAGE BREAK -->
+    <div class="page-break"></div>
+
+    <!-- TABLE 2: FOR PAGE 2 ONWARDS -->
+    <table id="tablePage2Plus">
+      <thead>
+        <!-- Repeating Mini Header row: only displayed in print mode -->
+        <tr class="repeat-header-container">
+          <td colspan="9" style="padding: 0; background: white; border: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2c3e50; padding: 10px 0 5px; margin-bottom: 10px;">
+              <div>
+                <h3 style="font-size: 14px; margin: 0; color: #2c3e50; font-weight: bold;">City General Hospital &mdash; Collection Report (Continued)</h3>
+                <p style="font-size: 11px; margin: 2px 0 0; color: #555;">Date: 13-Jul-2026 &nbsp;|&nbsp; Printed by: Admin</p>
+              </div>
+              <div style="text-align: right;">
+                <p style="font-size: 11px; margin: 0; color: #555;">Period: 01-Jul-2026 to 13-Jul-2026</p>
+              </div>
+            </div>
+          </td>
+        </tr>
+        <!-- Columns headers row: will repeat on page 2, 3, etc. -->
+        <tr>
+          <th>#</th>
+          <th>Patient Name</th>
+          <th>OP/IP No.</th>
+          <th>Doctor</th>
+          <th>Service</th>
+          <th>Date</th>
+          <th>Amount (Rs.)</th>
+          <th>Mode</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody2Plus">
+        <!-- JS will render remaining rows here -->
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="6" style="text-align:right;">GRAND TOTAL</td>
+          <td id="grandTotal">Rs. 0.00</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+
+  </div>
+
+  <script>
+    const doctors  = ["Dr. Rajesh Kumar", "Dr. Priya Singh", "Dr. Anil Mehta", "Dr. Sunita Rao", "Dr. Venkat Iyer"];
+    const services = ["Consultation", "Blood Test", "X-Ray", "ECG", "Ultrasound", "MRI Scan", "Physiotherapy", "Dressing", "IV Drip", "Injection"];
+    const modes    = ["Cash", "Card", "UPI", "Insurance"];
+    const statuses = ["Paid", "Paid", "Paid", "Pending"];
+    const names    = [
+      "Ramesh Babu", "Lakshmi Devi", "Suresh Kumar", "Kavitha M.", "Arjun Nair",
+      "Padma Rao", "Vijay Sharma", "Anitha Krishnan", "Murugan S.", "Deepa Pillai",
+      "Harish T.", "Meena Patel", "Gopal Das", "Saranya R.", "Dinesh V.",
+      "Usha Nambiar", "Rajan Menon", "Bhavani G.", "Kartik Reddy", "Nalini W.",
+      "Sridhar K.", "Geetha B.", "Prasad M.", "Radha J.", "Sunil A.",
+      "Chandra L.", "Mahesh D.", "Indira F.", "Arun P.", "Vimala C."
+    ];
+
+    let total = 0;
+    const tbody1 = document.getElementById('tableBody1');
+    const tbody2 = document.getElementById('tableBody2Plus');
+
+    const PAGE_1_ROWS = 18; // Number of rows to show on Page 1 to fill it nicely
+
+    for (let i = 1; i <= 60; i++) {
+      const amount = (Math.random() * 4900 + 100).toFixed(2);
+      total += parseFloat(amount);
+
+      const day     = String(Math.floor(Math.random() * 13) + 1).padStart(2, '0');
+      const doctor  = doctors[i % doctors.length];
+      const service = services[i % services.length];
+      const mode    = modes[i % modes.length];
+      const status  = statuses[i % statuses.length];
+      const name    = names[i % names.length];
+      const opNo    = "OP" + String(1000 + i).padStart(5, '0');
+
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + i + '</td>' +
+        '<td>' + name + '</td>' +
+        '<td>' + opNo + '</td>' +
+        '<td>' + doctor + '</td>' +
+        '<td>' + service + '</td>' +
+        '<td>' + day + '-Jul-2026</td>' +
+        '<td style="text-align:right;">Rs. ' + parseFloat(amount).toLocaleString('en-IN', {minimumFractionDigits:2}) + '</td>' +
+        '<td>' + mode + '</td>' +
+        '<td style="color:' + (status === 'Paid' ? 'green' : 'orange') + ';font-weight:bold;">' + status + '</td>';
+      
+      if (i <= PAGE_1_ROWS) {
+        tbody1.appendChild(tr);
+      } else {
+        tbody2.appendChild(tr);
+      }
+    }
+
+    document.getElementById('grandTotal').textContent =
+      'Rs. ' + total.toLocaleString('en-IN', {minimumFractionDigits: 2});
+  </script>
+
+</body>
+</html>

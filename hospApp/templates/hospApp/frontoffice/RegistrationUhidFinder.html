@@ -1,0 +1,166 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header ">
+      <h5 class="mb-0">🔍 Search Patient (UHID Finder)</h5>
+    </div>
+    <div class="card-body">
+
+      <!-- Filter Form -->
+      <form method="GET" class="row g-2 mb-3">
+
+        <!-- REQUIRED to keep correct return page -->
+        <input type="hidden" name="return" value="{{ request.GET.return }}">
+
+        <!-- OPTIONAL but safe -->
+        <input type="hidden" name="uhid" value="{{ request.GET.uhid }}">
+
+        <div class="col-md-2">
+          <label>From Date:</label>
+          <input type="date" name="from_date" id="from_date" value="{{ from_date }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-2">
+          <label>To Date:</label>
+          <input type="date" name="to_date" id="to_date" value="{{ to_date }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+          <button type="submit" name="search" class="btn btn-primary btn-sm">Submit</button>
+        </div>
+        <div class="col-md-3">
+          <label>Name:</label>
+          <div class="input-group input-group-sm">
+            <input type="text" id="name" name="name" value="{{ name }}" placeholder="Enter name" class="form-control form-control-sm">
+            <button class="btn btn-outline-primary btn-sm" name="search" value="1" type="submit">Search</button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label>Phone:</label>
+          <div class="input-group input-group-sm">
+            <input type="text" id="phone" name="phone" value="{{ phone }}" placeholder="Enter phone" class="form-control form-control-sm">
+            <button class="btn btn-outline-primary btn-sm" name="search" value="1" type="submit">Search</button>
+          </div>
+        </div>
+        
+      </form>
+
+      <!-- Patient Table -->
+      {% if patients %}
+      <div class="table-container">
+        <input type="text" id="liveFilter" class="form-control form-control-sm mb-2" placeholder="🔍 Live filter (name / phone / UHID)">
+        <table id="patientTable" class="table table-bordered table-sm align-middle">
+          <thead class="table-light">
+            <tr class="text-center">
+              <th>Sl No</th>
+              <th>UHID</th>
+              <th>Patient Name</th>
+              <th>Phone</th>
+              <th>PatID</th>
+              <th>Guardian</th>
+              <th>Gender</th>
+              <th>Ref Doctor</th>
+              
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in patients %}
+            {% url 'OpModify' as row_url %}
+            {% with row_url|add:"?uhid="|add:p.uhid as final_url %}
+            <tr class="clickable-row" data-href="{{ final_url }}">
+            {% endwith %}
+              <td>{{ forloop.counter }}</td>
+              <td>{{ p.uhid }}</td>
+              <td>{{ p.patname }}</td>
+              <td>{{ p.phone }}</td>
+              <td>{{ p.patid }}</td>
+              <td>{{ p.fname }}</td>
+              <td>{{ p.gender }}</td>
+              <td>{{ p.refdoctor }}</td>
+        
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-info text-center mb-0">No patient records found in this range.</div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<!-- JS for auto date fill + live filter + clickable rows -->
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+
+  // 🗓 Auto-fill dates if empty
+  const fromInput = document.getElementById('from_date');
+  const toInput = document.getElementById('to_date');
+  if (!fromInput.value || !toInput.value) {
+    const today = new Date();
+    const toDate = today.toISOString().split('T')[0];
+    const past = new Date(today);
+    past.setDate(today.getDate() - 7);
+    const fromDate = past.toISOString().split('T')[0];
+    fromInput.value = fromDate;
+    toInput.value = toDate;
+  }
+
+  // 🔍 Live filter logic
+  const filterInput = document.getElementById('liveFilter');
+  if (filterInput) {
+    filterInput.addEventListener('keyup', function () {
+      const value = this.value.toLowerCase();
+      const rows = document.querySelectorAll('#patientTable tbody tr');
+      rows.forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(value) ? '' : 'none';
+      });
+    });
+  }
+
+  // 👆 Clickable rows
+  document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const href = row.dataset.href;
+      if (href) window.location.href = href;
+    });
+  });
+
+});
+</script>
+
+<style>
+.table th, .table td { font-size: 0.85rem; vertical-align: middle !important; text-align: left; }
+#liveFilter { font-size: 0.85rem; }
+
+/* Scrollable body */
+.table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+}
+
+/* Sticky header */
+#patientTable thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa;
+  z-index: 2;
+}
+
+/* Thin horizontal lines */
+#patientTable tbody tr td {
+  border-bottom: 1px solid #e6e6e6;
+}
+
+/* Clickable row styles */
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover {
+  background-color: #e8f4fd !important;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,279 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+
+{% block content %}
+
+<div>
+
+  <div class="card form-card">
+    <div class="form-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">🔍 Patient List &nbsp;<small class="text-white-50" style="font-size:0.75rem;">(Pending)</small></h5>
+      <a href="{% url 'CompletedConsultationsView' %}" class="btn btn-success btn-sm">
+        ✅ View Completed Patients
+      </a>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Filters -->
+      <form method="GET" class="row g-2 mb-3" autocomplete="off">
+
+        <div class="col-md-2">
+          <label>From Date:</label>
+          <input type="date" id="from_date" name="from_date" value="{{ from_date }}"
+                 class="form-control form-control-sm"
+                 onblur="this.form.submit()">
+        </div>
+
+        <div class="col-md-2">
+          <label>To Date:</label>
+          <input type="date" id="to_date" name="to_date" value="{{ to_date }}"
+                 class="form-control form-control-sm"
+                 onblur="this.form.submit()">
+        </div>
+        <div class="col-md-3">
+          <label>NAME:</label>
+          <div class="input-group input-group-sm">
+            <input type="text" name="name" value="{{ name }}" class="form-control">
+            <button type="submit"
+                    name="search_type"
+                    value="name"
+                    class="btn btn-outline-primary btn-sm">
+              Search
+            </button>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <label>PHONE:</label>
+          <div class="input-group input-group-sm">
+            <input type="text" name="phone" value="{{ phone }}" class="form-control">
+            <button type="submit"
+                    name="search_type"
+                    value="phone"
+                    class="btn btn-outline-primary btn-sm">
+              Search
+            </button>
+          </div>
+        </div>
+
+      </form>
+
+      {% if patients %}
+
+      <!-- Live Filter -->
+      <input type="text" id="liveFilter"
+             class="form-control form-control-sm mb-2"
+             placeholder="🔍 Live filter" autocomplete="off">
+
+      <!-- Scrollable Table — pending patients only -->
+      <div class="table-container">
+
+        <table id="patientTable" class="table table-sm align-middle">
+          <thead class="table-light">
+            <tr class="text-center">
+              <th>Sl No</th>
+              <th>UHID</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>PatID</th>
+              <th>Gender</th>
+              <th>Token</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for p in patients %}
+            {% if not p.is_prescription_done %}
+            <tr class="clickable-row"
+                data-url="{% url 'create_prescription' %}?consult_id={{ p.id }}"
+                data-name="{{ p.patname }}"
+                data-token="{{ p.tokenno }}">
+              <td>{{ forloop.counter }}</td>
+              <td>{{ p.uhid }}</td>
+              <td>{{ p.patname }}</td>
+              <td>{{ p.phone }}</td>
+              <td>{{ p.patid }}</td>
+              <td>{{ p.gender }}</td>
+              <td>{{ p.tokenno }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+
+        </table>
+
+      </div>
+
+      {% else %}
+        <div class="alert alert-info text-center">
+          No records found
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    let voices = [];
+
+    function loadVoices() {
+        voices = speechSynthesis.getVoices();
+    }
+
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    // Clickable row — triggers announcement popup
+    document.body.addEventListener("click", function (e) {
+
+        const row = e.target.closest(".clickable-row");
+        if (!row) return;
+
+        const name = row.dataset.name;
+        const token = row.dataset.token;
+        const url = row.dataset.url;
+
+        if (!url) return;
+
+        const message = `Peshent ${name}, token number ${token}.`;
+
+        const popup = document.createElement("div");
+        popup.innerHTML = `
+            <div style="
+                position: fixed; top: 30%; left: 50%;
+                transform: translate(-50%, -50%);
+                background: #ffffff; padding: 25px;
+                border-radius: 10px;
+                box-shadow: 0px 0px 10px #444;
+                text-align: center; z-index: 999999;
+            ">
+                <h4>🔊 Announcement Running</h4>
+                <p>
+                    Calling Patient:<br>
+                    <b>${name}</b><br>
+                    Token No: <b>${token}</b>
+                </p>
+                <button id="stopAnn" style="padding:10px 20px; background:red; color:white; border:none; border-radius:5px; cursor:pointer;">
+                    Stop
+                </button>
+            </div>
+        `;
+        document.body.appendChild(popup);
+
+        let stopAnnouncements = false;
+
+        function speakOnce() {
+            if (stopAnnouncements) return;
+
+            const speech = new SpeechSynthesisUtterance(message);
+
+            let usableVoice =
+                voices.find(v => v.lang.includes("IN")) ||
+                voices.find(v => v.lang.includes("en")) ||
+                voices[0];
+
+            if (usableVoice) speech.voice = usableVoice;
+
+            speech.onend = () => {
+                if (!stopAnnouncements) speakOnce();
+            };
+
+            speechSynthesis.speak(speech);
+        }
+
+        speakOnce();
+
+        document.getElementById("stopAnn").addEventListener("click", () => {
+            stopAnnouncements = true;
+            speechSynthesis.cancel();
+            popup.remove();
+
+            setTimeout(() => {
+                window.open(
+                    url,
+                    "_blank",
+                    "width=900,height=650,left=200,top=100,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes"
+                );
+            }, 300);
+        });
+
+    });
+
+    // Live filter
+    const filterInput = document.getElementById('liveFilter');
+
+    if (filterInput) {
+        filterInput.addEventListener('keyup', function () {
+            const value = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#patientTable tbody tr');
+
+            rows.forEach(row => {
+                row.style.display =
+                    row.textContent.toLowerCase().includes(value) ? "" : "none";
+            });
+        });
+    }
+
+});
+
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden) {
+    location.reload();
+  }
+});
+</script>
+
+<style>
+.input-group-sm .form-control,
+.input-group-sm .btn {
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+}
+.form-card .form-header {
+    background: rgb(90, 0, 128);
+    color: #fff;
+    padding: 4px 12px;
+}
+/* Scrollable body */
+.table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+}
+
+/* Sticky header */
+#patientTable thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa;
+  z-index: 2;
+}
+
+/* Thin horizontal row lines */
+#patientTable tbody tr td {
+  border-bottom: 1px solid #e6e6e6;
+}
+
+/* Clickable row */
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover {
+  background-color: #e8f4fd !important;
+}
+
+/* Font */
+.table th, .table td {
+  font-size: 0.85rem;
+}
+.table td, .table th {
+  text-align: left;
+}
+</style>
+
+{% endblock %}

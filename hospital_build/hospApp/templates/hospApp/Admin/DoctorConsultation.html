@@ -1,0 +1,1111 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5 class="mb-0">Doctor Consultation</h5>
+    </div>
+
+    <div class="form-body">
+      {% if show_invalid_usercode %}
+<script>
+    alert("Invalid User Code!");
+</script>
+{% endif %}
+
+      {% if error %}
+        <div class="alert alert-danger py-1 px-2">{{ error }}</div>
+      {% endif %}
+      {% if success %}
+        <div class="alert alert-success py-1 px-2">{{ success }}</div>
+      {% endif %}
+
+      <!-- Important -->
+      <form method="POST" autocomplete="off" id="consultationForm">
+        {% csrf_token %}
+
+        <!-- UHID -->
+        <div class="row mb-2">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <label class="form-label col-2">UHID:</label>
+                <input type="text" id="uhid" name="uhid" class="form-control form-control-sm me-2"
+                       placeholder="Enter UHID" maxlength="10" autocomplete="new-uhid" required>
+            <button type="button" id="getBtn" class="btn btn-primary btn-sm">Get</button>
+          </div>
+          </div>
+
+<div class="col-md-4"></div>
+          <div class="col-md-3">
+            <div class="d-flex align-items-center">
+            <label class="form-label col-4">Visit Type:</label>
+            <select id="visittype" name="visittype_display"
+                    class="form-select form-select-sm" disabled>
+              <option>Normal</option>
+              <option>Revisit</option>
+              <option>Review</option>
+            </select>
+            <input type="hidden" id="hidden_visittype" name="visittype">
+          </div>
+            </div>
+        </div>
+
+        <!-- Patient Details -->
+        <div id="patient-details">
+
+          <div class="row g-2 mb-2">
+            <div class="col-md-4">
+              <label>Patient Name:</label>
+              <input type="text" id="patname" class="form-control form-control-sm" readonly placeholder="Patient Name"  >
+            </div>
+            <div class="col-md-2">
+              <label>Age:</label>
+              <input type="text" id="age" class="form-control form-control-sm" readonly placeholder="Age">
+            </div>
+            <div class="col-md-2">
+              <label>Age Type:</label>
+              <select id="agetype" class="form-select form-select-sm" disabled placeholder="Age Type">
+                <option value="">-- Select --</option>
+                <option>Years</option>
+                <option>Months</option>
+                <option>Days</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label>Gender:</label>
+              <input type="text" id="gender" class="form-control form-control-sm" readonly placeholder="Gender">
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label>Guardian:</label>
+              <input type="text" id="fname" class="form-control form-control-sm" readonly placeholder="Guardian">
+            </div>
+            <div class="col-md-4">
+              <label>Ref Doctor:</label>
+              <input type="text" id="refdoctor" class="form-control form-control-sm" readonly placeholder="Ref Doctor">
+
+              <input type="hidden" id="refdoctor_id" name="refdoctor_id">
+            </div>
+            <div class="col-md-3">
+              <label>Phone:</label>
+              <input type="text" id="phone" class="form-control form-control-sm" readonly placeholder="Phone">
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Case Type / PRO / Doctor -->
+          <div class="row g-2 mb-2">
+            <div class="col-md-3">
+              <label>Case Type:</label>
+              <select id="casetype" name="casetype"
+                      class="form-select form-select-sm" required>
+                <option value="">-- Select --</option>
+                {% for c in case_types %}
+                  <option value="{{ c.sno }}">{{ c.casetype }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label>PRO:</label>
+              <input type="text" id="pro" class="form-control form-control-sm" readonly placeholder="PRO">
+<input type="hidden" id="proid" name="proid">
+
+
+              
+            </div>
+
+            <div class="col-md-5 position-relative">
+              <label>Doctor:</label>
+
+              <!-- Visible box (doctor name only) -->
+              <input type="text" id="doctor_name"
+                     class="form-control form-control-sm"
+                     placeholder="Type doctor name..." autocomplete="off" required>
+
+              <!-- Hidden doctor ID (REAL value sent to backend) -->
+              <input type="hidden" id="doctor_id" name="doctor">
+
+              <!-- Suggestion box -->
+              <ul id="doctor-suggestions"
+                  class="list-group position-absolute suggestion-list w-100" role="listbox" aria-label="Doctor suggestions"></ul>
+            </div>
+
+          </div>
+
+          <div class="row g-2 mb-3 mt-2 align-items-center">
+            <div class="col-md-3 d-flex align-items-center">
+              <input class="form-check-input me-2" type="radio" name="consultation_type"
+                     value="Normal" checked>
+              <label class="me-3">Normal</label>
+
+              <input class="form-check-input me-2" type="radio" name="consultation_type"
+                     value="Emergency">
+              <label>Emergency</label>
+            </div>
+
+             <!-- ADD ONLINE toggle -->
+  <div class="col-md-2 d-flex align-items-end">
+    <div class="form-check mb-1">
+      <input class="form-check-input" type="checkbox" id="addOnlineChk"
+             onchange="toggleOnlinePayment(this.checked)">
+      <label class="form-check-label" for="addOnlineChk">+ Online</label>
+    </div>
+  </div>
+
+          </div>
+
+          <!-- Fee Section -->
+         
+
+            
+
+        
+<!-- Fee + Cash Row -->
+<div class="row g-2 mb-2">
+
+  <div class="col-md-2">
+    <label id="fee-label">Consult Fee:</label>
+    <input type="number" id="fee" name="fee"
+           class="form-control form-control-sm" value="0" required
+           oninput="if(this.value.length>8)this.value=this.value.slice(0,8);" readonly>
+  </div>
+
+  <!-- CASH (always visible) -->
+  <div class="col-md-2">
+    <label>Cash Amt:</label>
+    <input type="number" id="cash_amt" name="cash_amt"
+           class="form-control form-control-sm" value="0" min="0"
+           oninput="if(this.value.length>8)this.value=this.value.slice(0,8);"
+           onkeydown="['e','E','+','-'].includes(event.key)&&event.preventDefault()"
+           onblur="recalcSplit()">
+  </div>
+
+ 
+
+  <!-- ONLINE MODE (hidden until checkbox ticked) -->
+  <div class="col-md-2" id="onlineModeDiv" style="display:none;">
+    <label>Online Mode:</label>
+    <select id="online_mode" name="online_mode"
+            class="form-select form-select-sm"
+            onchange="updateOnlineLabel(); recalcSplit()">
+      <option value="">-- Select --</option>
+      {% for p in payee_list %}
+        {% if p.name|lower != "cash" %}
+          <option value="{{ p.name }}">{{ p.name }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- ONLINE AMOUNT (hidden until checkbox ticked) -->
+  <div class="col-md-2" id="onlineAmtDiv" style="display:none;">
+    <label>Online Amt:</label>
+    <input type="number" id="online_amt" name="online_amt"
+           class="form-control form-control-sm" value="0" min="0"
+           oninput="if(this.value.length>8)this.value=this.value.slice(0,8);"
+           onkeydown="['e','E','+','-'].includes(event.key)&&event.preventDefault()"
+           onblur="recalcSplit()">
+  </div>
+
+  <!-- ONLINE DETAILS (UPI no / card name etc) — hidden until mode chosen -->
+  <div class="col-md-3" id="onlineDetailsDiv" style="display:none;">
+    <label id="onlineDetailsLabel">Reference:</label>
+    <input type="text" id="online_details" name="online_details"
+           class="form-control form-control-sm" maxlength="12"
+           placeholder="">
+  </div>
+
+</div>
+
+<!-- Due / Discount row (unchanged layout, now uses recalcSplit) -->
+<div class="row g-2 mb-3">
+
+  <div class="col-md-2">
+    <label>Paying Amt:</label>
+    <input type="number" id="payingamt" name="paidamt"
+           class="form-control form-control-sm" value="0" readonly
+           oninput="if(this.value.length>8)this.value=this.value.slice(0,8);">
+    {# payingamt is now auto-calculated = cash + online; kept for display #}
+  </div>
+
+  <div class="col-md-2">
+    <label>Due Amt:</label>
+    <input type="number" id="dueamt" name="due"
+           class="form-control form-control-sm" value="0" readonly
+           oninput="if(this.value.length>8)this.value=this.value.slice(0,8);">
+  </div>
+
+  <div class="col-md-2">
+    <label>Disc. Amt:</label>
+    <input type="number" id="discamt" name="concession"
+           class="form-control form-control-sm" value="0"
+           onblur="recalcSplit()"
+           oninput="if(this.value.length>8)this.value=this.value.slice(0,8);"
+           onkeydown="['e','E','+','-'].includes(event.key)&&event.preventDefault()">
+  </div>
+
+  <div class="col-md-3">
+    <label>Reason:</label>
+    <input type="text" id="reason" name="concreason"
+           class="form-control form-control-sm" maxlength="150"
+           placeholder="Enter reason" pattern="^[A-Za-z\s.]+$">
+  </div>
+
+  <div class="col-md-2 d-flex align-items-center">
+    <input type="checkbox" id="validdate" class="form-check-input me-2" checked>
+    <label>Validdate Msg</label>
+  </div>
+
+</div>
+
+        
+           <div class="bottom d-flex align-items-center mt-3">
+
+  <!-- Left: User Code -->
+  <div class="col-md-2">
+    <input type="password"
+           id="usercode"
+           name="usercode"
+           class="form-control form-control-sm"
+           autocomplete="new-password"
+           required
+           oninput="if(this.value.length>8)this.value=this.value.slice(0,8);"
+           placeholder="Enter user code" style='background-color: yellow;' autocomplete="off">
+  </div>
+
+  <!-- Center: Buttons -->
+  <div class="flex-grow-1 text-center">
+    <button type="submit" class="btn btn-success btn-sm me-2">💾 Save</button>
+    <button type="button" class="btn btn-secondary btn-sm" id="cancelBtn">Cancel</button>
+  </div>
+
+  <!-- Right spacer (keeps buttons perfectly centered) -->
+  <div style="width:200px;"></div>
+
+</div>
+
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<style>
+/* Your existing styles kept same */
+.form-control, .form-select { padding: 0rem .6rem;  border-radius: .45rem; background-color: var(--input-bg); }
+.suggestion-list { display:none; max-height:180px; overflow-y:auto; z-index:1200; background:white; top:calc(100% + .35rem); border-radius:0 .4rem .4rem .4rem; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+
+.form-control, .form-select {
+   padding: 0rem .6rem;
+   
+    border-radius: .45rem; 
+    background-color: var(--input-bg); 
+  }
+
+.list-group-item{
+    padding:0;
+}
+
+ /* Make readonly fields behave like disabled */
+input[readonly],
+select:disabled,
+textarea[readonly] {
+    pointer-events: none;            /* Disable clicking */
+    background-color: #e9ecef !important; /* Same as Bootstrap disabled */
+    color: #6c757d !important;        /* Disabled text color */
+    border-color: #ced4da !important;
+    cursor: not-allowed !important;   /* Show disabled cursor */
+    caret-color: transparent !important; /* Prevent text cursor */
+    font-weight:600;
+}
+#doctor-suggestions mark {
+    background: transparent;
+    color: #d97706;        /* amber — change to any color you like */
+    font-weight: 700;
+    padding: 0;
+}
+</style>
+
+<script>
+/* ================================================================
+   SPLIT PAYMENT LOGIC
+================================================================ */
+
+function toggleOnlinePayment(show) {
+    document.getElementById('onlineModeDiv').style.display  = show ? '' : 'none';
+    document.getElementById('onlineAmtDiv').style.display   = show ? '' : 'none';
+    document.getElementById('onlineDetailsDiv').style.display = 'none'; // reset
+
+    if (!show) {
+        document.getElementById('online_amt').value     = 0;
+        document.getElementById('online_mode').value    = '';
+        document.getElementById('online_details').value = '';
+        recalcSplit();
+    }
+}
+
+function updateOnlineLabel() {
+    const mode = document.getElementById('online_mode').value.trim().toLowerCase();
+    const detailsDiv   = document.getElementById('onlineDetailsDiv');
+    const detailsLabel = document.getElementById('onlineDetailsLabel');
+
+    if (!mode || mode === '') {
+        detailsDiv.style.display = 'none';
+        return;
+    }
+
+    if (mode === 'card')        detailsLabel.innerText = 'Card Name:';
+    else if (mode === 'upi')    detailsLabel.innerText = 'UPI Number:';
+    else if (mode === 'cheque') detailsLabel.innerText = 'Cheque No:';
+    else if (mode === 'neft')   detailsLabel.innerText = 'NEFT Ref No:';
+    else                        detailsLabel.innerText = 'Reference:';
+
+    detailsDiv.style.display = '';
+}
+function recalcSplit() {
+    const fee        = Number(document.getElementById('fee').value        || 0);
+    let   cash       = Number(document.getElementById('cash_amt').value   || 0);
+    let   online     = Number(document.getElementById('online_amt').value || 0);
+    let   concession = Number(document.getElementById('discamt').value    || 0);
+
+    // Clamp concession
+    if (concession > fee) {
+        alert(`❗ Discount (₹${concession}) cannot exceed Fee (₹${fee})!`);
+        concession = fee;
+        document.getElementById('discamt').value = concession;
+    }
+
+    const maxPayable = Math.max(fee - concession, 0);
+
+    // Clamp cash
+    if (cash > maxPayable) {
+        alert(`❗ Cash (₹${cash}) cannot exceed Fee - Discount (₹${maxPayable})!`);
+        cash = maxPayable;
+        document.getElementById('cash_amt').value = cash;
+    }
+
+    // Clamp online to whatever's left after cash
+    const remaining = Math.max(maxPayable - cash, 0);
+    if (online > remaining) {
+        alert(`❗ Cash + Online (₹${cash + online}) cannot exceed Fee − Discount (₹${maxPayable})!`);
+        online = remaining;
+        document.getElementById('online_amt').value = online;
+    }
+
+    const paid = cash + online;
+    const due  = Math.max(fee - paid - concession, 0);
+
+    document.getElementById('payingamt').value = paid;
+    document.getElementById('dueamt').value    = due;
+}
+
+/* Hook existing updateFee to also refresh split calc */
+const _origUpdateFee = typeof updateFee === 'function' ? updateFee : null;
+
+async function updateFee() {
+    if (_origUpdateFee) await _origUpdateFee();
+
+    // After doctor / consultation type change, pre-fill cash with full fee
+    const fee        = Number(document.getElementById('fee').value || 0);
+    const concession = Number(document.getElementById('discamt').value || 0);
+    const online     = Number(document.getElementById('online_amt').value || 0);
+    const maxPayable = Math.max(fee - concession, 0);
+
+    // Only auto-fill cash if not already manually edited
+    const cashInput = document.getElementById('cash_amt');
+    // Pre-fill to remaining after online (so cash covers whatever online doesn't)
+    cashInput.value = Math.max(maxPayable - online, 0);
+
+    recalcSplit();
+}
+
+/* Intercept existing validateAmounts so it delegates to recalcSplit */
+function validateAmounts() { recalcSplit(); }
+
+/* On DOMContentLoaded: wire up discount changes */
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('discamt').addEventListener('input',  recalcSplit);
+    document.getElementById('cash_amt').addEventListener('input', recalcSplit);
+    document.getElementById('online_amt').addEventListener('input', recalcSplit);
+    document.getElementById('online_mode').addEventListener('change', function () {
+        updateOnlineLabel();
+        recalcSplit();
+    });
+});
+
+/* Form submit validation for online mode */
+document.getElementById('consultationForm').addEventListener('submit', function (e) {
+    const onlineChk  = document.getElementById('addOnlineChk').checked;
+    const onlineMode = document.getElementById('online_mode').value.trim();
+    const onlineAmt  = Number(document.getElementById('online_amt').value || 0);
+
+    if (onlineChk && onlineAmt > 0 && !onlineMode) {
+        e.preventDefault();
+        e.stopImmediatePropagation();   // stop other submit handlers
+        alert('❗ Please select an Online Payment Mode (UPI / Card / Cheque / NEFT).');
+        document.getElementById('online_mode').focus();
+        return false;
+    }
+}, true);  // capture phase so it fires before the existing submit handler
+
+/* Reset: clear split fields */
+const _origResetForm = typeof resetForm === 'function' ? resetForm : null;
+function resetForm() {
+    if (_origResetForm) _origResetForm();
+
+    document.getElementById('cash_amt').value     = 0;
+    document.getElementById('online_amt').value   = 0;
+    document.getElementById('online_mode').value  = '';
+    document.getElementById('online_details').value = '';
+    document.getElementById('addOnlineChk').checked = false;
+    toggleOnlinePayment(false);
+    recalcSplit();
+}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("input[readonly], textarea[readonly], select[readonly]")
+    .forEach(el => el.setAttribute("tabindex", "-1"));
+});
+</script>
+<script>
+/* ---------------------------------------------------
+   BACK BUTTON DETECTION + INITIAL RESET
+--------------------------------------------------- */
+
+
+window.addEventListener("pageshow", function (event) {
+    if (event.persisted || (performance.getEntriesByType && performance.getEntriesByType("navigation")[0]?.type === "back_forward")) {
+        resetForm();
+    }
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('success')) resetForm();
+
+    const navType = performance.getEntriesByType ? performance.getEntriesByType("navigation")[0]?.type : null;
+    const uhid = urlParams.get('uhid');
+
+    if (uhid && navType === "navigate") {
+        document.getElementById('uhid').value = uhid;
+        fetchPatientDetails(uhid);
+    }
+});
+
+/* ---------------------------------------------------
+      AJAX FORM SUBMIT
+--------------------------------------------------- */
+
+/* ---------------------------------------------------
+      RESET FORM
+--------------------------------------------------- */
+function resetForm() {
+    const form = document.getElementById('consultationForm');
+    if (form) form.reset();
+
+    const fieldsToClear = ['patname','age','agetype','gender','fname','phone','refdoctor'];
+    fieldsToClear.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    document.getElementById('visittype').value = 'Normal';
+    document.getElementById('hidden_visittype').value = 'Normal';
+
+    ['fee','payingamt','dueamt','discamt','reason']
+        .forEach(id => document.getElementById(id).value = (id === 'reason' ? '' : '0'));
+
+    document.getElementById('doctor_name').value = '';
+    document.getElementById('doctor_id').value = '';
+    doctorFees = { consultfee: 0, emrfee: 0 };
+
+    // ✅ Split payment reset
+    document.getElementById('cash_amt').value = 0;
+    document.getElementById('online_amt').value = 0;
+    document.getElementById('online_mode').value = '';
+    document.getElementById('online_details').value = '';
+    document.getElementById('addOnlineChk').checked = false;
+    toggleOnlinePayment(false);
+
+    document.querySelector('input[name="consultation_type"][value="Normal"]').checked = true;
+
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(a => a.remove());
+    }, 3000);
+}
+/* ---------------------------------------------------
+      GET PATIENT DETAILS
+--------------------------------------------------- */
+async function fetchPatientDetails(uhid) {
+    if (!uhid) return window.location.href = "/search-uhid/";
+
+    try {
+        const res = await fetch(`/get-patient-details/?uhid=${encodeURIComponent(uhid)}`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (!data.success) return;
+
+        const d = data.data;
+
+        document.getElementById("patname").value = d.patname || '';
+        document.getElementById("age").value = d.age || '';
+        document.getElementById("agetype").value = d.agetype || '';
+        document.getElementById("gender").value = d.gender || '';
+        document.getElementById("fname").value = d.fname || '';
+        document.getElementById("phone").value = d.phone || '';
+        document.getElementById("refdoctor").value = d.refdoctor || '';
+        document.getElementById("pro").value = d.pro_name || '';
+        document.getElementById("proid").value = d.pro_id || '';
+
+        document.getElementById("visittype").value = d.visit_type || "Normal";
+        document.getElementById("hidden_visittype").value = d.visit_type || "Normal";
+
+        updateFee();
+
+    } catch (err) {
+        console.error("fetchPatientDetails error:", err);
+    }
+}
+
+document.getElementById('getBtn').onclick = () => {
+    window.location.href = "/search-uhid/";
+};
+
+
+document.getElementById('cancelBtn').onclick = resetForm;
+
+/* ---------------------------------------------------
+      FEE LOGIC
+--------------------------------------------------- */
+let doctorFees = { consultfee: 0, emrfee: 0 };
+
+document.getElementById('casetype').addEventListener("change", updateFee);
+document.getElementById('payingamt').addEventListener("input", updateFee);
+document.getElementById('discamt').addEventListener("input", updateFee);
+
+async function updateFee() {
+    const consultType = document.querySelector('input[name="consultation_type"]:checked')?.value || 'Normal';
+    const visitType = document.getElementById('hidden_visittype').value || 'Normal';
+    const caseType = document.getElementById('casetype').value.trim();
+    const doctorID = document.getElementById('doctor_id').value.trim();
+    const uhid = document.getElementById('uhid').value.trim();
+
+    let fee = 0;
+
+    if (!doctorID) {
+        document.getElementById('fee').value = 0;
+        document.getElementById('dueamt').value = 0;
+        return;
+    }
+
+    fee = (consultType === "Emergency") ? doctorFees.emrfee : doctorFees.consultfee;
+    // 🔥 Change the label based on Normal / Emergency
+document.getElementById("fee-label").innerText =
+    (consultType === "Emergency") ? "Emergency Fee:" : "Consult Fee:";
+
+
+    if (visitType.toLowerCase() === "revisit" && caseType && doctorID && uhid) {
+        try {
+            const res = await fetch(`/check-revisit-fee/?uhid=${encodeURIComponent(uhid)}&doctor=${encodeURIComponent(doctorID)}&casetype=${encodeURIComponent(caseType)}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.zero_fee === true) fee = 0;
+            }
+        } catch {}
+    }
+
+    document.getElementById('fee').value = fee;
+
+    const paying = Number(document.getElementById('payingamt').value || 0);
+    const concession = Number(document.getElementById('discamt').value || 0);
+
+    let due = fee - paying - concession;
+    document.getElementById('dueamt').value = (due < 0 ? 0 : due);
+}
+
+/* ---------------------------------------------------
+      PAYMENT MODE LOGIC
+--------------------------------------------------- */
+// document.getElementById("paymenttype").onchange = function () {
+//     const selected = this.value.trim().toLowerCase();
+//     const extraDiv = document.getElementById("extraFieldDiv");
+//     const label = document.getElementById("extraFieldLabel");
+
+//     if (selected === "cash" || selected === "") {
+//         extraDiv.style.display = "none";
+//         return;
+//     }
+
+//     if (selected === "card") label.innerText = "Enter Card Name";
+//     else if (selected === "upi") label.innerText = "Enter UPI Number";
+//     else if (selected === "cheque") label.innerText = "Enter Cheque Number";
+//     else if (selected === "neft") label.innerText = "Enter NEFT Number";
+//     else label.innerText = "Enter Details";
+
+//     extraDiv.style.display = "block";
+// };
+
+// document.getElementById("paymenttype").dispatchEvent(new Event("change"));
+
+/* ================================================================
+      DOCTOR AUTO-SUGGEST — SAME LOGIC AS PRO FIELD
+================================================================ */
+
+let docIndex = -1;
+let docClicked = false;
+let docSelectedFinal = false;
+let docEmptyOnce = false;
+const doctorSuggestURL = "/search-doctors/";
+
+/* Focus → reset alert */
+$("#doctor_name").on("focus", function () {
+    docEmptyOnce = false;
+});
+
+/* Input → fetch suggestions */
+$("#doctor_name").on("input", function () {
+    docIndex = -1;
+    docSelectedFinal = false;
+
+    let q = $(this).val().trim();
+    $("#doctor-suggestions").empty().hide();
+
+    if (q.length < 1) return;
+
+    $.get(doctorSuggestURL, { q: q }, function (res) {
+
+        let data = res.results || [];
+        if (!data.length) return;
+
+        let html = "";
+        // Add this helper function once, outside the $.get block:
+function highlightMatch(text, query) {
+    if (!query) return text;
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+}
+
+// Then in your $.get callback, change ${item.name} to:
+data.forEach((item, i) => {
+    html += `
+    <a href="#" class="list-group-item list-group-item-action doctor-item"
+       data-id="${item.id}"
+       data-name="${item.name}"
+       data-consultfee="${item.consultfee}"
+       data-emrfee="${item.emrfee}"
+       data-index="${i}">
+        ${highlightMatch(item.name, q)}   
+    </a>`;
+});
+
+        $("#doctor-suggestions").html(html).show();
+    });
+});
+
+/* Keyboard Navigation */
+/* ============================================================
+   DOCTOR FIELD — TAB / ARROW / ENTER / ESC + auto-scroll
+   (drop-in replacement for your current keydown + highlight)
+============================================================ */
+$("#doctor_name").on("keydown", function (e) {
+
+    let items = $(".doctor-item");
+
+    // No suggestions open → allow normal behavior
+    if (!$("#doctor-suggestions").is(":visible") || items.length === 0) {
+        docSelectedFinal = false;
+        return;
+    }
+
+    /* ------------------------------
+       ESC → close suggestions
+    ------------------------------ */
+    if (e.key === "Escape" || e.key === "Esc") {
+        e.preventDefault();
+        $("#doctor-suggestions").hide();
+        docIndex = -1;
+        items.removeClass("active");
+        return;
+    }
+
+    /* ------------------------------
+       ARROW KEYS
+    ------------------------------ */
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+
+        if (e.key === "ArrowDown") {
+            docIndex = (docIndex + 1) % items.length;
+        } else {
+            docIndex = (docIndex - 1 + items.length) % items.length;
+        }
+
+        highlight(items);
+        return;
+    }
+
+    /* ------------------------------
+       ENTER → SELECT ITEM
+    ------------------------------ */
+    if (e.key === "Enter") {
+        e.preventDefault();
+
+        // If nothing highlighted, choose first
+        if (docIndex === -1) docIndex = 0;
+        let item = $(items[docIndex]);
+
+        // safety: if for some reason item is empty, do nothing
+        if (item && item.length) selectDoctor(item);
+        return;
+    }
+
+    /* ------------------------------
+       TAB KEY
+    ------------------------------ */
+    if (e.key === "Tab") {
+
+        // If already selected correctly → allow normal tab
+        if (docSelectedFinal) {
+            docSelectedFinal = false;
+            return;
+        }
+
+        // prevent normal tabbing
+        e.preventDefault();
+
+        // if nothing is highlighted, highlight 1st item
+        if (docIndex === -1) docIndex = 0;
+
+        let item = $(items[docIndex]);
+
+        if (item && item.length) {
+            selectDoctor(item);
+            docSelectedFinal = true;
+        }
+        return;
+    }
+});
+
+/* Highlight + auto-scroll into view */
+function highlight(items) {
+    items.removeClass("active");
+    const $active = $(items[docIndex]);
+    $active.addClass("active");
+
+    // keep active item visible inside suggestion box
+    const container = $("#doctor-suggestions")[0];
+    if ($active.length && container) {
+        const activeRect = $active[0].getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        if (activeRect.top < containerRect.top) {
+            // active is above view -> scroll up
+            container.scrollTop -= (containerRect.top - activeRect.top) + 4;
+        } else if (activeRect.bottom > containerRect.bottom) {
+            // active is below view -> scroll down
+            container.scrollTop += (activeRect.bottom - containerRect.bottom) + 4;
+        }
+    }
+}
+
+
+/* Mouse click */
+$(document).on("mousedown", ".doctor-item", function () {
+    docClicked = true;
+});
+
+$(document).on("click", ".doctor-item", function (e) {
+    e.preventDefault();
+    selectDoctor($(this));
+    setTimeout(() => docClicked = false, 150);
+});
+
+/* Select Doctor */
+function selectDoctor(item) {
+    docClicked = true;
+    $("#doctor_name").val(item.data("name") + (item.data("speciality") ? " (" + item.data("speciality") + ")" : ""));
+    $("#doctor_id").val(item.data("id"));
+
+    doctorFees.consultfee = item.data("consultfee");
+    doctorFees.emrfee = item.data("emrfee");
+
+    $("#doctor-suggestions").hide();
+    docSelectedFinal = true;
+
+    updateFee();
+
+    // ✅ Move cursor to Consultation Type (Normal)
+    setTimeout(() => {
+        const radio = document.querySelector(
+            'input[name="consultation_type"][value="Normal"]'
+        );
+        if (radio) radio.focus();
+    }, 100);
+}
+
+
+/* Blur Validation */
+$("#doctor_name").on("blur", function () {
+
+    setTimeout(() => {
+
+        if (docClicked) return;
+
+        let name = $("#doctor_name").val().trim();
+        if (!name) {
+    if (!docEmptyOnce) {
+        docEmptyOnce = true;
+
+        // ✅ Hide suggestions
+        $("#doctor-suggestions").hide().empty();
+
+        alert("❗ Doctor cannot be empty!");
+
+        setTimeout(() => $("#doctor_name").focus(), 200);
+    }
+    return;
+}
+
+        $.get(doctorSuggestURL, { q: name }, function (res) {
+
+            let exists = (res.results || [])
+                .some(x => x.name.toUpperCase() === name.toUpperCase());
+
+            if (!exists) {
+    if (!docEmptyOnce) {
+        docEmptyOnce = true;
+
+        alert("❗ Doctor not found! Select from suggestions.");
+
+        $("#doctor_name").val("");
+        $("#doctor_id").val("");
+
+        // ✅ Hide old suggestions
+        $("#doctor-suggestions").hide().empty();
+
+        setTimeout(() => $("#doctor_name").focus(), 200);
+    }
+}
+        });
+
+    }, 200);
+});
+document.querySelectorAll('input[name="consultation_type"]').forEach(radio => {
+    radio.addEventListener("change", function () {
+        setTimeout(updateFee, 50);   // ensures doctorFees is updated first
+    });
+});
+function validatePayingAmount() {
+    let fee = Number(document.getElementById('fee').value || 0);
+    let paying = Number(document.getElementById('payingamt').value || 0);
+    let discount = Number(document.getElementById('discamt').value || 0);
+
+    // Maximum allowed paying amount
+    let maxPayable = fee - discount;
+    if (maxPayable < 0) maxPayable = 0;
+
+    if (paying > maxPayable) {
+        alert("❗ Paying amount cannot be more than the Fee minus Discount!");
+
+        // Reset to max value
+        document.getElementById('payingamt').value = maxPayable;
+
+        // Recalculate due
+        document.getElementById('dueamt').value = fee - maxPayable - discount;
+    }
+}
+
+function validateAmounts() {
+    let fee = Number(document.getElementById('fee').value || 0);
+    let paying = Number(document.getElementById('payingamt').value || 0);
+    let discount = Number(document.getElementById('discamt').value || 0);
+
+    // Maximum allowed sum
+    let maxAllowed = fee;
+
+    // Case: paying + discount cannot exceed fee
+    if (paying + discount > maxAllowed) {
+
+        alert("❗ Paying Amount + Discount cannot be greater than the Fee!");
+
+        // Auto-fix values
+        if (paying > fee) paying = fee;
+
+        // Keep paying as is, adjust discount
+        discount = Math.max(0, fee - paying);
+
+        document.getElementById('payingamt').value = paying;
+        document.getElementById('discamt').value = discount;
+    }
+
+    // Recalculate due
+    let due = fee - paying - discount;
+    document.getElementById('dueamt').value = (due < 0 ? 0 : due);
+}
+
+document.getElementById("uhid").addEventListener("blur", function () {
+    const uhid = this.value.trim();
+    if (!uhid) return;  // if empty, do nothing
+
+    fetch(`/get-patient-details/?uhid=${encodeURIComponent(uhid)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                alert("❗ Invalid UHID! No patient found.");
+                resetForm();
+                document.getElementById("uhid").value = "";
+                return;
+            }
+
+            // Auto-fill details
+            const d = data.data;
+            document.getElementById("patname").value = d.patname || '';
+            document.getElementById("age").value = d.age || '';
+            document.getElementById("agetype").value = d.agetype || '';
+            document.getElementById("gender").value = d.gender || '';
+            document.getElementById("fname").value = d.fname || '';
+            document.getElementById("phone").value = d.phone || '';
+            document.getElementById("refdoctor").value = d.refdoctor || '';
+            document.getElementById("pro").value = d.pro_name || '';
+            document.getElementById("proid").value = d.pro_id || '';
+            document.getElementById("visittype").value = d.visit_type || 'Normal';
+            document.getElementById("hidden_visittype").value = d.visit_type || 'Normal';
+
+            updateFee();
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Error validating UHID");
+        });
+});
+
+
+</script>
+<script>
+document.getElementById("consultationForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const form = this;
+
+    const dueInput    = form.querySelector("#dueamt");
+    const reasonInput = form.querySelector("#reason");
+
+    if (dueInput && reasonInput) {
+        const due = parseFloat(dueInput.value || 0);
+
+        if (due > 0) {
+            reasonInput.setAttribute("required", "required");
+            reasonInput.value = reasonInput.value.trim();
+        } else {
+            reasonInput.removeAttribute("required");
+        }
+    }
+
+    // ✅ THIS IS THE MOST IMPORTANT LINE
+    if (!form.checkValidity()) {
+        form.reportValidity(); // browser message
+        return; // ❌ STOP HERE — no fetch, no redirect
+    }
+
+    // ✅ ONLY VALID FORMS REACH HERE
+    let formData = new FormData(form);
+
+    fetch("", { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => {
+
+           if (data.error_type === "invalid_usercode") {
+    alert(data.message);
+}
+
+            if (data.success) {
+                window.open(
+                    data.redirect_url,
+                    "consultation selection",
+                    "width=900,height=650,left=200,top=100"
+                );
+                resetForm();
+            }
+        })
+        .catch(() => alert("Error saving consultation."));
+});
+</script>
+
+<script>
+/* ==========================
+   CONSULTATION DISCOUNT RULE
+   (TRIM SAFE)
+========================== */
+(function () {
+
+    const discountInput = document.getElementById("discamt");
+    const reasonInput   = document.getElementById("reason");
+
+    if (!discountInput || !reasonInput) return;
+
+    function toggleReasonRequired() {
+        const discount = parseFloat(discountInput.value || 0);
+        const reason   = reasonInput.value.trim(); // 🔥 TRIM HERE
+
+        if (discount > 0) {
+            reasonInput.setAttribute("required", "required");
+
+            // If only spaces entered, clear it
+            if (!reason) {
+                reasonInput.value = "";
+            }
+
+            //reasonInput.style.backgroundColor = "#fff7cc";
+        } else {
+            reasonInput.removeAttribute("required");
+            reasonInput.value = "";
+            reasonInput.style.backgroundColor = "";
+        }
+    }
+
+    // Prevent space-only input on blur
+    reasonInput.addEventListener("blur", function () {
+        this.value = this.value.trim();
+    });
+
+    discountInput.addEventListener("input", toggleReasonRequired);
+    discountInput.addEventListener("blur", toggleReasonRequired);
+
+    toggleReasonRequired();
+
+})();
+
+
+
+// ✅ Safe null check before calling initBarcodeField
+document.addEventListener("DOMContentLoaded", function() {
+    if (typeof initBarcodeField === "function") {
+
+        // UHID field exists on this page
+        if (document.getElementById("uhid")) {
+            initBarcodeField("uhid", function(uhid) {
+                fetchPatientDetails(uhid);
+            });
+        }
+
+        // billno field does NOT exist on this page — skip it
+        // initBarcodeField("billno", ...) — removed
+
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("uhid").focus();
+});
+</script>
+
+{% endblock %}

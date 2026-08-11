@@ -1,0 +1,9 @@
+{% extends 'hospApp/home.html' %}
+{% block content %}
+<div style="max-width:900px; margin:auto; padding:10px;">
+  <h4>Prescription — {{ prescription.patient_name }}</h4>
+  <div style="border:1px solid #ccc; padding:10px;">
+    <img src="{{ prescription.image.url }}" style="width:100%; height:auto;">
+  </div>
+</div>
+{% endblock %}

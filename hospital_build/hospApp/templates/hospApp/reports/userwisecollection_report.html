@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>User Wise Collection Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      margin: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+
+    th {
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+      padding: 4px 6px;
+      text-align: left;
+    }
+
+    td {
+      padding: 1px 4px;
+      text-align: left;
+    }
+
+    th {
+      font-weight: bold;
+    }
+
+    .text-end {
+      text-align: right;
+    }
+
+    h4,
+    h5 {
+      margin: 20px 0 4px 0;
+      color: #2c3e50;
+    }
+
+    .total-row {
+      font-weight: bold;
+      background: #f8f9fa;
+    }
+
+    .summary-table th {
+      background: #d4edda;
+      border: 1px solid #000;
+    }
+
+    @media print {
+      button {
+        display: none !important;
+      }
+
+      body {
+        margin: 0;
+      }
+    }
+
+    .summary-table td {
+      border: 1px solid #000;
+    }
+
+    /* 🔲 OUTER BORDER */
+    .report-container {
+      border: 2px solid black;
+      padding: 10px;
+      margin: 10px;
+    }
+
+    /* 🏥 HEADER */
+    .header {
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .header h2 {
+      margin: 0;
+      font-weight: bold;
+    }
+
+    .header p {
+      margin: 2px 0;
+    }
+
+    /* 🔽 SECTION TITLE */
+    .title {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="report-container">
+    <div class="header">
+      <h2>{{ hospital.name }}</h2>
+      <p>{{ hospital.address }}</p>
+    </div>
+
+    <hr style="border: 1px solid #333; margin: 10px 0;">
+
+    <div style="text-align:center; margin-bottom: 15px; ">
+      <div class="title">
+        {{ username |upper}} COLLECTION REPORT
+      </div>
+      <div class="title">{{ from_date |date:"d-m-Y H:i:s"}} to {{ to_date|date:"d-m-Y H:i:s" }}</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>S.NO</th>
+          <th>BILL NO</th>
+          <th>UHID</th>
+          <th>PATIENT NAME</th>
+
+
+
+
+
+          <th>USER NAME</th>
+          <th>BILL TIME</th>
+
+          <th>P.MODE</th>
+          <th>TRANSACTION NO</th>
+          <th class="text-end">PAID AMT</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        <!-- ================= OP CONSULTATION ================= -->
+        {% if consultation_bills %}
+        <tr class="section-row">
+          <td colspan="9" style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin-top: 10px;">
+            <strong>OP Consultation</strong></td>
+        </tr>
+
+        {% for c in consultation_bills %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ c.billno }}</td>
+          <td>{{ c.uhid }}</td>
+          <td>{{ c.patname |upper}}</td>
+
+          <td>{{ c.userid |upper}}</td>
+          <td>{{ c.regdt |date:"d-m-Y H:i:s"}}</td>
+
+          <td class="text-center">{{ c.paymenttype |upper}}</td>
+          <td>{{ c.cardname|default:"-" }}</td>
+
+          <td class="text-end">{{ c.paidamt |floatformat:2}}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row" style="border-top: 1px solid #000;  ">
+          <td colspan="8" class="text-end">Total</td>
+          <td class="text-end">{{ consultation_total |floatformat:2}}</td>
+
+        </tr>
+        {% endif %}
+
+
+
+
+        <!-- ================= OP INVESTIGATIONS ================= -->
+        {% if investigation_bills %}
+        <tr class="section-row">
+          <td colspan="9" style="border-top: 1px solid #000; border-bottom: 1px solid #000; "><strong>OP
+              Investigations</strong></td>
+        </tr>
+
+        {% for i in investigation_bills %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ i.billno }}</td>
+          <td>{{ i.uhid }}</td>
+          <td>{{ i.patname |upper}}</td>
+          <td>{{ i.createdby |upper}}</td>
+
+          <td>{{ i.generateddate |date:"d-m-Y H:i:s"}}</td>
+
+          <td>{{ i.paymentmode |upper}}</td>
+
+          <td>{{ i.cardname|default:"-" }}</td>
+
+          <td class="text-end">{{ i.paidamt |floatformat:2}}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row" style="border-top: 1px solid #000;  ">
+          <td colspan="8" class="text-end">Total</td>
+          <td class="text-end">{{ investigation_total |floatformat:2}}</td>
+
+        </tr>
+        {% endif %}
+        <!-- ================= OP PROCEDURES ================= -->
+        {% if procedure_bills %}
+        <tr class="section-row">
+          <td colspan="9" style="border-top: 1px solid #000; border-bottom: 1px solid #000; "><strong>OP
+              Procedures</strong></td>
+        </tr>
+
+        {% for p in procedure_bills %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ p.billno }}</td>
+          <td>{{ p.uhid }}</td>
+          <td>{{ p.patname |upper}}</td>
+
+
+          <td>{{ p.createdby |upper}}</td>
+          <td>{{ p.generateddate |date:"d-m-Y H:i:s"}}</td>
+          <td>{{ p.paymentmode |upper}}</td>
+          <td>{{ p.cardname|default:"-" }}</td>
+
+          <td class="text-end">{{ p.paidamt |floatformat:2}}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row" style="border-top: 1px solid #000;  ">
+          <td colspan="8" class="text-end">Total</td>
+          <td class="text-end">{{ procedure_total |floatformat:2}}</td>
+
+        </tr>
+        {% endif %}
+
+
+
+        <!-- ================= OP PAYMENT ================= -->
+        {% if op_payment_bills %}
+        <tr class="section-row">
+          <td colspan="9" style="border-top: 1px solid #000; border-bottom: 1px solid #000; "><strong>OP
+              Payment</strong></td>
+        </tr>
+
+        {% for p in op_payment_bills %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ p.invbillno }}</td>
+          <td>{{ p.uhid }}</td>
+          <td>{{ p.patname |upper }}</td>
+          <td>{{ p.updatedby|upper }}</td>
+          <td>{{ p.billdate |date:"d-m-Y H:i:s"}}</td>
+
+
+          <td>{{ p.paymentmode |upper}}</td>
+          <td>{{ p.cardname|default:"-" }}</td>
+          <td class="text-end">{{ p.paidamt |floatformat:2}}</td>
+
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row" style="border-top: 1px solid #000;  ">
+          <td colspan="8" class="text-end">Total</td>
+          <td class="text-end">{{ op_total |floatformat:2 }}</td>
+          <td colspan="3"></td>
+        </tr>
+        {% endif %}
+
+        {% if cancellation_bills %}
+        <tr class="section-row">
+          <td colspan="9" style="border-top: 1px solid #000; border-bottom: 1px solid #000; "><strong>OP
+              Cancellation</strong></td>
+        </tr>
+
+        {% for p in cancellation_bills %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ p.billno }}</td>
+          <td>{{ p.uhid }}</td>
+          <td>{{ p.patname |upper }}</td>
+          <td>{{ p.createdby |upper}}</td>
+          <td>{{ p.createddate |date:"d-m-Y H:i:s"}}</td>
+
+
+          <td>{{ p.paymentmode |upper}}</td>
+          <td>{{ p.cardname|default:"-" }}</td>
+
+          <td class="text-end">{{ p.amtpaid |floatformat:2}}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row" style="border-top: 1px solid #000;  ">
+          <td colspan="8" class="text-end">Total</td>
+          <td class="text-end">{{ cancellation_total |floatformat:2}}</td>
+          <td colspan="3"></td>
+        </tr>
+        {% endif %}
+
+        <!-- ================= OP REFUNDS ================= -->
+        {% if refund_bills %}
+        <tr class="section-row">
+          <td colspan="9" style="border-top: 1px solid #000; border-bottom: 1px solid #000; "><strong>OP
+              Refunds</strong></td>
+        </tr>
+
+        {% for r in refund_bills %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ r.billno }}</td>
+          <td>{{ r.uhid }}</td>
+          <td>{{ r.patname |upper }}</td>
+          <td>{{ r.usercode |upper}}</td>
+          <td>{{ r.createdtime |date:"d-m-Y H:i:s"}}</td>
+          <td>-</td>
+          <td>-</td>
+          <td class="text-end">{{ r.refund |floatformat:2}}</td>
+        </tr>
+        {% endfor %}
+
+        <tr class="total-row" style="border-top: 1px solid #000;  ">
+          <td colspan="8" class="text-end">Total</td>
+          <td class="text-end">{{ refund_total |floatformat:2}}</td>
+        </tr>
+        {% endif %}
+
+        <tr>
+          <td colspan="9" style="padding-top:30px;"></td>
+        </tr>
+
+      </tbody>
+      {% if expenditure_bills %}
+      <tr class="section-row" style="margin-top: 30px;">
+        <td colspan="9" style="border-top: 1px solid #000; border-bottom: 1px solid #000;">
+          <strong>Expenditure</strong>
+        </td>
+      </tr>
+
+      <tr>
+        <th>S.NO</th>
+        <th>BILL NO</th>
+        <th colspan="2">DATE</th>
+        <th colspan="2">TOWARDS</th>
+        <th colspan="2"></th>
+        <th class="text-end">PAID AMT</th>
+      </tr>
+
+      {% for e in expenditure_bills %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ e.bill_no }}</td>
+        <td colspan="2">{{ e.created_at|date:"d-m-Y H:i:s" }}</td>
+        <td colspan="2">{{ e.towards |upper}}</td>
+        <td colspan="2"></td>
+        <td class="text-end">{{ e.amount|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+
+      <tr class="total-row" style="border-top: 1px solid #000;">
+        <td colspan="8" class="text-end">Total</td>
+        <td class="text-end">{{ expenditure_total|floatformat:2 }}</td>
+      </tr>
+      {% endif %}
+    </table>
+
+    </table> <!-- main table close -->
+
+
+
+    <hr style="border: 2px solid #333; margin: 20px 0;">
+
+    <!-- ============== FINAL SUMMARY ============== -->
+    <h4 style="text-align:center; color:#27ae60;">PAYMENT MODE SUMMARY</h4>
+    <table class="summary-table" style="width:50%; margin:auto;">
+      <tr>
+        <th>CASH</th>
+        <td class="text-end">{{ cash_total |floatformat:2 }}</td>
+      </tr>
+      <tr>
+        <th>CARD</th>
+        <td class="text-end">{{ card_total |floatformat:2 }}</td>
+      </tr>
+      <tr>
+        <th>UPI</th>
+        <td class="text-end">{{ upi_total |floatformat:2}}</td>
+      </tr>
+      <tr>
+        <th>CHEQUE</th>
+        <td class="text-end">{{ cheque_total |floatformat:2 }}</td>
+      </tr>
+      <tr>
+        <th>NEFT</th>
+        <td class="text-end">{{ neft_total |floatformat:2}}</td>
+      </tr>
+      <tr>
+        <th>CANCELLED AMT</th>
+        <td class="text-end">-{{ cancellation_total |floatformat:2}}</td>
+      </tr>
+      <tr>
+        <th>EXPENDITURE</th>
+        <td class="text-end">- {{ expenditure_total|floatformat:2 }}</td>
+      </tr>
+      <tr>
+        <th>REFUNDED AMT</th>
+        <td class="text-end">- {{ refund_total|floatformat:2 }}</td>
+      </tr>
+      <tr class="total-row">
+        <th>GRAND TOTAL</th>
+        <td class="text-end">{{ grand_total |floatformat:2}}</td>
+      </tr>
+    </table>
+  </div>
+  <div style="width:50%; margin:auto; margin-top:20px;">
+    <div style="display:flex; justify-content:space-between; font-size:12px;">
+
+      <div>
+        <strong>PRINT BY:</strong> {{ username |upper }}
+      </div>
+
+      <div>
+        <strong>PRINT TIME:</strong> {{ print_time|date:"d-m-Y H:i:s" }}
+      </div>
+
+    </div>
+  </div>
+</body>
+
+</html>

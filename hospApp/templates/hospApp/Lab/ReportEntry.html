@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathology Lab Entry</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Quill CSS -->
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --mode-bg: #1e293b;
+            --patient-bg: #e0f2fe;
+            --entry-bg: #ffffff;
+            --accent-green: #059669;
+            --border-color: #cbd5e1;
+        }
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 0.8rem;
+            padding: 10px;
+        }
+        .main-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .mode-container {
+            background-color: var(--mode-bg);
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+        .mode-title {
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-group-sm .btn {
+            padding: 2px 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .patient-section {
+            background-color: var(--patient-bg);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-top: 5px;
+        }
+        .pi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px 20px;
+        }
+        .pi-item {
+            display: grid;
+            grid-template-columns: 80px 10px 1fr;
+            align-items: baseline;
+        }
+        .pi-label { font-weight: 600; color: #475569; }
+        .pi-colon { color: #94a3b8; text-align: center; }
+        .pi-value { font-weight: 700; color: #0f172a; }
+        .report-date-input {
+            height: 26px !important;
+            font-size: 0.8rem !important;
+            width: 180px;
+        }
+        .entry-section {
+            background-color: var(--entry-bg);
+            padding: 15px;
+        }
+        .entry-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            align-items: center;
+            background: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .entry-header span:first-child {
+            justify-self: start;
+            font-weight: 600;
+            color: #64748b;
+            letter-spacing: 0.5px;
+        }
+        #invHeading {
+            justify-self: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #059669;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #reportTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #reportTable thead th {
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 0.72rem;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        #reportTable tbody tr:nth-child(even),
+        #reportTable tbody tr:nth-child(odd) {
+            background-color: #f8fafc;
+        }
+        #reportTable tbody td {
+            padding: 4px;
+            border: 1px solid #e2e8f0;
+        }
+        .table-secondary {
+            background-color: #f1f5f9 !important;
+        }
+        .table-secondary td {
+            font-weight: 700 !important;
+            color: #334155 !important;
+            padding: 5px 10px !important;
+            font-size: 0.75rem;
+        }
+        .form-control-sm {
+            height: 26px;
+            font-size: 0.75rem;
+            border: 1px solid #cbd5e1;
+        }
+        textarea.form-control-sm {
+            height: auto !important;
+            min-height: 50px;
+        }
+        #reportTable[data-mode="add"] .delete-col    { display: none !important; }
+        #reportTable[data-mode="delete"] .delete-col { display: table-cell !important; }
+        .delete-row { text-decoration: none; color: #ef4444; font-weight: bold; font-size: 0.7rem; }
+        .col-test { margin: 0 auto; max-width: 220px; }
+        .col-result { width: 100%; max-width: 100%; }
+        .col-range { margin: 0 auto; max-width: 250px; }
+        .col-test input, .col-result input, .col-range textarea { text-align: center; }
+        .col-result input { width: 100%; text-align: left; }
+        .footer-bar {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        .main-wrapper {
+            height: 95vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .mode-container, .patient-section { flex-shrink: 0; }
+        .entry-section {
+            background: linear-gradient(to bottom, #f8fafc, #eef2f7);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .report-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        #reportTable thead th {
+            position: sticky;
+            top: 0;
+            background: #e2e8f0;
+            z-index: 10;
+        }
+        #reportTable {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        #reportTable td, #reportTable th {
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        .footer-bar {
+            flex-shrink: 0;
+            position: sticky;
+            bottom: 0;
+            background: #f8fafc;
+            z-index: 20;
+        }
+
+        /* ============================
+           RADIOLOGY SECTION
+        ============================ */
+        #radiology-result-section {
+            display: none;
+            padding: 10px 5px;
+        }
+  
+
+        .rad-label {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            margin-top: 10px;
+            display: block;
+        }
+
+        /* Quill toolbar */
+        .ql-toolbar.ql-snow {
+            border: 1px solid #cbd5e1;
+            border-radius: 4px 4px 0 0;
+            background: #f8f9fa;
+            padding: 4px 8px;
+        }
+
+        /* Quill editor box */
+        .ql-container.ql-snow {
+            border: 1px solid #cbd5e1;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            background: #fff;
+            font-size: 0.82rem;
+        }
+
+        /* Findings min height */
+        #quill-findings .ql-editor {
+            min-height: 220px;
+        }
+
+        /* Impression min height */
+        #quill-impression .ql-editor {
+            min-height: 80px;
+        }
+
+        /* Fix cursor — caret-color transparent issue */
+        .ql-editor,
+        .ql-editor p,
+        .ql-editor span,
+        .ql-editor li {
+            caret-color: #000 !important;
+            cursor: text !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            pointer-events: auto !important;
+        }
+
+        .ql-toolbar * {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+        }
+
+        /* ============================
+           ABNORMAL HIGHLIGHT
+        ============================ */
+        .abnormal-result {
+            border: 2px solid #dc2626 !important;
+            color: #dc2626 !important;
+            font-weight: 700 !important;
+            background-color: #fff5f5 !important;
+        }
+        .abnormal-badge {
+            display: inline-block;
+            margin-top: 2px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #dc2626;
+            letter-spacing: 0.3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+
+    <div class="mode-container">
+        <span class="mode-title">Operation Mode:</span>
+        <div class="btn-group btn-group-sm" role="group">
+            <input type="radio" class="btn-check" name="operation" id="opAdd" value="add" checked onchange="toggleMode('add')">
+            <label class="btn btn-outline-success" for="opAdd">Add Test</label>
+
+            <input type="radio" class="btn-check" name="operation" id="opDelete" value="delete" onchange="toggleMode('delete')">
+            <label class="btn btn-outline-danger" for="opDelete">Delete Test</label>
+        </div>
+    </div>
+
+    <div class="patient-section">
+        <div class="pi-grid">
+            <div class="pi-item">
+                <span class="pi-label">PT NAME</span>
+                <span class="pi-colon">:</span>
+                <span class="pi-value" id="rp_name">---</span>
+            </div>
+            <div class="pi-item">
+                <span class="pi-label">UHID</span>
+                <span class="pi-colon">:</span>
+                <span class="pi-value" id="rp_uhid">---</span>
+            </div>
+            <div class="pi-item">
+                <span class="pi-label">BILL NO</span>
+                <span class="pi-colon">:</span>
+                <span class="pi-value" id="rp_bill">---</span>
+            </div>
+            <div class="pi-item">
+                <span class="pi-label">PHONE NO</span>
+                <span class="pi-colon">:</span>
+                <span class="pi-value" id="rp_phone">---</span>
+            </div>
+            <div class="pi-item">
+                <span class="pi-label">BILL TIME</span>
+                <span class="pi-colon">:</span>
+                <span class="pi-value" id="inv_datetime">---</span>
+            </div>
+            <div class="pi-item" style="grid-column: span 2;">
+                <span class="pi-label">REPORT TIME</span>
+                <span class="pi-colon">:</span>
+                <span class="pi-value d-flex">
+                    <input type="datetime-local" id="report_datetime"
+                           class="form-control report-date-input" required>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="entry-section">
+        <div class="entry-header">
+            <span class="fw-bold text-secondary" style="font-size: 0.7rem;">REPORT DATA ENTRY</span>
+            <span id="invHeading" class="fw-bold text-success"></span>
+        </div>
+
+        <div class="report-container">
+
+            <!-- NORMAL TABLE -->
+            <table id="reportTable" data-mode="add">
+                <thead>
+                    <tr>
+                        <th style="width:22%">Test Name</th>
+                        <th style="width:40%">Result</th>
+                        <th style="width:8%">Units</th>
+                        <th style="width:25%">Normal Range Reference</th>
+                        <th class="delete-col" style="width:5%">❌</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <!-- RADIOLOGY SECTION — Quill editors, hidden by default -->
+            <div id="radiology-result-section">
+
+                <label class="rad-label">Findings / Report</label>
+<div id="quill-findings"></div>
+            </div>
+
+        </div>
+
+        <div class="mt-2" id="addRowSection">
+            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-bold"
+                    id="addReportRowBtn" style="font-size: 0.7rem;">
+                + ADD CUSTOM ROW
+            </button>
+        </div>
+    </div>
+
+    <div class="footer-bar">
+        <button type="button" class="btn btn-success btn-sm px-5 fw-bold" id="saveReport">SAVE</button>
+        <button type="button" class="btn btn-secondary btn-sm px-4 ms-2" id="cancelBtn">CLEAR</button>
+    </div>
+
+</div>
+
+<!-- Quill JS -->
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+
+<script>
+
+/* ============================
+   QUILL INIT
+============================ */
+const QUILL_TOOLBAR = [
+    ['bold', 'italic', 'underline'],
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'size': ['small', false, 'large', 'huge'] }],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    [{ 'indent': '-1' }, { 'indent': '+1' }],
+    ['clean']
+];
+
+window.quillFindings   = new Quill('#quill-findings', {
+    theme: 'snow',
+    placeholder: 'Enter radiology findings / report...',
+    modules: { toolbar: QUILL_TOOLBAR }
+});
+
+
+/* ============================
+   HELPER — get Quill HTML or ""
+============================ */
+function getQuillHTML(quillInstance) {
+    const html = quillInstance.root.innerHTML;
+    return (html === "<p><br></p>") ? "" : html;
+}
+
+/* ============================
+   HELPER — set Quill content
+   handles both HTML and plain text
+============================ */
+function setQuillContent(quillInstance, content) {
+    if (!content) {
+        quillInstance.setText("");
+        return;
+    }
+    if (content.includes('<')) {
+        quillInstance.root.innerHTML = content;
+    } else {
+        quillInstance.setText(content);
+    }
+}
+
+/* ============================
+   DATETIME HELPERS
+============================ */
+function setMinDateTime(rawDate) {
+    const input = document.getElementById("report_datetime");
+    const dt    = new Date(rawDate);
+    const fmt   = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}T${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    input.min = fmt;
+}
+function setMaxDateTime() {
+    const input = document.getElementById("report_datetime");
+    const now   = new Date();
+    const fmt   = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    input.max = fmt;
+}
+function setCurrentDateTime() {
+    const input = document.getElementById("report_datetime");
+    if (input.value) return;
+    const now = new Date();
+    const fmt = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    input.value = fmt;
+}
+
+/* ============================
+   MODE TOGGLE (add / delete)
+============================ */
+let currentMode = "add";
+function toggleMode(mode) {
+    currentMode = mode;
+    document.getElementById("reportTable").setAttribute("data-mode", mode);
+}
+
+/* ============================
+   AUTO ABNORMAL DETECTION
+============================ */
+
+/**
+ * Parses a normal range string and returns {type, low, high} or null.
+ * Supported formats:
+ *   "10 - 17.5"  → range
+ *   "< 6.5"      → upper bound
+ *   "<= 6.5"     → upper bound (inclusive)
+ *   "> 3.5"      → lower bound
+ *   ">= 3.5"     → lower bound (inclusive)
+ *   "70-100"     → range (no spaces)
+ */
+
+// function parseNormalRange(rangeText) {
+//     if (!rangeText) return null;
+//     const t = rangeText.trim();
+
+//     // Range: "10 - 17.5" or "10-17.5"
+//     const rangeMatch = t.match(/^([\d.]+)\s*[-–]\s*([\d.]+)$/);
+//     if (rangeMatch) return { type: 'range', low: parseFloat(rangeMatch[1]), high: parseFloat(rangeMatch[2]) };
+
+//     // < or <=
+//     const ltMatch = t.match(/^(<=?)\s*([\d.]+)$/);
+//     if (ltMatch) return { type: ltMatch[1] === '<=' ? 'lte' : 'lt', high: parseFloat(ltMatch[2]) };
+
+//     // > or >=
+//     const gtMatch = t.match(/^(>=?)\s*([\d.]+)$/);
+//     if (gtMatch) return { type: gtMatch[1] === '>=' ? 'gte' : 'gt', low: parseFloat(gtMatch[2]) };
+
+//     return null;
+// }
+
+/**
+ * Selects the relevant demographic segment from the range text based on patient gender and age.
+ * Supported range formats:
+ *   "Male: 13.5-17.5 Female: 12.0-15.5"
+ *   "M: 13.5-17.5\nF: 12.0-15.5"
+ *   "Child: 1.0-5.0 Adult Male: 13.5-17.5 Adult Female: 12.0-15.5"
+ */
+// function getMatchingRangeText(rangeText) {
+//     if (!rangeText) return "";
+    
+//     // Split by common delimiters (newline, semicolon, comma, vertical bar) 
+//     // or when followed by a demographic keyword
+//     const lines = rangeText.split(/[\n;,\r|]|\s+(?=male|female|child|children|pediatric|adult|men|women|boy|girl|infant|newborn)/i);
+    
+//     // Normalize patient details
+//     const gender = (window.patient_gender || "").trim().toLowerCase();
+//     const age = parseFloat(window.patient_age) || 0;
+//     const ageType = (window.patient_agetype || "").trim().toLowerCase();
+    
+//     // Determine if the patient is a child (age < 12 years or age type is months/days)
+//     let isChild = false;
+//     if (ageType.includes("month") || ageType.includes("day")) {
+//         isChild = true;
+//     } else if (ageType.includes("year") && age < 12) {
+//         isChild = true;
+//     } else if (ageType === "" && age > 0 && age < 12) {
+//         isChild = true;
+//     }
+
+//     let matchedText = "";
+
+//     function findMatch(keyword) {
+//         for (let line of lines) {
+//             const normalizedLine = line.toLowerCase().trim();
+//             if (normalizedLine.includes(keyword)) {
+//                 return line;
+//             }
+//             if (keyword === "male" && (normalizedLine.startsWith("m:") || normalizedLine.startsWith("m "))) {
+//                 return line;
+//             }
+//             if (keyword === "female" && (normalizedLine.startsWith("f:") || normalizedLine.startsWith("f "))) {
+//                 return line;
+//             }
+//         }
+//         return null;
+//     }
+
+//     if (isChild) {
+//         matchedText = findMatch("child") || findMatch("pediatric") || findMatch("infant") || findMatch("newborn") || findMatch("children");
+//     }
+
+//     if (!matchedText) {
+//         if (gender === "male" || gender === "m") {
+//             matchedText = findMatch("male") || findMatch("men") || findMatch(" m ");
+//             // Filter out false matches if the line refers to female
+//             if (matchedText && matchedText.toLowerCase().includes("female") && !matchedText.toLowerCase().includes("adult male") && !matchedText.toLowerCase().includes("male:")) {
+//                 matchedText = null;
+//             }
+//         } else if (gender === "female" || gender === "f") {
+//             matchedText = findMatch("female") || findMatch("women") || findMatch(" f ");
+//         }
+//     }
+
+//     // Fallback to the first line or entire text if no match found
+//     if (!matchedText) {
+//         matchedText = lines[0] || rangeText;
+//     }
+
+//     // Remove demographic labels
+//     let cleanText = matchedText.replace(/(male|female|child|children|pediatric|adult|men|women|infant|newborn|m|f)[:\s-—]+/gi, "").trim();
+    
+//     // Remove non-numeric reference parts (e.g. units, %, gm%)
+//     cleanText = cleanText.replace(/[^0-9.\-–<>=\s]/g, "").trim();
+
+//     return cleanText;
+// }
+
+/**
+ * Checks if a numeric value is outside the parsed range.
+ * Returns true if ABNORMAL, false if normal or non-numeric.
+ */
+// function isOutOfRange(value, rangeText) {
+//     const num = parseFloat(value);
+//     if (isNaN(num)) return false;           // non-numeric result → skip
+    
+//     // Auto-select demographic segment first
+//     const matchedRangeText = getMatchingRangeText(rangeText);
+//     const range = parseNormalRange(matchedRangeText);
+//     if (!range) return false;               // unparseable range → skip
+
+//     if (range.type === 'range') return num < range.low || num > range.high;
+//     if (range.type === 'lt')    return num >= range.high;
+//     if (range.type === 'lte')   return num >  range.high;
+//     if (range.type === 'gt')    return num <= range.low;
+//     if (range.type === 'gte')   return num <  range.low;
+//     return false;
+// }
+
+/**
+ * Called on every result input. Checks against normal range and
+ * updates row highlight + data-abnormal attribute.
+ */
+function checkAbnormal(textarea) {
+    const tr = textarea.closest('tr');
+    if (!tr) return;
+
+    const resultType = tr.dataset.resultType || 'numeric';
+    let abnormal = false;
+
+    if (resultType === 'numeric') {
+        const low  = tr.dataset.low  !== '' && tr.dataset.low  !== 'null' ? parseFloat(tr.dataset.low)  : null;
+        const high = tr.dataset.high !== '' && tr.dataset.high !== 'null' ? parseFloat(tr.dataset.high) : null;
+        const num  = parseFloat(textarea.value);
+        if (!isNaN(num)) {
+            if (low  !== null && num < low)  abnormal = true;
+            if (high !== null && num > high) abnormal = true;
+        }
+    } else if (resultType === 'text_choice') {
+        const abnormalValues = (tr.dataset.abnormalValues || '').split(',').filter(Boolean);
+        abnormal = abnormalValues.includes(textarea.value.trim().toLowerCase());
+    }
+
+    // ── Update data attribute ──
+    tr.setAttribute('data-abnormal', abnormal ? 'true' : 'false');
+
+    // ── Update visual highlight ──
+    const badge = tr.querySelector('.abnormal-badge');
+    if (abnormal) {
+        textarea.classList.add('abnormal-result');
+        if (badge) badge.style.display = 'inline-block';
+    } else {
+        textarea.classList.remove('abnormal-result');
+        if (badge) badge.style.display = 'none';
+    }
+}
+
+// Delegated listener — fires when user types in any result textarea
+document.querySelector('#reportTable tbody').addEventListener('input', function (e) {
+    if (e.target.classList.contains('result-input')) {
+        checkAbnormal(e.target);
+    }
+});
+
+// Run abnormal check on ALL current result textareas
+function runAllAbnormalChecks() {
+    document.querySelectorAll('#reportTable tbody .result-input').forEach(function(ta) {
+        checkAbnormal(ta);
+    });
+}
+
+/* ============================
+   RADIOLOGY MODE TOGGLE
+============================ */
+window.isRadiology = false;
+function applyRadiologyMode(isRad) {
+    window.isRadiology = isRad;
+    const table         = document.getElementById("reportTable");
+    const radioSection  = document.getElementById("radiology-result-section");
+    const addRowSection = document.getElementById("addRowSection");
+    const modeBar       = document.querySelector(".mode-container");
+
+    if (isRad) {
+        table.style.display         = "none";
+        radioSection.style.display  = "block";
+        addRowSection.style.display = "none";
+        modeBar.style.display       = "none";
+
+        // ← Force Quill to recalculate its size after becoming visible
+        
+
+    } else {
+        table.style.display         = "";
+        radioSection.style.display  = "none";
+        addRowSection.style.display = "";
+        modeBar.style.display       = "";
+    }
+}
+/* ============================
+   MAIN — DOMContentLoaded
+============================ */
+document.addEventListener("DOMContentLoaded", function () {
+    toggleMode("add");
+    setCurrentDateTime();
+    setMaxDateTime();
+
+    const params = new URLSearchParams(window.location.search);
+    const billno = params.get("billno");
+    const invId  = params.get("inv_id");
+    const mode   = params.get("mode");
+
+    const PATIENT_URL = "{% url 'get_patient_by_bill' %}";
+    const REPORT_URL  = "{% url 'get_report_entries' %}";
+
+    // Helper to evaluate abnormal status across all textareas
+    // (called after BOTH patient info AND table rows are fully loaded)
+    function triggerAutoAbnormalCheck() {
+        document.querySelectorAll('#reportTable tbody .result-input').forEach(function(ta) {
+            checkAbnormal(ta);
+        });
+    }
+
+    /* ---- Patient info ---- */
+    fetch(`${PATIENT_URL}?billno=${billno}`)
+        .then(res => res.json())
+        .then(res => {
+            if (!res.data) return;
+            document.getElementById("rp_bill").textContent      = res.data.billno;
+            document.getElementById("rp_name").textContent      = res.data.patname.toUpperCase();
+            document.getElementById("rp_uhid").textContent      = res.data.uhid;
+            document.getElementById("rp_phone").textContent     = res.data.phone;
+            document.getElementById("inv_datetime").textContent = res.data.generateddate;
+
+            window.patient_age               = res.data.age;
+            window.patient_gender            = res.data.gender;
+            window.patient_doctor            = res.data.doc;
+            window.patient_agetype           = res.data.agetype;
+            window.patient_generateddate     = res.data.generateddate;
+            window.patient_generateddate_raw = res.generateddate_raw;
+
+            setMinDateTime(res.generateddate_raw);
+            triggerAutoAbnormalCheck();
+        });
+
+    /* ---- EDIT MODE ---- */
+    if (mode === "edit") {
+        fetch(`/get-existing-report/?billno=${billno}&inv_id=${invId}`)
+            .then(res => res.json())
+            .then(res => {
+                document.getElementById("invHeading").textContent = "Report (Edit Mode)";
+
+                const isRad = res.is_radiology || false;
+                applyRadiologyMode(isRad);
+
+                if (isRad) {
+                    const first = res.data[0];
+                    if (first) {
+                      setTimeout(() => {
+            setQuillContent(window.quillFindings, first.result || "");
+        }, 100);
+                      
+                    }
+                    return;
+                }
+
+                // Normal edit — populate table
+                const tbody = document.querySelector("#reportTable tbody");
+                tbody.innerHTML = "";
+                let currentHeader = "";
+                res.data.forEach(row => {
+                    if (row.header && row.header !== currentHeader) {
+                        currentHeader = row.header;
+                        tbody.innerHTML += `<tr class="table-secondary fw-bold"><td colspan="5">${row.header}</td></tr>`;
+                    }
+                    // NOTE: in edit mode we carry low/high/result_type/abnormal_values from server
+                    // so abnormal re-check works live when the user changes the result
+                    const resultType     = row.result_type     || 'numeric';
+                    const low            = row.low  != null ? row.low  : '';
+                    const high           = row.high != null ? row.high : '';
+                    const abnormalVals   = (row.abnormal_values || []).join(',');
+                    const isAbn          = row.is_check ? 'true' : 'false';
+                    tbody.innerHTML += `
+                        <tr data-header="${row.header || ''}" data-method="${row.method || ''}" data-submethod="${row.submethod || ''}"
+                            data-abnormal="${isAbn}"
+                            data-result-type="${resultType}"
+                            data-low="${low}" data-high="${high}"
+                            data-abnormal-values="${abnormalVals}">
+                            <td><div class="col-test"><input type="text" class="form-control form-control-sm" value="${row.test || ''}" readonly tabindex="-1"></div></td>
+                            <td><div class="col-result position-relative">
+                              <textarea class="form-control form-control-sm result-input ${row.is_check ? 'abnormal-result' : ''}" rows="2" required>${row.result || ''}</textarea>
+                              <span class="abnormal-badge" style="${row.is_check ? '' : 'display:none'}">⚠ Abnormal</span>
+                            </div></td>
+                            <td><div class="col-test"><input type="text" class="form-control form-control-sm" value="${row.units || ''}" tabindex="-1"></div></td>
+                            <td><div class="col-range"><textarea class="form-control form-control-sm" rows="2" readonly tabindex="-1">${row.normal || ''}</textarea></div></td>
+                            <td class="delete-col text-center"><a href="#" class="text-danger delete-row fw-bold">Delete</a></td>
+                        </tr>`;
+                });
+                toggleMode(currentMode);
+                triggerAutoAbnormalCheck();
+            });
+
+    /* ---- ADD MODE ---- */
+    } else {
+        fetch(`${REPORT_URL}?inv_id=${invId}&billno=${billno}`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.investigation)
+                    document.getElementById("invHeading").textContent = res.investigation;
+
+                const isRad = res.is_radiology || false;
+                applyRadiologyMode(isRad);
+
+                if (isRad) {
+                    const first = res.data[0];
+                    if (first) {
+                      setTimeout(() => {
+            setQuillContent(window.quillFindings, first.defaults || "");
+        }, 100);
+                       
+                    }
+                    return;
+                }
+
+                // Normal — populate table
+                const tbody = document.querySelector("#reportTable tbody");
+                tbody.innerHTML = "";
+                let currentHeader = "";
+                res.data.forEach(row => {
+                    if (row.header && row.header !== currentHeader) {
+                        currentHeader = row.header;
+                        tbody.innerHTML += `<tr class="table-secondary fw-bold"><td colspan="5">${row.header}</td></tr>`;
+                    }
+                    tbody.innerHTML += `
+    <tr data-header="${currentHeader}" data-method="${row.method || ''}" data-submethod="${row.submethod || ''}"
+        data-abnormal="false" data-result-type="${row.result_type}"
+        data-low="${row.low ?? ''}" data-high="${row.high ?? ''}"
+        data-abnormal-values="${(row.abnormal_values || []).join(',')}">
+        <td><div class="col-test"><input type="text" class="form-control form-control-sm" value="${row.test || ''}" readonly tabindex="-1"></div></td>
+        <td><div class="col-result position-relative">
+          <textarea class="form-control form-control-sm result-input" rows="2" required>${row.defaults || ''}</textarea>
+          <span class="abnormal-badge" style="display:none">⚠ Abnormal</span>
+        </div></td>
+        <td><div class="col-test"><input type="text" class="form-control form-control-sm" value="${row.units || ''}" readonly tabindex="-1"></div></td>
+        <td><div class="col-range"><textarea class="form-control form-control-sm" rows="1" readonly tabindex="-1">${row.normal || ''}</textarea></div></td>
+        <td class="delete-col text-center"><a href="#" class="text-danger delete-row fw-bold">Delete</a></td>
+    </tr>`;
+                });
+                toggleMode(currentMode);
+                // Run abnormal check after rows are built
+                // (patient info may already be loaded, so check immediately)
+                triggerAutoAbnormalCheck();
+            });
+    }
+});
+/* ============================
+   DELETE ROW
+============================ */
+document.querySelector("#reportTable tbody").addEventListener("click", function (e) {
+    if (e.target.classList.contains("delete-row")) {
+        e.preventDefault();
+        const row        = e.target.closest("tr");
+        const headerName = row.dataset.header;
+        if (!confirm("Remove this test?")) return;
+        row.remove();
+        const remainingRows = document.querySelectorAll(`#reportTable tbody tr[data-header="${headerName}"]`);
+        if (remainingRows.length === 0) {
+            const headerRow = Array.from(document.querySelectorAll("#reportTable tbody tr"))
+                .find(tr => tr.classList.contains("table-secondary") && tr.innerText.trim() === headerName);
+            if (headerRow) headerRow.remove();
+        }
+    }
+});
+
+/* ============================
+   SAVE
+============================ */
+document.getElementById("saveReport").addEventListener("click", function () {
+
+    const selectedDate = document.getElementById("report_datetime").value;
+    if (!selectedDate) { alert("Please select report date/time"); return; }
+
+    const reportDate        = new Date(selectedDate);
+    const investigationDate = new Date(window.patient_generateddate_raw);
+
+    if (reportDate < investigationDate) {
+        alert("⚠️ Report date/time cannot be before Investigation time!");
+        return;
+    }
+    if (reportDate > new Date()) {
+        alert("⚠️ Future date/time is not allowed!");
+        return;
+    }
+
+    const params  = new URLSearchParams(window.location.search);
+    const payload = {
+        billno:          params.get("billno"),
+        inv_id:          params.get("inv_id"),
+        report_datetime: selectedDate,
+        uhid:            document.getElementById("rp_uhid").textContent,
+        patname:         document.getElementById("rp_name").textContent,
+        age:             window.patient_age     || null,
+        agetype:         window.patient_agetype || "",
+        gender:          window.patient_gender  || "",
+        doc:             window.patient_doctor  || "",
+        generateddate:   window.patient_generateddate,
+        userid:          "{{ request.user.username }}",
+        rows:            []
+    };
+
+    // ✅ RADIOLOGY — single row with Quill HTML content
+    if (window.isRadiology) {
+        const result     = getQuillHTML(window.quillFindings);
+       
+
+        if (!result) {
+            alert("⚠️ Please enter findings!");
+            return;
+        }
+        payload.rows.push({
+            test:       "RADIOLOGY",
+            result:     result,
+            impression: "",
+            units:      "",
+            normal:     "",
+            header:     "",
+            method:     "",
+            submethod:  "",
+            is_check:   false
+        });
+
+    // ✅ NORMAL — existing table logic unchanged
+    } else {
+        let isValid = true;
+        document.querySelectorAll("#reportTable tbody tr").forEach(tr => {
+            const result = tr.querySelector("td:nth-child(2) textarea");
+            if (result && !result.value.trim()) {
+                result.style.border = "1px solid red";
+                isValid = false;
+            } else if (result) {
+                result.style.border = "";
+            }
+        });
+        if (!isValid) { alert("⚠️ Please fill all Result fields!"); return; }
+
+        document.querySelectorAll("#reportTable tbody tr").forEach(tr => {
+            const test   = tr.querySelector("td:nth-child(1) input");
+            const result = tr.querySelector("td:nth-child(2) textarea");
+            const units  = tr.querySelector("td:nth-child(3) input");
+            const normal = tr.querySelector("td:nth-child(4) textarea");
+            if (!test) return;
+            payload.rows.push({
+                test:      test.value,
+                result:    result.value,
+                units:     units.value,
+                normal:    normal.value,
+                header:    tr.dataset.header    || "",
+                method:    tr.dataset.method    || "",
+                submethod: tr.dataset.submethod || "",
+                is_check:  tr.dataset.abnormal === 'true'
+            });
+        });
+    }
+
+    fetch("{% url 'save_report_entries' %}", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+        body:    JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(() => {
+        alert("Report saved ✅");
+        window.location.href = `/final-report/?billno=${payload.billno}&inv_id=${payload.inv_id}`;
+    });
+});
+
+/* ============================
+   ADD CUSTOM ROW
+============================ */
+document.getElementById("addReportRowBtn").addEventListener("click", function () {
+    const tbody = document.querySelector("#reportTable tbody");
+    const tr    = document.createElement("tr");
+    tr.setAttribute("data-header",    "");
+    tr.setAttribute("data-method",    "");
+    tr.setAttribute("data-submethod", "");
+    tr.setAttribute("data-abnormal",  "false");
+    tr.innerHTML = `
+        <td><div class="col-test"><input type="text" class="form-control form-control-sm text-center" placeholder="Test"></div></td>
+        <td><div class="col-result position-relative">
+          <textarea class="form-control form-control-sm result-input" rows="1" placeholder="Result"></textarea>
+          <span class="abnormal-badge" style="display:none">⚠ Abnormal</span>
+        </div></td>
+        <td><div class="col-test"><input type="text" class="form-control form-control-sm text-center" placeholder="Units"></div></td>
+        <td><div class="col-range"><textarea class="form-control form-control-sm" rows="1" placeholder="Range"></textarea></div></td>
+        <td class="delete-col text-center"><a href="#" class="text-danger delete-row fw-bold">Delete</a></td>`;
+    tbody.appendChild(tr);
+    toggleMode(currentMode);
+});
+
+/* ============================
+   CANCEL / CLEAR
+============================ */
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    if (confirm("Are you sure you want to clear?")) {
+        location.reload();
+    }
+});
+
+</script>
+</body>
+</html>

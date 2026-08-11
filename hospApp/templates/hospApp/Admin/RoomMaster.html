@@ -1,0 +1,478 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+{% comment %} <style>
+  .form-control {
+    font-size: 0.7rem;
+  }
+  .table>:not(caption)>*>* {
+    padding: 0px;
+  }
+  .table th {
+    font-size: 0.75rem;
+  }
+  .table td {
+    font-size: 0.7rem;
+  }
+  .table-responsive {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .form-control:disabled {
+    background-color: white;
+  }
+  .btn1 {
+  font-weight: 400;
+  padding: 2px 4px;
+  font-size: 0.6rem;
+}
+
+.btn1-update {
+  background-color: var(--form-success);
+  border-color: var(--form-success);
+}
+
+.btn1-success:hover {
+  background-color: #1b5e20;
+}
+.edit-btn {
+  background-color: orange;
+  border-color: black;
+}
+
+.btn1-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.btn1-secondary:hover {
+  background-color: #5a6268;
+}
+.btn-danger-delete{
+  background-color: red;
+  color : white;
+  
+}
+
+  /* --- Universal compact table style --- */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto; /* flexible for varying columns */
+  }
+
+  .table th,
+  .table td {
+    text-align: center;
+    vertical-align: middle;
+    font-size: 0.7rem;
+    padding: 4px 6px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* keep headers readable but compact */
+  .table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  /* Compact rows */
+  .table tr {
+    line-height: 1.1;
+  }
+
+  /* Buttons inside tables */
+  .btn1 {
+    font-weight: 500;
+    padding: 2px 6px;
+    font-size: 0.65rem;
+    border-radius: 4px;
+  }
+
+  .edit-btn {
+    background-color: orange;
+    border: none;
+    color: white;
+  }
+
+  .btn1-update {
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+  }
+
+  .btn1-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+  }
+
+  .btn-danger-delete {
+    background-color: red;
+    color: white;
+    border: none;
+  }
+
+  /* responsive table container */
+  .table-responsive {
+    max-height: 320px;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 6px;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.08);
+  }
+
+  /* Mobile optimization */
+  @media (max-width: 768px) {
+    .table th,
+    .table td {
+      font-size: 0.65rem;
+      padding: 2px 4px !important;
+    }
+    .btn1 {
+      font-size: 0.55rem;
+      padding: 1px 3px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .table th,
+    .table td {
+      font-size: 0.6rem;
+    }
+  }
+
+
+</style> {% endcomment %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Rooms Master</h5>
+    </div>
+
+    <div class="form-body">
+      <form method="post" id="room-form">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+          {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+        <!-- ✅ Operation Selection -->
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label>
+              <input type="radio" name="operation_radio" value="add" id="add"
+                     {% if operation == 'add' %}checked{% endif %}
+                     onchange="window.location.href='?operation=add';"> Add
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation_radio" value="modify" id="modify"
+                     {% if operation == 'modify' %}checked{% endif %}
+                     onchange="window.location.href='?operation=modify';"> Modify
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation_radio" value="delete" id="delete"
+                     {% if operation == 'delete' %}checked{% endif %}
+                     onchange="window.location.href='?operation=delete';"> Delete
+            </label>
+          </div>
+        </div>
+
+        <!-- ✅ Dynamic Fields -->
+        <div id="fields-section">
+          {% if operation == 'modify' or operation == 'delete' %}
+            <!-- Modify/Delete Layout -->
+            <div class="row align-items-end mb-3">
+              <div class="col-md-3">
+                <label class="form-label">Room No</label>
+                <input type="text" name="search_term" id="search_term" class="form-control" value="{{ search_term }}" maxlength="15"> 
+              </div>
+              <div class="col-md-3">
+                <label>&nbsp;</label><br>
+                <button type="submit" class="btn btn-info btn-sm me-2" name="search_btn">Search</button>
+                <a href="{% url 'RoomMasterView' %}?operation={{ operation }}" class="btn btn-secondary btn-sm">Clear</a>
+              </div>
+            </div>
+
+          {% elif not operation or operation == 'add' %}
+            <!-- Add Layout -->
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <label class="form-label">Room No <span class="text-danger">*</span></label>
+                <input type="text" name="roomno" id="roomno" class="form-control" value="{{ search_term }}" maxlength="15">
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label">Room Type</label>
+                <select name="roomtypeid" id="roomtypeid" class="form-select">
+                  <option value="">--Select--</option>
+                  {% for rt in roomtypes %}
+                    <option value="{{ rt.roomtypeid }}">{{ rt.roomtype }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label">Floor No</label>
+                <select name="floorid" id="floorid" class="form-select">
+                  <option value="">--Select--</option>
+                  {% for fl in floors %}
+                    <option value="{{ fl.floorid }}">{{ fl.floorno }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label">Order No</label>
+<input type="number"
+       name="orderno"
+       id="orderno"
+       class="form-control"
+       maxlength="5"
+       min="0"
+       oninput="limitDigits(this, 5)">              </div>
+
+              <div class="col-md-6 mt-2">
+                <label class="form-label">Facilities / Remarks</label>
+                <input type="text" name="remarks" id="remarks" class="form-control" maxlength="150">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <button type="submit" class="btn btn-primary btn-sm me-2" name="add_btn">Submit</button>
+              <a href="{% url 'RoomMasterView' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- ✅ Table Section -->
+        <div id="table-section" class="row mt-3" {% if not roomdata %}style="display:none;"{% endif %}>
+          <div class="col-8">
+            <h6 class="mb-2"><strong>Existing Rooms</strong></h6>
+            <div class="table-responsive">
+              <table class="table table-bordered table-s">
+                <thead class="table-light">
+                  <tr>
+                    {% if operation == 'modify' %}
+                      <th>Actions</th>
+                    {% elif operation == 'delete' %}
+                      <th>Delete</th>
+                    {% endif %}
+                    <th>S.No</th>
+                    <th>Room No</th>
+                    <th>Floor</th>
+                    <th>Room Type</th>
+                    {% if operation == 'add' %}
+                      <th>Remarks</th>
+                      <th>Order No</th>
+                      <th>Active</th>
+                    {% elif operation == 'modify' %}
+                      <th>Facilities</th>
+                      <th>Order No</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if roomdata and roomdata.exists %}
+                    {% for rm in roomdata %}
+                      <tr data-row-id="{{ rm.pk }}">
+                        {% if operation == 'modify' %}
+                          <td class="text-center">
+                            <button type="button" class="btn1 btn-sm btn1-primary edit-btn" data-id="{{ rm.pk }}">Edit</button>
+                            <button type="submit" class="btn1 btn-sm btn-success update-btn" name="update_btn" value="{{ rm.pk }}" style="display:none;">Update</button>
+                            <button type="button" class="btn1 btn-sm btn-outline-secondary cancel-btn" data-id="{{ rm.pk }}" style="display:none;">Cancel</button>
+
+                            
+
+
+                          </td>
+                        {% elif operation == 'delete' %}
+                          <td class="text-center">
+                            <button type="submit" class="btn1 btn-sm btn-danger-delete" name="delete_btn" value="{{ rm.pk }}" onclick="return confirm('Delete room {{ rm.roomno }}?');">Delete</button>
+                          </td>
+                        {% endif %}
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                          <input type="text" name="roomno_{{ rm.pk }}" id="roomno_{{ rm.pk }}"
+                                 class="form-control form-control-sm row-input-{{ rm.pk }}"
+                                 value="{{ rm.roomno }}" data-original="{{ rm.roomno }}" {% if operation != 'modify' %}disabled{% endif %} maxlength="15">
+                        </td>
+                        <td>{{ rm.floorid.floorno }}</td>
+                        <td>{{ rm.roomtypeid.roomtype }}</td>
+                        {% if operation == 'add' %}
+                          <td>{{ rm.remarks }}</td>
+                          <td>{{ rm.orderno }}</td>
+                          <td>{{ rm.active }}</td>
+                        {% elif operation == 'modify' %}
+                          <td>
+                            <input type="text" name="remarks_{{ rm.pk }}" id="remarks_{{ rm.pk }}"
+                                   class="form-control form-control-sm row-input-{{ rm.pk }}"
+                                   value="{{ rm.remarks }}" data-original="{{ rm.remarks }}" disabled maxlength="150">
+                          </td>
+                          <td>
+                            <input type="number" name="orderno_{{ rm.pk }}" id="orderno_{{ rm.pk }}"
+                                   class="form-control form-control-sm row-input-{{ rm.pk }}"
+                                   value="{{ rm.orderno }}" data-original="{{ rm.orderno }}" disabled oninput="if(this.value.length > 5) this.value = this.value.slice(0, 5);">
+                          </td>
+                        {% endif %}
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="10" class="text-center">
+                        {% if operation == 'add' %}
+                          No rooms found.
+                        {% elif operation == 'modify' %}
+                          {% if searched %}No matching rooms found.{% else %}Enter Room No and click Search.{% endif %}
+                        {% elif operation == 'delete' %}
+                          No rooms found to delete.
+                        {% else %}
+                          Select an operation to view records.
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ JS (kept same as before) -->
+<script>
+  // Helper: Disable all row inputs, show only Edit buttons, hide update/cancel everywhere
+function disableAllRows() {
+  document.querySelectorAll('tr[data-row-id]').forEach(tr => {
+    var id = tr.getAttribute('data-row-id');
+    document.querySelectorAll('.row-input-' + id).forEach(inp => {
+      inp.disabled = true;
+      inp.classList.remove('active-edit');
+      inp.removeEventListener('focus', preventInputFocus);
+      inp.blur();
+    });
+    var editBtn = tr.querySelector('.edit-btn');
+    var updateBtn = tr.querySelector('.update-btn');
+    var cancelBtn = tr.querySelector('.cancel-btn');
+    if (editBtn) editBtn.style.display = '';
+    if (updateBtn) updateBtn.style.display = 'none';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+  });
+}
+
+// Prevent focus on non-editable inputs
+function preventInputFocus(e) {
+  e.target.blur();
+}
+
+// Strict single row edit mode
+function enterRowEditMode(id) {
+  disableAllRows();
+  document.querySelectorAll('.row-input-' + id).forEach(inp => {
+    inp.disabled = false;
+    inp.classList.add('active-edit');
+    inp.dataset.original = inp.value;
+    inp.addEventListener('focus', null);
+  });
+  var editBtn = document.querySelector('.edit-btn[data-id="' + id + '"]');
+  var updateBtn = document.querySelector('.update-btn[value="' + id + '"]');
+  var cancelBtn = document.querySelector('.cancel-btn[data-id="' + id + '"]');
+  if (editBtn) editBtn.style.display = 'none';
+  if (updateBtn) updateBtn.style.display = '';
+  if (cancelBtn) cancelBtn.style.display = '';
+
+  // Prevent focus/cursor on all non-edited row inputs
+  document.querySelectorAll('input.form-control.form-control-sm:not(.active-edit)').forEach(inp => {
+    inp.disabled = true;
+    inp.addEventListener('focus', preventInputFocus);
+  });
+  // Auto-focus first input
+  let first = document.querySelector('.row-input-' + id);
+  if (first) first.focus();
+}
+
+// On cancel, restore values and lock all
+function exitRowEditMode(id) {
+  document.querySelectorAll('.row-input-' + id).forEach(inp => {
+    if (inp.dataset.original !== undefined) {
+      inp.value = inp.dataset.original;
+    }
+    inp.disabled = true;
+    inp.classList.remove('active-edit');
+    inp.removeEventListener('focus', preventInputFocus);
+  });
+  var editBtn = document.querySelector('.edit-btn[data-id="' + id + '"]');
+  var updateBtn = document.querySelector('.update-btn[value="' + id + '"]');
+  var cancelBtn = document.querySelector('.cancel-btn[data-id="' + id + '"]');
+  if (editBtn) editBtn.style.display = '';
+  if (updateBtn) updateBtn.style.display = 'none';
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  // Remove all focus-traps
+  document.querySelectorAll('input.form-control.form-control-sm').forEach(inp => {
+    inp.disabled = true;
+    inp.removeEventListener('focus', preventInputFocus);
+  });
+}
+
+// Focus trap for keyboard/mouse (extra safety)
+document.addEventListener('focusin', function(e) {
+  if (!e.target.classList.contains('active-edit') && e.target.classList.contains('form-control-sm')) {
+    e.target.blur();
+  }
+});
+
+// Attach handlers on DOM load
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.edit-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      var id = btn.getAttribute('data-id');
+      enterRowEditMode(id);
+    });
+  });
+  document.querySelectorAll('.cancel-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      var id = btn.getAttribute('data-id');
+      exitRowEditMode(id);
+    });
+  });
+  // On page load, lock all rows by default
+  disableAllRows();
+});
+function limitDigits(input, maxLength) {
+  if (input.value.length > maxLength) {
+    input.value = input.value.slice(0, maxLength);
+  }
+}
+document.addEventListener('input', function(e) {
+  // apply only to text inputs that have maxlength
+  if (e.target.matches('input[type="text"][maxlength]')) {
+    const max = parseInt(e.target.getAttribute('maxlength'));
+    if (e.target.value.length > max) {
+      e.target.value = e.target.value.slice(0, max);
+    }
+  }
+});
+
+</script>
+
+{% endblock %}

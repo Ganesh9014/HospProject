@@ -1,0 +1,28 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+<style>
+  
+</style>
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header"><h5>Payee Master</h5></div>
+    <div class="form-body">
+      <form method="post" id="payee-form">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label><strong>Select Option:</strong></label><br>
+          <label><input type="radio" name="operation_radio" value="add" {% if operation == 'add' %}checked{% endif %} onchange="window.location.href='?operation=add'"> Add</label>
+          <label class="ms-3"><input type="radio" name="operation_radio" value="modify" {% if operation == 'modify' %}checked{% endif %} onchange="window.location.href='?operation=modify'"> Modify</label>
+          <label class="ms-3"><input type="radio" name="operation_radio" value="delete" {% if operation == 'delete' %}checked{% endif %} onchange="window.location.href='?operation=delete'"> Delete</label>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+</script>
+{% endblock %}

@@ -1,0 +1,1208 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Hospital Dashboard{% endblock %}</title>
+<script src="{% static 'js/jquery.min.js' %}"></script>
+
+  <!-- Google Font --> 
+<script src="{% static 'js/payment-mode-validation.js' %}"></script>
+<script src="{% static 'js/ist_date_utils.js' %}"></script>
+<link href="{% static 'css/poppins.css' %}" rel="stylesheet">
+  <!-- Bootstrap CSS (keep your CDN version if desired) -->
+  
+ <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'css/forms.css' %}" rel="stylesheet">
+
+  <style>
+ /* ================================
+   GLOBAL TEXT / CURSOR FIX
+================================ */
+input, textarea, select {
+  caret-color: auto !important;
+  cursor: text !important;
+}
+
+label, th, td, span, p, h1, h2, h3, h4, h5, h6 {
+  caret-color: transparent !important;
+  cursor: default !important;
+  user-select: text !important;
+}
+
+label:focus, div:focus, span:focus, th:focus, td:focus {
+  outline: none !important;
+}
+
+/* ================================
+   BODY + BACKGROUND
+================================ */
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: url("{% static 'images/main-frame.jpg' %}") no-repeat center center fixed;
+  background-size: cover;
+  overflow: hidden; /* no page-level scroll — main scrolls internally */
+  height: 100vh;
+}
+
+/* DARK OVERLAY FOR BETTER CONTRAST */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: -1;
+}
+
+/* ================================
+   CSS CUSTOM PROPERTIES — adapt per breakpoint
+================================ /* ================================
+   CSS CUSTOM PROPERTIES — adapt per breakpoint
+=============================== */
+:root {
+  --header-h: 50px;
+  --footer-h: 40px;
+  --sidebar-left-w: 190px;
+  --sidebar-right-w: 230px;
+}
+
+/* ================================
+   HEADER (GLASS)
+=============================== */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--header-h);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+
+  color: white;
+  z-index: 1050;
+
+  background: rgba(0, 123, 255, 0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  box-sizing: border-box;
+}
+
+/* ================================
+   HEADER LINKS
+=============================== */
+.header-links-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0; /* allow flex shrink */
+  overflow: hidden;
+}
+
+.header-links {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none; /* hide scrollbar on the links row */
+  -ms-overflow-style: none;
+}
+.header-links::-webkit-scrollbar { display: none; }
+
+.header-links a.btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ================================
+   SIDEBAR LEFT (GLASS)
+=============================== */
+.sidebar-left {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  width: var(--sidebar-left-w);
+  height: calc(100vh - var(--header-h) - var(--footer-h));
+
+  padding: 12px 8px;
+  overflow-y: auto;
+  z-index: 1020;
+
+  color: white;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 0 0 12px 0;
+  box-sizing: border-box;
+}
+
+/* REMOVE DARK BLOCK EFFECT */
+.sidebar-left .accordion-item,
+.sidebar-left .accordion-button {
+  background: transparent !important;
+  border: none;
+  color: #fff;
+}
+
+.sidebar-left a {
+  display: block;
+  color: #ddd;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: 0.3s;
+  font-size: 0.82rem;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-left a:hover {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+
+/* ================================
+   SIDEBAR RIGHT (GLASS)
+=============================== */
+.sidebar-right {
+  position: fixed;
+  top: var(--header-h);
+  right: 6px;
+  width: var(--sidebar-right-w);
+  height: calc(100vh - var(--header-h) - var(--footer-h));
+  padding: 10px 10px 14px;
+  overflow-y: auto;
+  z-index: 1020;
+  background: rgba(255,255,255,0.92);
+  border-left: 1px solid rgba(99,102,241,0.15);
+  border-radius: 0 0 12px 0;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe transparent;
+}
+.sidebar-right::-webkit-scrollbar { width: 5px; }
+.sidebar-right::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
+
+/* ================================
+   NOTIFICATION PANEL
+=============================== */
+.notif-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 6px 6px;
+  border-bottom: 2px solid #e0e7ff;
+  margin-bottom: 8px;
+}
+.notif-header-icon {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg,#6366f1,#818cf8);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.notif-header-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #312e81;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+.notif-header-sub {
+  font-size: 10px;
+  color: #6366f1;
+  font-weight: 500;
+}
+.notif-count-pill {
+  margin-left: auto;
+  background: #6366f1;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  min-width: 20px;
+  text-align: center;
+}
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 10px;
+  text-align: center;
+}
+.notif-empty-icon { font-size: 28px; opacity: 0.4; }
+.notif-empty-text { font-size: 11px; color: #94a3b8; font-weight: 500; }
+.notif-card {
+  background: #fff;
+  border: 1px solid #e0e7ff;
+  border-radius: 10px;
+  padding: 9px 10px 8px;
+  margin-bottom: 7px;
+  position: relative;
+  box-shadow: 0 1px 4px rgba(99,102,241,0.07);
+  transition: box-shadow 0.15s;
+}
+.notif-card:hover { box-shadow: 0 3px 10px rgba(99,102,241,0.15); }
+.notif-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 10px 0 0 10px;
+  background: #6366f1;
+}
+.notif-card.badge-today::before { background: #ef4444; }
+.notif-card.badge-tomorrow::before { background: #f97316; }
+.notif-card.badge-in2days::before { background: #6366f1; }
+.notif-pat-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e1b4b;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.notif-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.notif-date {
+  font-size: 10.5px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.notif-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+.notif-badge.badge-today   { background:#fee2e2; color:#b91c1c; }
+.notif-badge.badge-tomorrow{ background:#ffedd5; color:#c2410c; }
+.notif-badge.badge-in2days { background:#e0e7ff; color:#4338ca; }
+
+/* ================================
+   MAIN CONTENT (GLASS CARD)
+=============================== */
+main {
+  /* Sit just below header, above footer, right of left sidebar, left of right sidebar */
+  margin-top: calc(var(--header-h) + 6px);
+  margin-bottom: calc(var(--footer-h) + 6px);
+  margin-left: calc(var(--sidebar-left-w) + 6px);
+  margin-right: calc(var(--sidebar-right-w) + 12px);
+  padding: 12px;
+
+  /* Height fills the available vertical space exactly — content stretches inside */
+  height: calc(100vh - var(--header-h) - var(--footer-h) - 12px);
+  overflow-y: auto;   /* ← scroll INSIDE main if content exceeds viewport */
+  overflow-x: hidden;
+
+  display: flex;
+  flex-direction: column;
+
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  color: #000;
+  box-sizing: border-box;
+
+  /* Clean subtle scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+/* Allow child cards / containers inside main to fill available space */
+main > .container-fluid,
+main > .container,
+main > .form-card {
+  flex: 1;
+}
+
+main::-webkit-scrollbar {
+  width: 6px;
+}
+main::-webkit-scrollbar-track {
+  background: transparent;
+}
+main::-webkit-scrollbar-thumb {
+  background-color: rgba(99, 102, 241, 0.4);
+  border-radius: 4px;
+}
+main::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(99, 102, 241, 0.7);
+}
+
+/* ================================
+   FOOTER (GLASS)
+=============================== */
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--footer-h);
+
+  text-align: center;
+  line-height: var(--footer-h);
+
+  color: white;
+  z-index: 1050;
+
+  background: rgba(0, 123, 255, 0.2);
+  backdrop-filter: blur(9px);
+  box-sizing: border-box;
+}
+
+/* ================================
+   BUTTON SMALL
+=============================== */
+.btn1 {
+  font-size: 0.8rem;
+  padding: 2px 6px;
+}
+
+/* Report Date / Filter Labels Fix */
+.rpt-label {
+  min-width: 75px;
+  margin-bottom: 0;
+  margin-right: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ================================
+   RESPONSIVE BREAKPOINTS
+=============================== */
+
+/* Large screens (1400px+): full 3-column layout */
+@media (min-width: 1400px) {
+  :root {
+    --header-h: 52px;
+    --footer-h: 42px;
+    --sidebar-left-w: 200px;
+    --sidebar-right-w: 240px;
+  }
+}
+
+/* Standard large / Small Laptops (1200px–1399px) */
+@media (min-width: 1200px) and (max-width: 1399px) {
+  :root {
+    --header-h: 48px;
+    --footer-h: 38px;
+    --sidebar-left-w: 175px;
+    --sidebar-right-w: 210px;
+  }
+  main {
+    padding: 10px;
+  }
+}
+
+/* Medium-large screens (992px–1199px): collapse right sidebar */
+@media (min-width: 992px) and (max-width: 1199px) {
+  :root {
+    --header-h: 46px;
+    --footer-h: 36px;
+    --sidebar-left-w: 165px;
+    --sidebar-right-w: 0px;
+  }
+  .sidebar-right { display: none !important; }
+  main { margin-right: 8px; }
+  .header-links a.btn {
+    font-size: 0.72rem;
+    padding: 2px 5px;
+  }
+}
+
+/* Medium screens (768px–991px): sidebars hidden by d-none d-lg-block in HTML */
+@media (min-width: 768px) and (max-width: 991px) {
+  :root {
+    --header-h: 46px;
+    --footer-h: 36px;
+    --sidebar-left-w: 0px;
+    --sidebar-right-w: 0px;
+  }
+  .sidebar-left  { display: none !important; }
+  .sidebar-right { display: none !important; }
+  main {
+    margin-left: 6px;
+    margin-right: 6px;
+    padding: 8px;
+  }
+  .header-links a.btn {
+    font-size: 0.68rem;
+    padding: 2px 4px;
+  }
+}
+
+/* Small screens (below 768px): hide sidebars, use offcanvas */
+@media (max-width: 767px) {
+  :root {
+    --header-h: 44px;
+    --footer-h: 34px;
+    --sidebar-left-w: 0px;
+    --sidebar-right-w: 0px;
+  }
+  .sidebar-left  { display: none !important; }
+  .sidebar-right { display: none !important; }
+  main {
+    margin-left: 6px;
+    margin-right: 6px;
+    padding: 6px;
+  }
+  .header-links {
+    gap: 3px;
+  }
+  .header-links a.btn {
+    font-size: 0.62rem;
+    padding: 2px 4px;
+  }
+}
+
+/* Short height screens (e.g. Small laptops 1366x768 / 1280x720) */
+@media (max-height: 800px) {
+  :root {
+    --header-h: 46px;
+    --footer-h: 36px;
+  }
+  main {
+    padding: 8px 10px;
+  }
+}
+
+@media (max-height: 680px) {
+  :root {
+    --header-h: 42px;
+    --footer-h: 32px;
+  }
+}
+
+/* ================================
+   TIMELINE CLEAN & AUTO-FILLING
+=============================== */
+
+.timeline {
+  position: relative;
+  margin: 0 auto;
+  width: 80%;
+  max-width: 1050px;
+  flex: 1;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  padding: 15px 0;
+  box-sizing: border-box;
+}
+
+/* Center vertical line */
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  bottom: 20px;
+  width: 3px;
+  background: #333;
+  transform: translateX(-50%);
+}
+
+/* Step */
+.timeline-step {
+  position: relative;
+  margin: 8px 0;
+}
+
+/* Content box */
+.timeline-step .content {
+  width: 45%;
+  padding: 8px 14px;
+  background: transparent;
+}
+
+/* LEFT SIDE */
+.timeline-step.left .content {
+  text-align: right;
+  margin-right: 5%;
+}
+
+/* RIGHT SIDE */
+.timeline-step.right .content {
+  margin-left: 55%;
+  text-align: left;
+}
+
+/* DOT */
+.timeline-step .dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  background: #f59e0b;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* TITLES */
+.title {
+  position: absolute;
+  top: -16px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color:#490bf5;
+}
+
+.left-title {
+  left: 0;
+  width: 45%;
+  text-align: right;
+}
+
+.right-title {
+  left: 55%;
+}
+
+/* BUTTON STYLE */
+.timeline-btn {
+  border: 2px solid #93c5fd;
+  border-radius: 10px;
+  padding: 3px 10px;
+  font-size: 13.5px;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+  border-color: #3b82f6;
+}
+
+/* Hover */
+.timeline-btn:hover {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+/* Click */
+.timeline-btn:active {
+  transform: scale(0.96);
+}
+
+/* Responsive Timeline scaling */
+@media (max-width: 1399px) {
+  .timeline {
+    width: 88%;
+  }
+}
+
+@media (max-width: 991px) {
+  .timeline {
+    width: 92%;
+  }
+}
+
+@media (max-width: 767px) {
+  .timeline {
+    width: 98%;
+  }
+  .timeline-step .content {
+    width: 46%;
+    padding: 4px 6px;
+  }
+  .timeline-step.left .content {
+    margin-right: 4%;
+  }
+  .timeline-step.right .content {
+    margin-left: 54%;
+  }
+  .title {
+    font-size: 0.82rem;
+    top: -14px;
+  }
+  .timeline-btn {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+}
+
+.form-check-input {
+    cursor: pointer;
+    
+    border: 2px solid #0d6efd;
+}
+.footer-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: var(--footer-h);
+  padding: 0 16px;
+}
+
+/* sections */
+.footer-left,
+.footer-center,
+.footer-right {
+  flex: 1;
+}
+
+/* alignment */
+.footer-left {
+  text-align: left;
+}
+
+.footer-center {
+  text-align: center;
+}
+
+.footer-right {
+  text-align: right;
+  color: yellow;
+  font-weight: 600;
+}
+
+/* brand styling */
+.brand {
+  font-weight: 600;
+  font-size: 1.1rem;  
+}
+
+/* default colors (you can change later) */
+.d-letter {
+  color: blue;
+  font-size: 1.4rem; 
+}
+
+.s-letter {
+  color: #dc3545;
+  font-size: 1.4rem; 
+}
+
+  </style>
+</head>
+<body>
+  <header class="d-flex align-items-center justify-content-between px-3">
+  <div class="d-flex align-items-center">
+    <!-- Mobile menu toggle -->
+    <button class="btn btn-light btn-sm d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar" aria-controls="offcanvasSidebar">
+      ☰
+    </button>
+    <!-- Welcome user -->
+    <span class="text-white me-3 d-none d-md-inline">Welcome, {{ request.session.empname|default:"User" }}</span>
+  </div>
+
+ <nav class="header-links-container" role="navigation">
+  <div class="header-links">
+    {% for link in header_links %}
+     <a href="{{ link.url }}"
+   class="btn btn-sm btn-outline-light btn1
+   {% if request.path|slice:":{{ link.url|length }}" == link.url %}active{% endif %}">
+   {{ link.name }}
+</a>
+
+    {% endfor %}
+  </div>
+</nav>
+
+
+  <div class="d-flex align-items-center">
+    <!-- Home button -->
+    <a class="btn btn-info btn-sm me-2" href="{% url 'home' %}">Home</a>
+    <!-- Logout button -->
+    <a class="btn btn-danger btn-sm" href="{% url 'logout' %}">Logout</a>
+  </div>
+</header>
+
+
+
+  <!-- Desktop Sidebar -->
+  <div class="sidebar-left d-none d-lg-block">
+  <div class="accordion" id="sidebarAccordion">
+    {% for menu in menus %}
+    <div class="accordion-item bg-dark border-0">
+      <h2 class="accordion-header" id="heading{{ menu.id }}">
+        <button class="accordion-button collapsed" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse{{ menu.id }}"
+                aria-expanded="{{ menu.open|yesno:'true,false' }}"
+                aria-controls="collapse{{ menu.id }}">
+          {{ menu.name }}
+        </button>
+      </h2>
+      <div id="collapse{{ menu.id }}" class="accordion-collapse collapse {% if menu.open %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+        <div class="accordion-body p-0">
+         {% for sub in menu.sublinks_filtered %}
+
+            <a href="{{ sub.url }}" class="{% if sub.is_active %}active{% endif %}">{{ sub.name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Offcanvas Sidebar for Mobile -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasSidebar" aria-labelledby="offcanvasSidebarLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="offcanvasSidebarLabel">Menu</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div class="accordion" id="sidebarAccordionMobile">
+      {% for menu in menus %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingMobile{{ menu.id }}">
+          <button class="accordion-button collapsed" type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapseMobile{{ menu.id }}"
+                  aria-expanded="{{ menu.open|yesno:'true,false' }}"
+                  aria-controls="collapseMobile{{ menu.id }}">
+            {{ menu.name }}
+          </button>
+        </h2>
+        <div id="collapseMobile{{ menu.id }}" class="accordion-collapse collapse {% if menu.open %}show{% endif %}" data-bs-parent="#sidebarAccordionMobile">
+          <div class="accordion-body p-0">
+            {% for sub in menu.sublinks_filtered %}
+              <!-- Links now navigate properly -->
+              <a href="{{ sub.url }}" class="{% if sub.is_active %}active{% endif %}">{{ sub.name }}</a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+  <main>
+    {% block content %}
+ <div class="timeline">
+
+  <!-- OP Details -->
+  <div class="timeline-step left">
+    <h5 class="title left-title">Op Details</h5>
+
+    <div class="content d-flex align-items-center justify-content-end gap-2">
+      <label>OP</label>
+    <button class="timeline-btn"
+onclick="window.open('{% url 'op_report' %}', '_blank', 'width=900,height=650,left=200,top=100,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes')">
+    Submit
+</button>
+    </div>
+
+    <div class="dot"></div>
+  </div>
+
+  <!-- On Bed Details -->
+  <div class="timeline-step right">
+    <h5 class="title right-title">Login Details</h5>
+
+    <div class="content d-flex align-items-center gap-2">
+       <label>USERS <b>{{ login_count }}</b></label>
+    <button class="timeline-btn"
+        onclick="window.open('{% url 'login_reports' %}', '_blank', 'width=900,height=650,left=200,top=100,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes')">
+    Submit
+</button>
+    </div>
+
+    <div class="dot"></div>
+  </div>
+
+  <div class="timeline-step left">
+    <h5 class="title left-title">Investigation Details</h5>
+
+    <div class="content d-flex align-items-center justify-content-end gap-2">
+      <label>INVESTIGATION </label>
+    <button class="timeline-btn"
+        onclick="openTodayInvestigation()">
+    Submit  
+</button>
+    </div>
+
+    <div class="dot"></div>
+  </div>
+<div class="timeline-step right">
+    <h5 class="title right-title">Procedure  Details</h5>
+
+    <div class="content d-flex align-items-center gap-2">
+       <label>PROCEDURES </label>
+    <button class="timeline-btn"
+        onclick="openTodayProcedure()">
+    Submit
+</button>
+    </div>
+
+    <div class="dot"></div>
+  </div>
+
+  <div class="timeline-step left">
+    <h5 class="title left-title">Dues Details</h5>
+
+    <div class="content d-flex align-items-center justify-content-end gap-2">
+     <label>DUES</label>
+    <button class="timeline-btn"
+    onclick="openTodayDues()">
+    Submit
+</button>
+    </div>
+
+    <div class="dot"></div>
+  </div>
+
+  <div class="timeline-step right">
+    <h5 class="title right-title">Concession  Details</h5>
+
+    <div class="content d-flex align-items-center gap-2">
+       <label>CONCESSION </label>
+   <button class="timeline-btn" onclick="openTodayConcession()">
+Submit
+</button>
+    </div>
+
+    <div class="dot"></div>
+  </div>
+
+</div>
+    {% endblock %}
+  </main>
+
+  <div class="sidebar-right d-none d-lg-block">
+    {% block right_sidebar %}
+
+    <!-- REVISIT NOTIFICATIONS -->
+    <div class="notif-header">
+      <div class="notif-header-icon">🔔</div>
+      <div>
+        <div class="notif-header-title">Revisit Alerts</div>
+        <div class="notif-header-sub">Next 2 days</div>
+      </div>
+      {% if revisit_alerts %}
+        <span class="notif-count-pill">{{ revisit_alerts|length }}</span>
+      {% endif %}
+    </div>
+
+    <!-- REVISIT CARDS -->
+    {% if revisit_alerts %}
+      {% for alert in revisit_alerts %}
+        <div class="notif-card badge-{{ alert.badge }}">
+          <div class="notif-pat-name" title="{{ alert.patient_name|upper }}">{{ alert.patient_name|upper }}</div>
+          <div class="notif-date-row">
+            <span class="notif-date">
+              📅 {{ alert.next_visit_date|date:"d M Y" }}
+            </span>
+            <span class="notif-badge badge-{{ alert.badge }}">
+              {% if alert.badge == 'today' %}Today
+              {% elif alert.badge == 'tomorrow' %}Tomorrow
+              {% else %}In 2 days
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="notif-empty" style="padding:14px 10px;">
+        <div class="notif-empty-icon" style="font-size:22px;">🗓️</div>
+        <div class="notif-empty-text">No revisits in next 2 days</div>
+      </div>
+    {% endif %}
+
+    <!-- SITTING ALERTS HEADER -->
+    <div class="notif-header mt-3">
+      <div class="notif-header-icon" style="background: linear-gradient(135deg,#0d6efd,#0b5ed7);">🩺</div>
+      <div>
+        <div class="notif-header-title">Sitting Alerts</div>
+        <div class="notif-header-sub">Next 2 days</div>
+      </div>
+      {% if sitting_alerts %}
+        <span class="notif-count-pill" style="background:#0d6efd;">{{ sitting_alerts|length }}</span>
+      {% endif %}
+    </div>
+
+    <!-- SITTING CARDS -->
+    {% if sitting_alerts %}
+      {% for alert in sitting_alerts %}
+        <div class="notif-card badge-{{ alert.badge }}">
+          <div class="notif-pat-name" title="{{ alert.patient_name|upper }}">{{ alert.patient_name|upper }}</div>
+          <div style="font-size:10px; color:#475569; font-weight:600; margin-top:2px; margin-bottom:3px;">
+            <span style="color:#0d6efd;">{{ alert.sitting }}</span> &bull; Bill: {{ alert.billno }}
+          </div>
+          <div class="notif-date-row">
+            <span class="notif-date">
+              📅 {{ alert.next_sitting_date|date:"d M Y" }}
+            </span>
+            <span class="notif-badge badge-{{ alert.badge }}">
+              {% if alert.badge == 'today' %}Today
+              {% elif alert.badge == 'tomorrow' %}Tomorrow
+              {% else %}In 2 days
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="notif-empty" style="padding:14px 10px;">
+        <div class="notif-empty-icon" style="font-size:22px;">🏥</div>
+        <div class="notif-empty-text">No sittings in next 2 days</div>
+      </div>
+    {% endif %}
+
+    {% endblock %}
+  </div>
+
+  <footer>
+  {% block footer %}
+  <div class="footer-container">
+    
+    <!-- LEFT -->
+    <div class="footer-left">
+      <span class="brand">
+        <span class="d-letter">D</span>solution<span class="s-letter">S</span>
+      </span>
+    </div>
+
+    <!-- CENTER -->
+    <div class="footer-center">
+      © MEDITRACK All Rights Reserved
+    </div>
+
+    <!-- RIGHT -->
+    <div class="footer-right">
+      MEDITRACK
+    </div>
+
+  </div>
+  {% endblock %}
+</footer>
+
+  <!-- Bootstrap JS -->
+ <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+  
+  <script>
+  // Extra safety: ensure mobile offcanvas closes when clicking links that don't have data-bs-dismiss
+  document.addEventListener('click', function (e) {
+    const offcanvas = document.getElementById('offcanvasSidebar');
+    if (!offcanvas) return;
+
+    if (e.target.closest('#offcanvasSidebar .offcanvas-body a')) {
+      const offcanvasEl = bootstrap.Offcanvas.getInstance(offcanvas) || new bootstrap.Offcanvas(offcanvas);
+      setTimeout(() => offcanvasEl.hide(), 100); // allow navigation before closing
+    }
+  });
+  </script>
+  <script>
+/* ==========================
+   GLOBAL CONCESSION RULE
+   (TRIM + SPACE SAFE)
+========================== */
+(function () {
+
+    function initConcessionValidation() {
+
+        const concFields = document.querySelectorAll(
+            '[name="concession"], [name="concamount"]'
+        );
+
+        concFields.forEach(concInput => {
+
+            const form = concInput.closest("form");
+            if (!form) return;
+
+            const reasonInput = form.querySelector(
+                '[name="concession_reason"]'
+            );
+
+            if (!reasonInput) return;
+
+            function toggle() {
+                const val = parseFloat(concInput.value || 0);
+                const reason = reasonInput.value.trim(); // 🔥 IMPORTANT
+
+                if (val > 0) {
+                    reasonInput.setAttribute("required", "required");
+
+                    // If user typed only spaces → clear it
+                    if (!reason) {
+                        reasonInput.value = "";
+                    }
+                } else {
+                    reasonInput.removeAttribute("required");
+                    reasonInput.value = "";
+                }
+            }
+
+            // 🔒 Prevent space-only values
+            reasonInput.addEventListener("blur", function () {
+                this.value = this.value.trim();
+            });
+
+            concInput.addEventListener("input", toggle);
+            concInput.addEventListener("blur", toggle);
+
+            // Initial check
+            toggle();
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", initConcessionValidation);
+
+})();
+/** * initBarcodeField(inputId, fetchFn) * Works for UHID, Bill No, or any barcode field * Triggers on: Enter key, Tab key, or fast-typing (scanner speed) */
+function initBarcodeField(inputId, fetchFn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  let scanTimer = null;
+  let lastKeyTime = Date.now();
+  let rapidCharCount = 0;
+
+  // ✅ PRIMARY: Enter / Tab key sent by scanner
+  input.addEventListener("keydown", function(e) {
+    if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      const val = input.value.trim();
+      if (val) fetchFn(val);
+    }
+  });
+
+  // ✅ FALLBACK: detect scanner speed (chars typed in <80ms each)
+  input.addEventListener("input", function() {
+    const now = Date.now();
+    const gap = now - lastKeyTime;
+    lastKeyTime = now;
+
+    if (gap < 80) rapidCharCount++; // scanner speed
+    else rapidCharCount = 0; // manual typing — reset
+
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(function() {
+      const val = input.value.trim();
+      // if 5+ rapid chars + min length → it's a scan
+      if (rapidCharCount >= 5 && val.length >= 4) {
+        fetchFn(val);
+        rapidCharCount = 0;
+      }
+    }, 100);
+  });
+}
+</script>
+<script>
+function openTodayDues() {
+    const today = new Date().toISOString().split('T')[0];
+
+    const url = "{% url 'all_dues_filtered' %}" 
+        + "?from_date=" + today 
+        + "&to_date=" + today;
+
+    window.open(
+        url,
+        "ReceiptWindow",
+        "width=900,height=650,left=200,top=100," +
+        "menubar=no,toolbar=no,location=no,status=no," +
+        "scrollbars=yes,resizable=yes"
+    );
+}
+
+function openTodayInvestigation(){
+const today = new Date().toISOString().split('T')[0];
+  const url = "{% url 'DailyInvestigationsResult' %}" 
+        + "?from_date=" + today 
+        + "&to_date=" + today;
+
+
+window.open(
+        url,
+        "ReceiptWindow",
+        "width=900,height=650,left=200,top=100," +
+        "menubar=no,toolbar=no,location=no,status=no," +
+        "scrollbars=yes,resizable=yes"
+    );
+}
+
+function openTodayProcedure(){
+const today = new Date().toISOString().split('T')[0];
+  const url = "{% url 'DailyProceduresResult' %}" 
+        + "?from_date=" + today 
+        + "&to_date=" + today;
+
+
+window.open(
+        url,
+        "ReceiptWindow",
+        "width=900,height=650,left=200,top=100," +
+        "menubar=no,toolbar=no,location=no,status=no," +
+        "scrollbars=yes,resizable=yes"
+    );
+} 
+
+
+function openTodayConcession(){
+const today = new Date().toISOString().split('T')[0];
+  const url = "{% url 'concession_report' %}" 
+        + "?from_date=" + today 
+        + "&to_date=" + today;
+
+window.open(
+        url,
+        "ReceiptWindow",
+        "width=900,height=650,left=200,top=100," +
+        "menubar=no,toolbar=no,location=no,status=no," +
+        "scrollbars=yes,resizable=yes"
+    );
+
+}
+
+
+</script>
+ <script>
+/* =========================================================
+   GLOBAL RULE:
+   If Due > 0 → Reason REQUIRED
+   Works for ALL forms (AJAX + normal)
+========================================================= */
+document.addEventListener("submit", function (e) {
+
+    const form = e.target;
+
+    const dueSelector    = form.getAttribute("data-due-field");
+    const reasonSelector = form.getAttribute("data-reason-field");
+
+    if (!dueSelector || !reasonSelector) return;
+
+    const dueInput    = form.querySelector(dueSelector);
+    const reasonInput = form.querySelector(reasonSelector);
+
+    if (!dueInput || !reasonInput) return;
+
+    const due = parseFloat(dueInput.value || 0);
+
+    if (due > 0) {
+        reasonInput.required = true;
+        reasonInput.value = reasonInput.value.trim();
+    } else {
+        reasonInput.required = false;
+    }
+
+    if (!form.checkValidity()) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        form.reportValidity();
+        return false;
+    }
+}, true);
+</script>
+
+</body>
+</html>

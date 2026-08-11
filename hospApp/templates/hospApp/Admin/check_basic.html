@@ -1,0 +1,197 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5 class="mb-0">🔍 Patient Selection For Vital Signs & Clinical Data </h5>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Filter Form -->
+      <form method="GET" class="row g-2 mb-3" autocomplete="off">
+        {% if messages %}
+    {% for message in messages %}
+        {% if message.tags == 'success' %}
+            <script>
+                alert("{{ message }}");
+                
+            </script>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+         <input type="hidden" name="return" value="{{ return }}">
+
+        <div class="col-md-2">
+          <label>From Date:</label>
+          <input type="date" name="from_date" id="from_date"
+                 value="{{ from_date }}" class="form-control form-control-sm">
+        </div>
+
+        <div class="col-md-2">
+          <label>To Date:</label>
+          <input type="date" name="to_date" id="to_date"
+                 value="{{ to_date }}" class="form-control form-control-sm">
+        </div>
+         <div class="col-md-1 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary btn-sm w-100">Submit</button>
+        </div>
+
+        <div class="col-md-3">
+          <label>Name:</label>
+          <div class="input-group input-group-sm">
+            <input type="text" id="name" name="name" value="{{ name }}"
+                   placeholder="Enter name" class="form-control form-control-sm">
+            <button class="btn btn-outline-primary btn-sm" type="submit">Search</button>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <label>Phone:</label>
+          <div class="input-group input-group-sm">
+            <input type="text" id="phone" name="phone" value="{{ phone }}"
+                   placeholder="Enter phone" class="form-control form-control-sm">
+            <button class="btn btn-outline-primary btn-sm" type="submit">Search</button>
+          </div>
+        </div>
+
+      </form>
+
+      <!-- Patient Table -->
+      {% if patients %}
+
+    <!-- Fixed Live Filter -->
+<div class="sticky-filter">
+  <input type="text" id="liveFilter"
+         class="form-control form-control-sm mb-2"
+         placeholder="🔍 Live filter (name / phone / UHID)">
+</div>
+
+<!-- Scrollable Table -->
+<div class="table-container">
+  <table id="patientTable" class="table table-bordered table-sm align-middle">
+    
+    <thead class="table-light">
+      <tr class="text-center">
+        <th>Sl No</th>
+        <th>UHID</th>
+        <th>Patient Name</th>
+        <th>Phone</th>
+        <th>PatID</th>
+        <th>Guardian</th>
+        <th>Gender</th>
+        <th>Ref Doctor</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for p in patients %}
+      {% url 'values_insert' as row_url %}
+      {% with row_url|add:"?uhid="|add:p.uhid as final_url %}
+      <tr class="clickable-row" data-href="{{ final_url }}">
+      {% endwith %}
+        <td>{{ forloop.counter }}</td>
+        <td>{{ p.uhid }}</td>
+        <td>{{ p.patname }}</td>
+        <td>{{ p.phone }}</td>
+        <td>{{ p.patid }}</td>
+        <td>{{ p.gardian }}</td>
+        <td>{{ p.gender }}</td>
+        <td>{{ p.refdoctor.docname }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+
+  </table>
+</div>
+
+      {% else %}
+      <div class="alert alert-info text-center mb-0">
+        No patient records found in this range.
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+
+  // Live filter
+  const filterInput = document.getElementById('liveFilter');
+  if (filterInput) {
+    filterInput.addEventListener('keyup', function () {
+      const value = this.value.toLowerCase();
+      document.querySelectorAll('#patientTable tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(value) ? '' : 'none';
+      });
+    });
+  }
+
+  // Clickable rows
+  document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const href = row.dataset.href;
+      if (href) window.location.href = href;
+    });
+  });
+
+});
+</script>
+
+<style>
+.input-group-sm .form-control,
+.input-group-sm .btn {
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+}
+
+/* Scrollable body */
+.table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+}
+
+/* Sticky header */
+#patientTable thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa;
+  z-index: 2;
+}
+
+/* Thin horizontal row lines */
+#patientTable tbody tr td {
+  border-bottom: 1px solid #e6e6e6;
+}
+
+/* Clickable row */
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover {
+  background-color: #e8f4fd !important;
+}
+
+/* Done row — not clickable, muted style */
+.done-row {
+  cursor: default;
+  background-color: #f5f5f5;
+  color: #999;
+}
+
+/* Font */
+.table th, .table td {
+  font-size: 0.85rem;
+  
+}
+.table td, .table th {
+  text-align: left;
+}
+</style>
+
+{% endblock %}

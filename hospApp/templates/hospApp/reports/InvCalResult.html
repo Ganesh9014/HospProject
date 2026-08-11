@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Investigation Count Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; font-size: 13px; }
+  .page-wrap { padding: 18px 20px; }
+
+  /* ── Header ── */
+  .rpt-header {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; flex-wrap: wrap;
+    gap: 10px; margin-bottom: 14px;
+  }
+  .rpt-title { font-size: 16px; font-weight: 700; color: #1a3c2b; }
+  .rpt-sub   { font-size: 12px; color: #6b7280; margin-top: 3px; }
+  .print-btn {
+    padding: 6px 16px; background: #1D9E75; color: #fff;
+    border: none; border-radius: 6px; font-size: 12px;
+    cursor: pointer; font-weight: 600;
+  }
+  .print-btn:hover { background: #0F6E56; }
+
+  /* ── Summary cards ── */
+  .summary-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .s-card {
+    flex: 1; min-width: 110px; background: #fff;
+    border-radius: 8px; border: 1px solid #d1fae5; padding: 0px 14px;
+  }
+  .s-lbl { font-size: 11px; color: black; margin-bottom: 4px; font-weight: 600; }
+  .s-val { font-size: 22px; font-weight: 700; color: #1a3c2b; }
+  .s-val.small { font-size: 14px; padding-top: 4px; }
+
+  /* ── Calendar table wrapper ── */
+  .cal-scroll {
+    overflow-x: auto; border-radius: 10px;
+    border: 1px solid #a7f3d0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06); background: #fff;
+  }
+  table.cal { border-collapse: collapse; width: max-content; min-width: 100%; }
+
+  /* Header row 1 – date numbers */
+  table.cal thead tr.h1 th {
+    background: #1D9E75; color: #fff;
+    font-weight: 700; font-size: 12px;
+    padding: 8px 10px; text-align: center;
+    position: sticky; top: 0; z-index: 4;
+    white-space: nowrap; border-right: 1px solid #0F6E56;
+  }
+  table.cal thead tr.h1 th.sticky-col {
+    background: #0F6E56; text-align: left;
+    min-width: 170px; position: sticky; left: 0; z-index: 5;
+  }
+  table.cal thead tr.h1 th.total-col  { background: #085041; }
+
+  /* Outside-range header columns – greyed out */
+  table.cal thead tr.h1 th.out-range  { background: #9ca3af; color: #e5e7eb; }
+  table.cal thead tr.h2 th.out-range  { background: #e5e7eb; color: #9ca3af; }
+
+  /* Header row 2 – day names */
+  table.cal thead tr.h2 th {
+    background: #d1fae5; color: #065f46;
+    font-weight: 600; font-size: 11px;
+    padding: 5px 8px; text-align: center;
+    position: sticky; top: 34px; z-index: 3;
+    border-right: 1px solid #a7f3d0;
+    border-bottom: 2px solid #5DCAA5;
+  }
+  table.cal thead tr.h2 th.sticky-col {
+    background: #a7f3d0; position: sticky;
+    left: 0; z-index: 4; text-align: left;
+    color: #04342C; padding-left: 14px;
+  }
+  table.cal thead tr.h2 th.sunday     { background: #fee2e2; color: #991b1b; }
+  table.cal thead tr.h2 th.total-col  { background: #bbf7d0; color: #065f46; }
+
+  /* Body cells */
+  table.cal tbody tr td {
+    padding: 5px 8px; text-align: center;
+    border-right: 1px solid #f0fdf4;
+    border-bottom: 1px solid #f0fdf4;
+    color: #374151; min-width: 42px; white-space: nowrap;
+  }
+  table.cal tbody tr:hover td           { background: #f0fdf4; }
+  table.cal tbody tr:hover td.sticky-col { background: #ecfdf5; }
+
+  /* Sticky investigation name column */
+  table.cal tbody tr td.sticky-col {
+    text-align: left; font-weight: 600;
+    background: #fff; position: sticky; left: 0; z-index: 2;
+    border-right: 2px solid #a7f3d0;
+    min-width: 170px; padding-left: 14px;
+    font-size: 12px; color: #1a3c2b;
+  }
+
+  /* ── Outside-range body cells ── */
+  td.out-range {
+    background: #f3f4f6 !important;
+    color: #d1d5db !important;
+    font-size: 11px;
+  }
+
+  /* Count colour coding (inside range) */
+  td.c-zero { color: #d1d5db; font-size: 11px; }
+  td.c-low  { color: #1d4ed8; font-weight: 600; }
+  td.c-mid  { color: #059669; font-weight: 600; }
+  td.c-high { background: #d1fae5 !important; color: #065f46; font-weight: 700; border-radius: 3px; }
+
+  /* Row total */
+  td.row-total {
+    font-weight: 700; color: #065f46;
+    background: #ecfdf5 !important;
+    border-left: 2px solid #5DCAA5;
+  }
+
+  /* Column total row */
+  table.cal tbody tr.total-row td {
+    background: #f0fdf4; font-weight: 700;
+    color: #065f46; border-top: 2px solid #5DCAA5;
+  }
+  table.cal tbody tr.total-row td.sticky-col  { background: #d1fae5; color: #04342C; }
+  table.cal tbody tr.total-row td.row-total   { background: #bbf7d0 !important; color: #04342C; }
+  table.cal tbody tr.total-row td.out-range   { background: #e5e7eb !important; color: #9ca3af !important; }
+
+  /* Legend */
+  .legend {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    margin-top: 10px; font-size: 11px; color: #6b7280;
+  }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  @media print {
+    body { background: #fff; }
+    .print-btn { display: none; }
+    .cal-scroll { overflow: visible; box-shadow: none; }
+    .page-wrap { padding: 6px; }
+  }
+
+
+   .report-container {
+            border: 2px solid black;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        .header {
+            text-align: center;
+            line-height: 1.5;
+            border-bottom: 2px solid black;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .header p {
+            margin: 2px 0;
+        }
+        .title {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.filters {
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<div class="report-container">
+
+    <!-- 🏥 Header -->
+    <div class="header">
+        <h2>{{ hospital.name }}</h2>
+        <p>{{ hospital.address }}</p>
+    </div>
+
+    <!-- 📋 Title -->
+    <div class="title">
+        INVESTIGATION COUNT REPORT
+    </div>
+
+    <!-- 📅 Filters -->
+    <div class="filters" style='border-bottom: 2px solid black'>
+        From Date: {{ start_date|date:"d-m-Y" }} &nbsp;&nbsp;
+        To Date: {{ end_date|date:"d-m-Y" }}
+    </div>
+
+    <!-- Existing Page Content -->
+    <div class="page-wrap">
+
+        <!-- Summary cards (UNCHANGED) -->
+        <div class="summary-bar">
+            <div class="s-card">
+                <div class="s-lbl">Total Investigations</div>
+                <div class="s-val">{{ grand_total }}</div>
+            </div>
+            <div class="s-card">
+                <div class="s-lbl">Test Types</div>
+                <div class="s-val">{{ rows|length }}</div>
+            </div>
+            <div class="s-card">
+                <div class="s-lbl">Selected Days</div>
+               <div class="s-val">{{ total_days }}</div>
+            </div>
+            
+        </div>
+
+        <!-- Calendar table (UNCHANGED) -->
+        <div class="cal-scroll">
+        
+                <!-- KEEP YOUR EXISTING TABLE EXACTLY SAME -->
+
+
+                <table class="cal">
+      <thead>
+        <!-- Row 1: date numbers -->
+        <tr class="h1">
+          <th class="sticky-col">Investigation</th>
+          {% for d in all_dates %}
+            <th class="{% if d < start_date or d > end_date %}out-range{% endif %}">
+              {{ d.day }}
+            </th>
+          {% endfor %}
+          <th class="total-col">Total</th>
+        </tr>
+
+        <!-- Row 2: day names -->
+        <tr class="h2">
+          <th class="sticky-col">Day</th>
+          {% for d in all_dates %}
+            <th class="
+              {% if d < start_date or d > end_date %}out-range
+              {% elif d.weekday == 6 %}sunday
+              {% endif %}">
+              {{ d|date:"D"|slice:":2" }}
+            </th>
+          {% endfor %}
+          <th class="total-col">—</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="sticky-col">{{ row.name }}</td>
+          {% for c in row.counts %}
+            {% with d=forloop.counter0 %}
+            {% with cur_date=all_dates|slice:forloop.counter0 %}
+
+            {% if c is None %}
+              {# Outside selected range #}
+              <td class="out-range">—</td>
+
+            {% elif c == 0 %}
+              <td class="c-zero">—</td>
+
+            {% elif c >= 10 %}
+              <td class="c-high">{{ c }}</td>
+
+            {% elif c >= 5 %}
+              <td class="c-mid">{{ c }}</td>
+
+            {% else %}
+              <td class="c-low">{{ c }}</td>
+
+            {% endif %}
+
+            {% endwith %}{% endwith %}
+          {% endfor %}
+          <td class="row-total">{{ row.total }}</td>
+        </tr>
+        {% endfor %}
+
+        <!-- Daily totals row -->
+        <tr class="total-row">
+          <td class="sticky-col">Daily Total</td>
+         {% for d, ct in zipped_totals %}
+    {% if d < start_date or d > end_date %}
+        <td class="out-range">—</td>
+    {% else %}
+        <td>{{ ct|default:"—" }}</td>
+    {% endif %}
+{% endfor %}
+          <td class="row-total">{{ grand_total }}</td>
+        </tr>
+      </tbody>
+    </table>
+        
+        </div>
+
+        <!-- Legend (UNCHANGED) -->
+        <div class="legend">
+            <span><span class="dot" style="background:#f3f4f6;border:1px solid #d1d5db"></span> Grey = outside selected range</span>
+            <span><span class="dot" style="background:#e5e7eb"></span> — = no tests</span>
+            <span><span class="dot" style="background:#1d4ed8"></span> 1–4 = low</span>
+            <span><span class="dot" style="background:#059669"></span> 5–9 = moderate</span>
+            <span><span class="dot" style="background:#d1fae5;border:1px solid #065f46"></span> 10+ = high</span>
+        </div>
+
+    </div>
+
+
+
+
+</div>
+<div style="width:50%; margin:auto; margin-top:20px;">
+    <div style="display:flex; justify-content:space-between; font-size:12px;">
+        <div><strong>Print By:</strong> {{ logged_user }}</div>
+        <div><strong>Print Time:</strong> {{ print_time|date:"d-m-Y H:i:s" }}</div>
+    </div>
+</div>
+</body>
+</html>

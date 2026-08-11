@@ -1,0 +1,397 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+{% comment %} <style>
+  .form-control {
+    font-size: 0.7rem;
+  }
+  .table>:not(caption)>*>* {
+    padding: 0px;
+  }
+  .table th {
+    font-size: 0.75rem;
+  }
+  .table td {
+    font-size: 0.7rem;
+  }
+  .table-responsive {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .form-control:disabled {
+    background-color: white;
+  }
+  .btn1 {
+  font-weight: 400;
+  padding: 2px 4px;
+  font-size: 0.6rem;
+}
+
+.btn1-update {
+  background-color: var(--form-success);
+  border-color: var(--form-success);
+}
+
+.btn1-success:hover {
+  background-color: #1b5e20;
+}
+.edit-btn {
+  background-color: orange;
+  border-color: black;
+}
+
+.btn1-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.btn1-secondary:hover {
+  background-color: #5a6268;
+}
+.btn-danger-delete{
+  background-color: red;
+  color : white;
+  
+}
+
+  /* --- Universal compact table style --- */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto; /* flexible for varying columns */
+  }
+
+  .table th,
+  .table td {
+    text-align: center;
+    vertical-align: middle;
+    font-size: 0.7rem;
+    padding: 4px 6px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* keep headers readable but compact */
+  .table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  /* Compact rows */
+  .table tr {
+    line-height: 1.1;
+  }
+
+  /* Buttons inside tables */
+  .btn1 {
+    font-weight: 500;
+    padding: 2px 6px;
+    font-size: 0.65rem;
+    border-radius: 4px;
+  }
+
+  .edit-btn {
+    background-color: orange;
+    border: none;
+    color: white;
+  }
+
+  .btn1-update {
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+  }
+
+  .btn1-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+  }
+
+  .btn-danger-delete {
+    background-color: red;
+    color: white;
+    border: none;
+  }
+
+  /* responsive table container */
+  .table-responsive {
+    max-height: 320px;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 6px;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.08);
+  }
+
+  /* Mobile optimization */
+  @media (max-width: 768px) {
+    .table th,
+    .table td {
+      font-size: 0.65rem;
+      padding: 2px 4px !important;
+    }
+    .btn1 {
+      font-size: 0.55rem;
+      padding: 1px 3px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .table th,
+    .table td {
+      font-size: 0.6rem;
+    }
+  }
+
+</style> {% endcomment %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header"><h5>Beds Master</h5></div>
+    <div class="form-body">
+      <form method="post" id="bed-form">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+        <!-- Messages -->
+          {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+        <!-- Operation radios -->
+        <div class="row mb-1">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label><input type="radio" name="operation_radio" value="add"
+                          {% if operation == 'add' %}checked{% endif %}
+                          onchange="window.location.href='?operation=add'"> Add</label>
+            <label class="ms-3"><input type="radio" name="operation_radio" value="delete"
+                          {% if operation == 'delete' %}checked{% endif %}
+                          onchange="window.location.href='?operation=delete'"> Delete</label>
+          </div>
+        </div>
+
+        <!-- Fields: same for Add and Delete (as requested) -->
+        <div class="row mb-3">
+          <div class="col-md-3">
+            <label>Floor No</label>
+           <select name="floorid" id="floorid" class="form-select" data-selected="{{ selected_floorid|default:'' }}">
+  <option value="">--Select Floor--</option>
+  {% for f in floors %}
+  <option value="{{ f.floorid }}" {% if f.floorid|stringformat:"s" == selected_floorid|stringformat:"s" %}selected{% endif %}>
+    {{ f.floorno }}
+  </option>
+  {% endfor %}
+</select>
+          </div>
+
+          <div class="col-md-3">
+            <label>Room No</label>
+            <!-- Room Dropdown -->
+<select name="roomid" id="roomid" class="form-select" data-selected="{{ selected_roomid|default:'' }}">
+  <option value="">--Select Room--</option>
+  {% for r in rooms %}
+  <option value="{{ r.roomid }}" {% if r.roomid|stringformat:"s" == selected_roomid|stringformat:"s" %}selected{% endif %}>
+    {{ r.roomno }}
+  </option>
+  {% endfor %}
+</select>
+          </div>
+
+          <div class="col-md-3">
+            <label>Bed Number</label>
+            <input type="text" name="bedno" id="bedno" class="form-control" value="{{ search_term }}" maxlength="15" >
+          </div>
+
+          
+
+          
+          
+
+
+          
+        </div>
+        <div class='row mb-1'>
+            <div class="col-md-3 mb-2">
+  <label class='me-2'>Chargeable:</label>
+  <input type="checkbox" name="chargeable" id="chargeable" {% if chargeable == 'Y' %}checked{% endif %} >
+  <label for="chargeable">Yes</label>
+</div>
+
+<!-- Hidden Charges Field -->
+<div class="col-md-3" id="charges-field" style="display: none;">
+  <label for="bedcharges">Amount</label>
+  <input type="number" name="bedcharges" id="bedcharges" class="form-control" placeholder="Enter Amount" oninput="if(this.value.length>10)this.value=this.value.slice(0,10);"
+>
+</div>
+        </div>
+
+        <!-- Buttons: Save (Add) + Search + Clear -->
+        <div class="mb-2">
+          <button type="submit" class="btn btn-primary btn-compact" name="add_btn" onclick="return validateAdd()">Save</button>
+          <button type="submit" class="btn btn-secondary btn-compact" name="search_btn">Search</button>
+          <a href="{% url 'BedsMasterView' %}" class="btn btn-outline-secondary btn-compact">Clear</a>
+        </div>
+
+        <!-- Table: visible if operation active or beds exist -->
+        <div id="table-section" class="row mt-3" {% if not beds and not operation %}style="display:none;"{% endif %}>
+          <div class="col-8">
+            <h6 class="mb-2"><strong>Existing Beds</strong></h6>
+            <div class="table-responsive">
+              <table class="table table-bordered table-s">
+                <thead class="table-light">
+                  <tr>
+                    {% if operation == 'delete' %}<th>Delete</th>{% endif %}
+                    <th>S.No</th>
+                    <th>BedId</th>
+                    <th>Room No</th>
+                    <th>Bed No</th>
+                    {% if operation == 'add' %}
+                      <th>Floor No</th>
+                      <th>Chargeable</th>
+                      <th>Charges</th>
+                      <th>Active</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if beds %}
+                    {% for b in beds %}
+                      <tr>
+                        {% if operation == 'delete' %}
+                          <td class="text-center">
+                            <button type="submit" class="btn1 btn-danger-delete btn-compact" name="delete_btn" value="{{ b.bedid }}"
+                                    onclick="return confirm('Delete bed {{ b.bedno }}?')">Delete</button>
+                          </td>
+                        {% endif %}
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ b.bedid }}</td>
+                        <td>
+                          {% if b.room %}{{ b.room.roomno }}{% else %}-{% endif %}
+                        </td>
+                        <td>{{ b.bedno }}</td>
+                        {% if operation == 'add' %}
+                          <td>{% if b.floor %}{{ b.floor.floorno }}{% else %}-{% endif %}</td>
+                          <td>{{ b.chargeble }}</td>
+                          <td>{{ b.bedcharges }}</td>
+                          <td>{{ b.active }}</td>
+                        {% endif %}
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="10" class="text-center">
+                        {% if operation == 'add' %}No beds found.
+                        {% elif operation == 'delete' %}
+                          {% if searched %}No matching beds found.{% else %}Enter search and click Search.{% endif %}
+                        {% else %}
+                          Select Add or Delete to manage beds.
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function validateAdd() {
+    var floor = document.getElementById('floorid').value;
+    var room = document.getElementById('roomid').value;
+    var bedno = document.getElementById('bedno').value.trim();
+    if (!floor) { alert('Please select Floor'); return false; }
+    if (!room) { alert('Please select Room'); return false; }
+    if (!bedno) { alert('Please enter Bed Number'); return false; }
+    return true;
+  }
+
+  // keep radio buttons visually consistent after GET (server sets operation)
+  document.addEventListener('DOMContentLoaded', function() {
+    var op = "{{ operation|default:'' }}";
+    if (op) {
+      var r = document.querySelector('input[name="operation_radio"][value="' + op + '"]');
+      if (r) r.checked = true;
+    }
+  });
+  function populateRoomsSelect(selectEl, rooms, selectedId) {
+    selectEl.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '--Select Room--';
+    selectEl.appendChild(placeholder);
+
+    rooms.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.roomid;
+      opt.textContent = r.roomno;
+      if (selectedId && String(selectedId) === String(r.roomid)) opt.selected = true;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  async function fetchRoomsForFloor(floorid, targetSelectId, selectedRoomId) {
+    try {
+      const url = new URL("{% url 'ajax_rooms_by_floor' %}", window.location.origin);
+      const params = new URLSearchParams();
+      if (floorid) params.set('floorid', floorid);
+      const resp = await fetch(url + '?' + params.toString());
+      const rooms = await resp.json();
+      const sel = document.getElementById(targetSelectId);
+      if (sel) populateRoomsSelect(sel, rooms, selectedRoomId);
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const addFloor = document.getElementById('floorid');
+    if (addFloor) {
+      addFloor.addEventListener('change', function() {
+        fetchRoomsForFloor(this.value, 'roomid', null);
+      });
+
+      if (addFloor.value) {
+        const selectedRoom = document.getElementById('roomid')?.dataset.selected || null;
+        fetchRoomsForFloor(addFloor.value, 'roomid', selectedRoom);
+      }
+    }
+  });
+    // --- Show/Hide Charges Field ---
+  document.addEventListener('DOMContentLoaded', function() {
+    const chargeableCheckbox = document.getElementById('chargeable');
+    const chargesField = document.getElementById('charges-field');
+
+    function toggleChargesField() {
+      if (chargeableCheckbox.checked) {
+        chargesField.style.display = 'block';
+      } else {
+        chargesField.style.display = 'none';
+        document.getElementById('bedcharges').value = ''; // clear if unchecked
+      }
+    }
+
+    // Run once on load (for edit/refresh)
+    toggleChargesField();
+
+    // Run when checkbox changes
+    chargeableCheckbox.addEventListener('change', toggleChargesField);
+  });
+
+</script>
+{% endblock %}

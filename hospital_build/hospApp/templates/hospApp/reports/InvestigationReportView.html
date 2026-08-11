@@ -1,0 +1,311 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+
+    <div class="form-header py-2">
+      <h6> Investigation Report   </h6>
+    </div>
+
+    <div class="card-body">
+  <form method="GET" action="{% url 'investigation_report' %}" onsubmit="openReportPopup(event)" id="userwiseForm">
+          {% csrf_token %}
+        
+<fieldset class="custom-fieldset mb-3">
+        <legend class="custom-legend mb-4">
+  <span class="legend-text">Investigation Report</span>
+</legend>
+
+    <div class='row'>
+      <div class="col-md-3">
+        <div class="d-flex align-items-center">
+      <label class="form-label rpt-label">From Date</label>
+      <input type="date"
+       name="from_date"
+       id="from_date"
+       class="form-control"
+       required
+       max=""
+       onblur="validateDate(this)">
+
+
+
+        </div>
+    </div>
+
+   <div class="col-md-3">
+        <div class="d-flex align-items-center">
+      <label class="form-label rpt-label">To Date</label>
+      <input type="date"
+       name="to_date"
+       id="to_date"
+       class="form-control"
+       required
+       max=""
+       onblur="validateDate(this)">
+    </div>
+    </div> </div>
+
+ 
+
+
+
+
+
+
+<div class="row mt-4">
+          <div class="col-md-6">
+            <div class="d-flex align-items-center">
+              <label class="form-label rpt-label">Investigations</label>
+              <div class="position-relative flex-grow-1" >
+                <input type="text" id="service"
+                       class="form-control form-control-sm"
+                       placeholder="Enter Investigations..." autocomplete="off">
+                       
+                <ul id="invSuggestions" class="list-group suggestion-list"></ul>
+                <input type="hidden" id="inv_id" name="inv_id">
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+
+<div class="row align-items-center button-row">
+    <div class="col-md-3"></div>
+
+    <div class="col-md-4 text-center">
+        <button type="submit" class="btn btn-success btn-sm">
+            📊 Submit
+        </button>
+
+        <button type="button"
+                class="btn btn-secondary btn-sm"
+                id="cancelBtn">
+            Clear
+        </button>
+    </div>
+</div>
+
+  
+  </div>
+  </form>
+</div>
+</div>
+</div>
+</div>
+<style>
+   .button-row{
+    margin-top: 90px;
+}
+.custom-fieldset {
+  border: 1px solid #9ca3af;
+  border-radius: .5rem;
+  padding: .45rem 1rem 1rem;
+  height: 280px;
+}
+
+.custom-legend {
+  font-size: .9rem;
+  font-weight: 700;
+  padding: 0 .5rem;
+  color: green;
+}
+.legend-text {
+  font-size: .8rem;
+  font-weight: 700;
+  display: inline-block;          /* important */
+  border-bottom: 2px solid #111827;
+  line-height: 1.2;
+}
+/* REMOVE these overrides entirely */
+/* .form-card, .card, .card-body { overflow: visible !important; } */
+
+.suggestion-list {
+  display: none;
+  max-height: 200px;
+  overflow-y: auto;
+  position: fixed;   /* ← changed from absolute to fixed */
+  width: auto;       /* ← will be set dynamically by JS */
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid #ccc;
+  font-size: 12px;
+}
+
+.suggestion-list .list-group-item {
+  cursor: pointer;
+  padding: 0px;
+}
+
+.suggestion-list .list-group-item:hover {
+  background: #f1f1f1;
+}
+</style>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date().toISOString().split("T")[0];
+
+    const fromDate = document.getElementById("from_date");
+    const toDate = document.getElementById("to_date");
+
+    // Set default value = today
+    fromDate.value = today;
+    toDate.value = today;
+
+    // Prevent future dates
+    fromDate.max = today;
+    toDate.max = today;
+});
+
+function validateDate(input) {
+    const today = new Date().toISOString().split("T")[0];
+    const selectedDate = input.value;
+
+    // Empty or invalid date
+    if (!selectedDate) {
+        alert("Invalid date. Date cannot be empty.");
+        input.value = today;
+        return;
+    }
+
+    // Future date validation
+    if (selectedDate > today) {
+        alert("Future dates are not allowed.");
+        input.value = today;   // reset ONLY this field
+        return;
+    }
+}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const input = document.getElementById("service");
+    const box = document.getElementById("invSuggestions");
+
+    let currentIndex = -1;
+
+    input.addEventListener("input", function () {
+        const q = this.value.trim();
+
+        box.innerHTML = "";
+        box.style.display = "none";
+        currentIndex = -1;
+
+        if (!q) return;
+
+        fetch(`/search-investigation/?q=${encodeURIComponent(q)}`)
+    .then(res => res.json())
+    .then(data => {
+        const list = data.results || [];
+        if (!list.length) return;
+
+        box.innerHTML = list.map(item => `
+            <li class="list-group-item"
+                data-id="${item.inv_id}"
+                data-name="${item.invname}"
+                data-cost="${item.cost}">
+                ${item.invname} (₹${item.cost})
+            </li>
+        `).join("");
+
+        // ✅ Position the box relative to the input using getBoundingClientRect
+        const rect = input.getBoundingClientRect();
+        box.style.top = rect.bottom + window.scrollY + "px";
+        box.style.left = rect.left + window.scrollX + "px";
+        box.style.width = rect.width + "px";
+        box.style.display = "block";
+    });
+    });
+
+    // 👉 KEYBOARD NAVIGATION
+    input.addEventListener("keydown", function (e) {
+        const items = box.querySelectorAll("li");
+
+        if (!items.length) return;
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            currentIndex = (currentIndex + 1) % items.length;
+            updateActive(items);
+        }
+
+        else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            currentIndex = (currentIndex - 1 + items.length) % items.length;
+            updateActive(items);
+        }
+
+        else if (e.key === "Enter" || e.key === "Tab") {
+            if (currentIndex >= 0) {
+                e.preventDefault();
+                selectItem(items[currentIndex]);
+            }
+        }
+
+        else if (e.key === "Escape") {
+            box.style.display = "none";
+        }
+    });
+
+    function updateActive(items) {
+        items.forEach(item => item.classList.remove("active"));
+        if (items[currentIndex]) {
+            items[currentIndex].classList.add("active");
+        }
+    }
+
+    function selectItem(item) {
+        const inv_id = item.dataset.id;
+        const name = item.dataset.name;
+
+        input.value = name;
+        document.getElementById("inv_id").value = inv_id;
+
+        box.style.display = "none";
+        currentIndex = -1;
+    }
+
+    // 👉 CLICK SELECT
+    box.addEventListener("click", function (e) {
+        const item = e.target.closest("li");
+        if (!item) return;
+        selectItem(item);
+    });
+
+    // 👉 HIDE ON OUTSIDE CLICK
+    document.addEventListener("click", function (e) {
+        if (!e.target.closest(".position-relative")) {
+            box.style.display = "none";
+        }
+    });
+
+});
+
+
+function openReportPopup(event) {
+    event.preventDefault(); // stop normal submit
+
+    const form = document.getElementById("userwiseForm");
+
+    // Build query string manually
+    const params = new URLSearchParams(new FormData(form)).toString();
+
+    const url = form.action + "?" + params;
+
+    window.open(
+        url,
+        "InvestigationReport",
+        "width=950,height=650,left=200,top=100," +
+        "menubar=no,toolbar=no,location=no,status=no," +
+        "scrollbars=yes,resizable=yes"
+    );
+}
+</script>
+
+{% endblock %}

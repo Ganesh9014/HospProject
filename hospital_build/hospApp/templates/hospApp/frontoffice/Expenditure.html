@@ -1,0 +1,158 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5 class="mb-0">Expenditure Entry</h5>
+    </div>
+
+    <div class="form-body">
+
+      {% if messages %}
+      <script>
+        {% for msg in messages %}
+          alert("{{ msg }}");
+        {% endfor %}
+      </script>
+      {% endif %}
+
+      <form method="POST">
+        {% csrf_token %}
+
+        <!-- Expenditure -->
+        <div class="d-flex align-items-center mb-2">
+          <label style="width:150px;">Expenditure</label>
+          <select name="expenditure" class="form-select form-select-sm" style="max-width:220px;" required>
+            <option value="">-- Select --</option>
+            {% for e in exp %}
+              <option value="{{ e.sno }}">{{ e.expenditure_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Voucher No -->
+        <div class="d-flex align-items-center mb-2">
+          <label style="width:150px;">Voucher No</label>
+          <input type="text" name="voucher_no"
+                value="{{ bill_no }}"
+                 class="form-control form-control-sm"
+                 style="max-width:220px;" readonly>
+        </div>
+
+        <!-- Amount Paid -->
+        <div class="d-flex align-items-center mb-2">
+          <label style="width:150px;">Amount Paid</label>
+         <input type="text"
+       name="amount_paid"
+       class="form-control form-control-sm"
+       style="max-width:220px;"
+       maxlength="8"
+       pattern="[0-9]+"
+       required
+       oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+
+
+        </div>
+
+        <!-- Towards -->
+        <div class="d-flex align-items-center mb-2">
+          <label style="width:150px;">Towards</label>
+          <textarea type="text" name="towards"
+                 class="form-control form-control-sm"
+                 style="max-width:220px; height:50px;"  required></textarea>  
+        </div>
+
+        <!-- Buttons -->
+       <div class="bottom d-flex align-items-center mt-3">
+          <div class="col-md-2">
+            <input type="password" id="usercode" name="usercode"
+                   class="form-control" required
+                   style="background-color: yellow; max-width: 150px; height: 25px;" 
+                   maxlength="12" placeholder="Enter User Code">
+          </div>
+
+          <div class="flex-grow-1 text-center">
+            <button type="submit" class="btn btn-success btn-sm">💾 Save</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="cancelBtn">Cancel</button>
+          </div>
+
+          <div style="width:200px;"></div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<style>
+.form-control, .form-select { padding: .45rem .6rem;  border-radius: .45rem; background-color: var(--input-bg); }
+.suggestion-list { display:none; max-height:180px; overflow-y:auto; z-index:1200; background:white; top:calc(100% + .35rem); border-radius:0 .4rem .4rem .4rem; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+
+
+.form-control, .form-select {
+   padding: .45rem .6rem;
+   
+    border-radius: .45rem; 
+    background-color: var(--input-bg); 
+  }
+
+
+
+
+</style>
+<script>
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    document.cookie.split(';').forEach(cookie => {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+      }
+    });
+  }
+  return cookieValue;
+}
+
+document.querySelector("form").addEventListener("submit", function(e){
+  e.preventDefault();
+
+  fetch("", {   // same URL
+    method: "POST",
+    headers: {
+      "X-CSRFToken": getCookie("csrftoken")
+    },
+    body: new FormData(this)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      window.open(
+        data.redirect_url,
+        "expenditure_print",
+        "width=900,height=650,left=200,top=100"
+      );
+
+      // optional clear form
+      this.reset();
+    } else {
+      alert(data.message || "Error saving");
+    }
+  })
+  .catch(err => {
+    alert("Error: " + err);
+  });
+});
+
+
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'ExpenditureView' %}";
+});
+
+</script>
+
+{% endblock %}

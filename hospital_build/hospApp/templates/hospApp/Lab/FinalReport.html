@@ -1,0 +1,640 @@
+{% load tz %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Final Investigation Report</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+
+  <style>
+    /* ===================== PAGE ===================== */
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+    }
+
+    /* ===== PAGE CONTAINER ===== */
+    .page-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 20px auto;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 12px 14px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ===== REPORT CONTENT (grows to push signature/QR down) ===== */
+    .report-content {
+      flex: 1 1 auto;
+    }
+
+    /* ===================== BARCODE ===================== */
+    .barcode-strip {
+      display: flex;
+      justify-content: space-between;
+      margin: 0 10px 0px 10px;
+    }
+
+    .barcode-left,
+    .barcode-right {
+      width: 140px;
+    }
+
+    .barcode-left svg,
+    .barcode-right svg {
+      width: 100%;
+      height: 30px;
+    }
+
+    /* ===================== FIELDSET ===================== */
+    .custom-fieldset {
+      background: #ffffff;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      padding: 8px;
+    }
+
+    legend {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #1e293b;
+      border-bottom: 1px solid #e2e8f0;
+      width: 100%;
+      padding-bottom: 3px;
+    }
+
+    /* ===================== PATIENT INFO ===================== */
+    .pi-info-grid {
+      display: grid;
+      grid-template-columns: 58% 42%;
+      gap: 2px 0px;
+      background: linear-gradient(to right, #e0f7fa, #f1f5f9);
+      padding: 8px 14px;
+      border-radius: 6px;
+    }
+
+    .pi-item {
+      display: grid;
+      grid-template-columns: 120px 10px auto;
+      font-size: 11.5px;
+      padding: 1px 0;
+    }
+
+    .pi-item.left {
+      grid-template-columns: 80px 10px auto;
+    }
+
+    .pi-item.right {
+      grid-template-columns: 120px 10px auto;
+    }
+
+    .pi-item.full-row {
+      grid-column: 1 / -1;
+      grid-template-columns: 80px 10px auto;
+    }
+
+    .pi-label {
+      font-weight: 600;
+      color: #1d4ed8;
+      white-space: nowrap;
+    }
+
+    .pi-colon {
+      text-align: center;
+      color: #64748b;
+    }
+
+    .pi-value {
+      font-weight: 500;
+      color: #111827;
+      font-size: 12px;
+      word-break: break-word;
+    }
+
+    /* ===================== TABLE ===================== */
+    #reportTable {
+      border-collapse: separate;
+      border-spacing: 0 6px;
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    #reportTable th {
+      text-align: left;
+      font-size: 0.75rem;
+      background: linear-gradient(to right, #c7d2fe, #e0e7ff);
+      padding: 2px 6px;
+      border: 1px solid #cbd5e1;
+    }
+
+    #reportTable td {
+      padding: 3px 5px;
+      font-size: 0.74rem;
+    }
+
+    #reportTable tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+
+    .table-secondary {
+      background: linear-gradient(to right, #dbeafe, #eff6ff);
+      font-weight: 700;
+    }
+
+    /* ===================== NORMAL RANGE ===================== */
+    .normal-range span {
+      display: inline-block;
+      min-width: 160px;
+      max-width: 200px;
+      font-family: monospace;
+      white-space: pre-line;
+    }
+
+    /* ===================== QR CODE ===================== */
+    .qr-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 12px;
+      padding-bottom: 10px;
+    }
+
+    #qrcode {
+      width: 70px;
+      height: 70px;
+    }
+
+    .end-report {
+      text-align: center;
+      margin-top: 8px;
+      font-size: 0.75rem;
+    }
+
+    .end-report::before {
+      content: "";
+      display: block;
+      border-top: 1px dashed #999;
+      margin-bottom: 5px;
+    }
+
+    /* ===================== MISC ===================== */
+    .sub-header {
+      color: #1e3a8a;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.3px;
+      background: linear-gradient(to right, #e0ecff, #f8fbff);
+      border-bottom: 1px solid #cbd5e1;
+      padding: 4px 8px;
+    }
+
+    #reportTable td:nth-child(2) {
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .result-value {
+      display: inline-block;
+      min-width: 100px;
+      font-weight: bold;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid #c5d6e5;
+      padding-bottom: 6px;
+      margin-bottom: 5px;
+      height: 100px;
+    }
+
+    .header-center {
+      flex: 1;
+      text-align: center;
+    }
+
+    .header-center h2 {
+      margin: 0;
+      font-size: 19px;
+      color: #1b4d89;
+      text-transform: uppercase;
+    }
+
+    .header-center h4 {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: #444;
+    }
+
+    .report-title {
+      text-align: center;
+      margin: 0;
+      font-size: 13px;
+      color: green;
+      text-transform: uppercase;
+    }
+
+    .result-abnormal {
+      color: #dc2626;
+      font-weight: bold;
+    }
+
+    body {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /* ===================== RADIOLOGY ===================== */
+    .radiology-findings {
+      white-space: pre-line;
+      line-height: 2;
+      font-size: 0.82rem;
+      padding: 14px 20px;
+      text-align: left;
+    }
+
+    .radiology-findings p {
+      margin: 2px 0;
+      padding: 0;
+    }
+
+    .radiology-findings p:empty,
+    .radiology-findings p br {
+      display: none;
+      line-height: 0;
+    }
+
+    .radiology-impression {
+      padding: 10px 20px;
+      border-top: 1px solid #e2e8f0;
+      margin-top: 10px;
+    }
+
+    .radiology-impression strong {
+      color: #1e3a8a;
+      font-size: 0.82rem;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .radiology-impression span {
+      white-space: pre-wrap;
+      line-height: 2;
+      font-size: 0.82rem;
+    }
+
+    .inv-heading-block {
+      text-align: center;
+      color: green;
+      font-weight: bold;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed #cbd5e1;
+      margin-bottom: 12px;
+    }
+
+    /* ===================== BOTTOM SIGNATURE ===================== */
+    .bottom-signature {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 30px;
+      padding: 10px 14px 0 14px;
+      border-top: 1px dashed #cbd5e1;
+    }
+
+    .sign-left,
+    .sign-right {
+      width: 45%;
+    }
+
+    .sign-right {
+      text-align: right;
+    }
+
+    /* ===================== PRINT ===================== */
+    @media print {
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: white;
+      }
+
+      @page {
+        margin: 8mm;
+      }
+
+      .page-container {
+        box-shadow: none;
+        border: none;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        /* NO position:fixed anywhere — flex column naturally pushes
+           bottom-signature and qr-container to end of last page */
+      }
+
+      .report-content {
+        flex: 1 1 auto;
+      }
+
+      /* Allow tables to break across pages naturally */
+      table,
+      tbody,
+      tr,
+      td {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
+
+      /* Protect small blocks from breaking mid-element */
+      .qr-container,
+      .bottom-signature,
+      .inv-heading-block {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      /* Radiology flows naturally */
+      .radiology-findings,
+      .radiology-impression {
+        page-break-inside: auto;
+        break-inside: auto;
+      }
+
+      /* Tighter table spacing in print */
+      #reportTable {
+        border-spacing: 0 2px;
+      }
+
+      .bottom-signature {
+        margin-top: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-container">
+
+    <!-- ===== REPORT CONTENT ===== -->
+    <div class="report-content">
+
+      <!-- HOSPITAL HEADER -->
+      <div class="header">
+        <div class="header-center">
+          <h2>{{ hospital.name }}</h2>
+          <h4>{{ hospital.address }}</h4>
+        </div>
+      </div>
+
+      <!-- BARCODE -->
+      <div class="barcode-strip">
+        <div class="barcode-left"><svg id="uhid-barcode"></svg></div>
+        <div class="barcode-right"><svg id="bill-barcode"></svg></div>
+      </div>
+
+      <!-- PATIENT INFO -->
+      <fieldset class="custom-fieldset">
+        {% if reports %}
+        <div class="pi-info-grid">
+
+          <div class="pi-item left">
+            <span class="pi-label">PT NAME</span>
+            <span class="pi-colon">:</span>
+            <span class="pi-value">
+              {{ reports.0.patname|upper }} /
+              {{ reports.0.age }} {{ reports.0.agetype|upper }} / {{ reports.0.gender|upper }}
+            </span>
+          </div>
+
+          <div class="pi-item right">
+            <span class="pi-label">UHID</span>
+            <span class="pi-colon">:</span>
+            <span class="pi-value">{{ reports.0.uhid }}</span>
+          </div>
+
+          <div class="pi-item left">
+            <span class="pi-label">BILL NO</span>
+            <span class="pi-colon">:</span>
+            <span class="pi-value">{{ reports.0.billno }}</span>
+          </div>
+
+          <div class="pi-item right">
+            <span class="pi-label">COLLECTION TIME</span>
+            <span class="pi-colon">:</span>
+            <span class="pi-value">{{ investigation_time|localtime|date:"d-m-Y h:i:s A" }}</span>
+          </div>
+
+          <div class="pi-item left">
+            <span class="pi-label">PHONE</span>
+            <span class="pi-colon">:</span>
+            <span class="pi-value">{{ pat.phone }}</span>
+          </div>
+
+          <div class="pi-item right">
+            <span class="pi-label">REPORT TIME</span>
+            <span class="pi-colon">:</span>
+            <span class="pi-value">{{ reports.0.generateddate|localtime|date:"d-m-Y h:i:s A" }}</span>
+          </div>
+
+          <div class="pi-item full-row">
+            <span class="pi-label">DOCTOR</span>
+            <span class="pi-colon">:</span>
+            <span class="pi-value">
+              {{ doctor_name|upper }}&nbsp;/&nbsp;{{ speciality.speciality|upper }}
+              <div style="margin-left:5px;">{{ qualification|upper }}</div>
+            </span>
+          </div>
+
+        </div>
+        {% endif %}
+      </fieldset>
+
+      <!-- REPORT TABLE -->
+      <fieldset class="custom-fieldset" style="margin-top:8px;">
+
+        <div class="inv-heading-block">
+          <p class="report-title">{{ inv.department.department }}</p>
+          <span style="font-size:0.9rem; letter-spacing:1px;">{{ inv_name|upper }}</span>
+        </div>
+
+        <table id="reportTable">
+          <thead>
+            <tr>
+              {% if is_radiology %}
+              <th style="width:100%">Findings</th>
+              {% else %}
+              <th style="width:25%">Test</th>
+              <th style="width:{% if has_normal %}45%{% else %}75%{% endif %}">Result</th>
+              {% if has_normal %}<th style="width:35%">Normal Range</th>{% endif %}
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+
+            {% if is_radiology %}
+            {% for r in reports %}
+            {% if r.test == "RADIOLOGY" %}
+            <tr>
+              <td class="radiology-findings">{{ r.result|safe }}</td>
+            </tr>
+            {% if r.impression %}
+            <tr>
+              <td class="radiology-impression">
+                <strong>Impression :</strong>
+                <span>{{ r.impression|linebreaksbr }}</span>
+              </td>
+            </tr>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+
+            {% else %}
+            {% for r in reports %}
+            {% ifchanged r.header %}
+            <tr class="table-secondary">
+              <td colspan="4" class="sub-header">{{ r.header }}</td>
+            </tr>
+            {% endifchanged %}
+
+            <tr>
+              <td><b>{{ r.test }}</b></td>
+              {% if r.normal %}
+              <td class="result-cell">
+                <span class="result-value {% if r.is_check %}result-abnormal{% endif %}">
+                  {{ r.result }} {% if r.units %}{{ r.units }}{% endif %}
+                </span>
+              </td>
+              {% if has_normal %}
+              <td class="normal-range"><span>{{ r.normal|linebreaksbr }}</span></td>
+              {% endif %}
+              {% else %}
+              <td class="result-cell" colspan="{% if has_normal %}1{% else %}2{% endif %}">
+                <span class="result-value {% if r.is_check %}result-abnormal{% endif %}">
+                  {{ r.result|linebreaksbr }}{% if r.units %} {{ r.units }}{% endif %}
+                </span>
+              </td>
+              {% if has_normal %}<td class="normal-range"></td>{% endif %}
+              {% endif %}
+            </tr>
+            {% endfor %}
+
+            {% if reports and reports.0.method %}
+            <tr>
+              <td colspan="4"><b>Method : {{ reports.0.method }}</b></td>
+            </tr>
+            {% endif %}
+            {% endif %}
+
+          </tbody>
+        </table>
+
+      </fieldset>
+      <!-- /report fieldset -->
+
+    </div>
+    <!-- /report-content -->
+
+    <!-- ===================== BOTTOM SIGNATURE =====================
+         Placed OUTSIDE .report-content so flex column pushes it
+         to the bottom of the page (both screen and print).
+         On print with overflow: naturally lands at end of last page.
+    ============================================================== -->
+    <div class="bottom-signature">
+      <div class="sign-left">
+        <strong>Lab In-charge</strong>
+      </div>
+    
+        <div class="sign-right">
+    {% if signature_url %}
+        <img src="{{ signature_url }}"
+             style="height:60px;max-width:180px;display:block;margin-left:auto;">
+
+        {% if sign_name %}
+        <div style="margin-top:4px;font-size:12px;font-weight:bold;">
+            {{ sign_name }}
+        </div>
+        {% endif %}
+
+        {% if sign_regno %}
+        <div style="font-size:11px;">
+            {{ sign_regno }}
+        </div>
+        {% endif %}
+    {% endif %}
+
+    <div style="margin-top:6px;font-size:11px;color:#374151;">
+        Authorised Signatory
+    </div>
+
+      </div>
+    </div>
+
+    <!-- ===================== QR CODE ===================== -->
+    <div class="qr-container">
+      <div id="qrcode"></div>
+      <div class="end-report">
+        <span>********** END OF REPORT **********</span>
+      </div>
+    </div>
+
+  </div>
+  <!-- /page-container -->
+
+  <!-- RESTRICTION SCRIPT -->
+  <script>
+    document.addEventListener('contextmenu', function (e) { e.preventDefault(); return false; });
+    document.addEventListener('copy', function (e) { e.preventDefault(); return false; });
+    document.addEventListener('cut', function (e) { e.preventDefault(); return false; });
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey && ['a', 'c', 'x', 'u', 's'].includes(e.key.toLowerCase())) { e.preventDefault(); return false; }
+      if (e.key === 'F12') { e.preventDefault(); return false; }
+      if (e.ctrlKey && e.shiftKey && e.key === 'I') { e.preventDefault(); return false; }
+    });
+    document.addEventListener('selectstart', function (e) { e.preventDefault(); return false; });
+    document.addEventListener('dragstart', function (e) { e.preventDefault(); return false; });
+  </script>
+
+  <!-- BARCODE + QR SCRIPT -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      JsBarcode("#uhid-barcode", "{{ reports.0.uhid }}", {
+        format: "CODE128", width: 0.8, height: 25, displayValue: false, margin: 0
+      });
+      JsBarcode("#bill-barcode", "{{ reports.0.billno }}", {
+        format: "CODE128", width: 0.8, height: 25, displayValue: false, margin: 0
+      });
+    });
+
+    new QRCode(document.getElementById("qrcode"), {
+      text: "{{ reports.0.billno }}", width: 50, height: 50
+    });
+  </script>
+
+</body>
+
+</html>

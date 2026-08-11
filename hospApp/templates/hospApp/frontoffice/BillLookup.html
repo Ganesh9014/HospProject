@@ -1,0 +1,219 @@
+{% extends 'hospApp/home.html' %}
+{% block content %}
+
+<div class="card form-card">
+
+    <div class="form-header py-2">
+      <h6 class="mb-0">Bill Search</h6>
+    </div>
+
+    <div class="card-body">
+
+      <!-- SEARCH FORM -->
+      <form method="get" class="row g-2 mb-3">
+
+  <input type="hidden" name="source" value="{{ request.GET.source }}">
+  <input type="hidden" name="type" value="{{ bill_type }}">
+
+  <!-- ALWAYS SHOW -->
+  <div class="col-md-2">
+    <label class="form-label">From Date</label>
+    <input type="date" name="from_date" class="form-control"
+           value="{{ from_date }}" onblur="validateDate(this)">
+  </div>
+
+  <div class="col-md-2">
+    <label class="form-label">To Date</label>
+    <input type="date" name="to_date" class="form-control"
+           value="{{ to_date }}" onblur="validateDate(this)">
+  </div>
+
+  <!-- SHOW ONLY IF NOT EXPENDITURE -->
+  {% if bill_type != "EXPENDITURE" %}
+  <div class="col-md-2">
+    <label class="form-label">UHID</label>
+    <input type="text" name="uhid" class="form-control"
+           value="{{ request.GET.uhid }}">
+  </div>
+
+  <div class="col-md-3">
+    <label class="form-label">Patient Name</label>
+    <input type="text" name="patient" class="form-control"
+           value="{{ request.GET.patient }}">
+  </div>
+  {% endif %}
+
+  <div class="col-md-2 d-flex align-items-end">
+    <button class="btn btn-primary btn-sm">Search</button>
+  </div>
+
+</form>
+
+      <!-- ERROR MESSAGE -->
+      {% if error %}
+      <div class="alert alert-danger py-2">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <!-- RESULT TABLE -->
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+          <thead class="table-light">
+  {% if bill_type == "EXPENDITURE" %}
+    <tr>
+      <th>Bill No</th>
+      <th>Expenditure</th>
+      <th>Amount</th>
+      <th>Towards</th>
+      <th>Date</th>
+    </tr>
+  {% else %}
+    <tr>
+      <th>Bill No</th>
+      <th>UHID</th>
+      <th>Patient Name</th>
+      <th>Total</th>
+      <th>Paid</th>
+      <th>Concession</th>
+      <th>Due</th>
+    </tr>
+  {% endif %}
+</thead>
+         <tbody>
+{% for row in results %}
+<tr class="clickable-row" data-billno="{{ row.billno }}">
+
+  {% if bill_type == "EXPENDITURE" %}
+    <td>{{ row.billno }}</td>
+    <td>{{ row.patient }}</td>
+    <td>{{ row.total }}</td>
+    <td>{{ row.towards }}</td>
+    <td>{{ row.date }}</td>
+  {% else %}
+    <td>{{ row.billno }}</td>
+    <td>{{ row.uhid }}</td>
+    <td>{{ row.patient }}</td>
+    <td>{{ row.total }}</td>
+    <td>{{ row.paid }}</td>
+    <td>{{ row.concession }}</td>
+    <td>{{ row.due }}</td>
+  {% endif %}
+
+</tr>
+{% empty %}
+<tr>
+  <td colspan="7" class="text-center text-muted">
+    No records found
+  </td>
+</tr>
+{% endfor %}
+</tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover {
+  background-color: #f5f5f5;
+}
+.table th, .table td {
+  text-align: left;
+}
+</style>
+
+{% if error %}
+<script>
+  alert("{{ error }}");
+
+  // ✅ IST date
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istToday  = new Date(Date.now() + istOffset).toISOString().split('T')[0];
+
+  const params = new URLSearchParams(window.location.search);
+  params.set("from_date", istToday);
+  params.set("to_date",   istToday);
+  params.delete("error");
+  window.location.search = params.toString();
+</script>
+{% endif %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const params = new URLSearchParams(window.location.search);
+  const source = params.get("source");
+  const type = params.get("type");
+
+  document.querySelector("tbody").addEventListener("click", function (e) {
+    const row = e.target.closest(".clickable-row");
+    if (!row) return;
+
+    const billno = row.getAttribute("data-billno");
+    if (!billno) return;
+
+    let redirectUrl = "";
+
+    if (source === "opcancel") {
+      redirectUrl = "{% url 'CancellationView' %}?billno=" + billno + "&type=" + type;
+    } else if(source === "print") {
+      redirectUrl = "{% url 'printpages' %}?billno=" + billno + "&type=" + type;
+    }     
+    else {
+      redirectUrl = "{% url 'paymentmodeupdate' %}?billno=" + billno + "&type=" + type;
+    }
+
+    window.location.href = redirectUrl;
+  });
+
+});
+</script>
+
+
+
+<script>
+
+  
+function validateDate(input) {
+  if (!input.value) return;
+
+  const enteredDate = new Date(input.value);
+
+  // ✅ IST today
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow    = new Date(Date.now() + istOffset);
+  const istToday  = new Date(istNow.toISOString().split('T')[0]);
+  const istStr    = istNow.toISOString().split('T')[0];
+
+  const year = enteredDate.getFullYear();
+
+  if (year < 2000) {
+    alert("Invalid year entered.");
+    input.value = istStr;
+    return;
+  }
+
+  if (enteredDate > istToday) {
+    alert("Future dates are not allowed.");
+    input.value = istStr;
+    return;
+  }
+}
+
+</script>
+
+<script>
+
+window.addEventListener("pageshow", function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+  .menu-title {
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 6px;
+  }
+  .submenu-box {
+    display: none;
+    margin-left: 15px;
+  }
+  .assign-pages-box {
+  max-height: 350px;   /* adjust height as needed */
+  overflow-y: auto;
+}
+</style>
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Roles Page</h5>
+    </div>
+
+    <div class="form-body">
+      <form method="post" autocomplete="off">
+        {% csrf_token %}
+
+        {% if messages %}
+          <script>
+            {% for msg in messages %}
+              alert("{{ msg|escapejs }}");
+            {% endfor %}
+          </script>
+        {% endif %}
+
+        <!-- OPERATION -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label><strong>Select Operation:</strong></label><br>
+            <label>
+              <input type="radio" name="operation_radio" value="add" checked> Add
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation_radio" value="update"> Update
+            </label>
+          </div>
+        </div>
+
+        <!-- ROLE -->
+        <!-- ROLE + BUTTONS in one line -->
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <label class="col-form-label fw-bold mb-0">Role</label>
+
+  <input type="text" class="form-control w-auto" name="rolename"
+         id="rolename_input" placeholder="Enter Role Name" maxlength="50">
+
+  <select class="form-select w-auto" name="role_id"
+          id="role_select" style="display:none;">
+    <option value="">Select Role</option>
+    {% for role in roles %}
+      <option value="{{ role.roleid }}">{{ role.rolename }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit" class="btn btn-primary">Save</button>
+ <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+</div>
+
+        <div class="row">
+
+          <!-- ASSIGN PAGES -->
+          <!-- ASSIGN PAGES -->
+<div class="col-md-6">
+  <div class="card p-2 mb-3 assign-pages-box">
+    <h6>Assign Pages</h6>
+
+    {% for menu in admin_menus %}
+      <div class="menu-title"
+           onclick="toggleMenu('menu_{{ menu.id }}')">
+        ▶ {{ menu.name }}
+      </div>
+
+      <div id="menu_{{ menu.id }}" class="submenu-box">
+        {% for sub in menu.sublinks.all %}
+          <div class="form-check ms-3">
+            <input type="checkbox"
+                   name="pages"
+                   value="{{ sub.id }}"
+                   id="page_{{ sub.id }}"
+                   class="form-check-input">
+            <label for="page_{{ sub.id }}"
+                   class="form-check-label">
+              {{ sub.name }}
+            </label>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+          <!-- ASSIGN HEADER BUTTONS -->
+          <div class="col-md-6">
+            <div class="card p-2 mb-3 assign-pages-box">
+              <h6>Assign Header Buttons</h6>
+
+              {% for menu in admin_menus %}
+                <div class="menu-title"
+                     onclick="toggleMenu('header_menu_{{ menu.id }}')">
+                  ▶ {{ menu.name }}
+                </div>
+
+                <div id="header_menu_{{ menu.id }}" class="submenu-box">
+                  {% for sub in menu.sublinks.all %}
+                    <div class="form-check ms-3">
+                      <input type="checkbox"
+                             name="header_pages"
+                             value="{{ sub.id }}"
+                             id="header_page_{{ sub.id }}"
+                             class="form-check-input">
+                      <label for="header_page_{{ sub.id }}"
+                             class="form-check-label">
+                        {{ sub.name }}
+                      </label>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- JS -->
+<script>
+  
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'RolesPage' %}";
+});
+</script>
+<script>
+  document.querySelector("form").addEventListener("submit", function (e) {
+    const selectedPages = document.querySelectorAll('input[name="pages"]:checked').length;
+    const selectedHeaderPages = document.querySelectorAll('input[name="header_pages"]:checked').length;
+
+    if (selectedPages === 0 && selectedHeaderPages === 0) {
+      e.preventDefault();
+      alert("Please select at least one page or header button.");
+      return;
+    }
+  });
+</script>
+
+<script>
+  function toggleMenu(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  const roleData = JSON.parse('{{ role_data|escapejs }}');
+
+  const addRadio = document.querySelector('input[value="add"]');
+  const updateRadio = document.querySelector('input[value="update"]');
+  const roleInput = document.getElementById('rolename_input');
+  const roleSelect = document.getElementById('role_select');
+
+  function clearSelections() {
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  }
+
+  addRadio.addEventListener('change', () => {
+    roleInput.style.display = 'block';
+    roleSelect.style.display = 'none';
+    roleSelect.value = '';
+    clearSelections();
+  });
+
+  updateRadio.addEventListener('change', () => {
+    roleInput.style.display = 'none';
+    roleSelect.style.display = 'block';
+    clearSelections();
+  });
+
+  roleSelect.addEventListener('change', function () {
+    clearSelections();
+    const roleId = this.value;
+    if (!roleId || !roleData[roleId]) return;
+
+    roleData[roleId].pages.forEach(id => {
+      const cb = document.getElementById(`page_${id}`);
+      if (cb) cb.checked = true;
+    });
+
+    roleData[roleId].header_pages.forEach(id => {
+      const cb = document.getElementById(`header_page_${id}`);
+      if (cb) cb.checked = true;
+    });
+  });
+
+  
+</script>
+
+{% endblock %}

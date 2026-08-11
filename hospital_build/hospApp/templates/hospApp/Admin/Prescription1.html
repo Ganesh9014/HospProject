@@ -1,0 +1,56 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<h3>Handwritten Text Extraction</h3>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<form id="prescriptionForm" method="POST" action="{% url 'create_prescription' %}">
+    {% csrf_token %}
+
+    <canvas id="prescriptionCanvas" width="1200" height="800"
+            style="border:1px solid #000; background:#fff;"></canvas>
+
+    <input type="hidden" id="imageData" name="image">
+
+    <br><br>
+
+    <label>Patient Name</label>
+    <input type="text" name="patient_name" class="form-control" required>
+
+    <br>
+
+    <button type="submit" class="btn btn-success">Save</button>
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<script>
+    const canvas = document.getElementById("prescriptionCanvas");
+
+    const signaturePad = new SignaturePad(canvas, {
+        minWidth: 1,
+        maxWidth: 3,
+        penColor: "black",
+        backgroundColor: "white"
+    });
+
+    // Before form submission
+    document.getElementById("prescriptionForm").addEventListener("submit", function (e) {
+        if (signaturePad.isEmpty()) {
+            alert("Please write something before saving.");
+            e.preventDefault();
+            return;
+        }
+
+        const dataURL = signaturePad.toDataURL("image/png");
+        document.getElementById("imageData").value = dataURL;
+    });
+</script>
+
+{% endblock %}

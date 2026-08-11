@@ -1,0 +1,332 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Payee Master</h5>
+    </div>
+
+    <div class="form-body">
+      <form method="POST" id="bankForm" autocomplete="off">
+        {% csrf_token %}
+
+          {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+        <!-- Operation Selection -->
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label>
+              <input type="radio" name="operation" value="add" onchange="window.location.href='?operation=add';">
+              Add
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="modify" onchange="window.location.href='?operation=modify';">
+              Modify
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="delete" onchange="window.location.href='?operation=delete';">
+              Delete
+            </label>
+          </div>
+        </div>
+
+        <!-- Dynamic Fields -->
+        <div id="fields-section" style="display:none;">
+          <div class="row">
+            <div id="bank-field" class="col-md-6 col-lg-4 mb-3">
+              <label for="name">Enter Payee Name:</label>
+              <input type="text" name="name" id="name" class="form-control"
+                     placeholder="Enter Payee Name" value="{{ search_term }}" maxlength="20">
+            </div>
+
+            <div id="search-btn" class="col-md-6 col-lg-4 mb-3" style="display:none;">
+              <label>&nbsp;</label><br>
+              <button type="button" class="btn btn-info px-4" onclick="doBankSearch()">Search</button>
+            </div>
+
+            <div id="action-btn" class="col-md-6 col-lg-4 mb-3" style="display:none;">
+              <label>&nbsp;</label><br>
+              <button type="submit" class="btn btn-primary px-4" id="submit-btn">Submit</button>
+               <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" name="search_term" id="search_term" value="{{ search_term|default:'' }}"/>
+
+        <!-- Table Section -->
+        <div id="table-section" class="row" style="display:none;">
+          <div class="col-6">
+            <h6 class="mb-1"><strong>Existing Banks</strong></h6>
+            <div class="table-responsive">
+              <table class="table table-bordered table-s">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 10%;">S.No</th>
+                    <th>Bank Name</th>
+                    {% if operation == 'modify' %}
+                      <th style="width: 25%;">Modify</th>
+                    {% elif operation == 'delete' %}
+                      <th style="width:25%;">Delete</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if banks %}
+                    {% for b in banks %}
+                    <tr id="row-{{ b.pk }}">
+                      <td>{{ forloop.counter }}</td>
+                      <td>
+                        <input type="text" name="name_{{ b.pk }}" id="name_{{ b.pk }}"
+                               class="form-control form-control-sm"
+                               value="{{ b.name }}" maxlength="20"
+                               {% if operation != 'modify' %}disabled{% endif %}>
+                      </td>
+
+                      {% if operation == 'modify' %}
+                        <td class="text-center">
+                         
+                          <button type="button" class="btn1 btn-sm btn1-primary edit-btn" data-id="{{ b.pk }}" id="edit-{{ b.pk }}">Edit</button>
+                          <span id="update-cancel-{{ b.pk }}" style="display:none;">
+                            
+                                                        <button type="submit" class="btn1 btn-sm btn-success update-btn" name="update_btn" data-id="{{ b.pk }}">Update</button>
+                            &nbsp;|&nbsp;
+                            
+                            <button type="button" class="btn1 btn-sm btn-outline-secondary cancel-link" data-id="{{ b.pk }}">Cancel</button>
+
+                          </span>
+                        </td>
+                      {% elif operation == 'delete' %}
+                        <td class="text-center">
+                         
+
+ <button type="submit" class="btn1 btn-sm btn-danger-delete" name="delete_btn" data-id="{{ b.pk }}">Delete</button>
+
+                        </td>
+                      {% endif %}
+                    </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="{% if operation in 'modify delete' %}3{% else %}2{% endif %}" class="text-center">
+                        {% if operation == 'add' %}
+                          No banks found.
+                        {% elif operation == 'modify' %}
+                          {% if searched %}
+                            No matching banks found.
+                          {% else %}
+                            Enter a bank name and click Search.
+                          {% endif %}
+                        {% elif operation == 'delete' %}
+                          No banks found to delete.
+                        {% else %}
+                          Select an operation to show records.
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" name="update_id" id="update_id" value="" />
+      </form>
+
+      {% if not operation %}
+        <form method="POST">
+          {% csrf_token %}
+          <div class="row">
+            <div id="bank-field" class="col-md-6 col-lg-4">
+              <label for="name">Bank Name:</label>
+              <input type="text" name="name" id="name" class="form-control" maxlength="20">
+            </div>
+            <div id="action-btn" class="col-md-6 col-lg-4 mt-3">
+              <button type="submit" class="btn btn-primary">Submit</button>
+              
+            </div>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+<script>
+ 
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'BankMaster' %}";
+});
+
+  function doBankSearch() {
+    var name = document.getElementById('name').value || '';
+    var op = document.querySelector('input[name="operation"]:checked');
+    var operation = op ? op.value : 'modify';
+    window.location.href = '?operation=' + encodeURIComponent(operation) + '&search=' + encodeURIComponent(name);
+  }
+
+  function toggleFields(action) {
+    const bankField = document.getElementById('bank-field');
+    const searchBtn = document.getElementById('search-btn');
+    const actionBtn = document.getElementById('action-btn');
+    const fieldSection = document.getElementById('fields-section');
+    const tableSection = document.getElementById('table-section');
+    const submitBtn = document.getElementById('submit-btn');
+
+    fieldSection.style.display = 'block';
+    bankField.style.display = 'none';
+    searchBtn.style.display = 'none';
+    actionBtn.style.display = 'none';
+    tableSection.style.display = 'none';
+
+    if (action === 'add') {
+      bankField.style.display = 'block';
+      actionBtn.style.display = 'block';
+      submitBtn.innerText = 'Add';
+      tableSection.style.display = 'block';
+
+    } else if (action === 'modify') {
+      bankField.style.display = 'block';
+      searchBtn.style.display = 'block';
+      submitBtn.innerText = 'Modify';
+      tableSection.style.display = 'block';
+
+    } else if (action === 'delete') {
+      bankField.style.display = 'block';
+      searchBtn.style.display = 'block';
+      submitBtn.innerText = 'Delete';
+      tableSection.style.display = 'block';
+
+    } else {
+      fieldSection.style.display = 'none';
+      tableSection.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var currentOp = "{{ operation|default:'' }}";
+    if (currentOp) {
+      var ele = document.querySelector('input[name="operation"][value="' + currentOp + '"]');
+      if (ele) ele.checked = true;
+    }
+    toggleFields(currentOp);
+
+    document.querySelectorAll('.edit-btn').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        enterEditMode(this.dataset.id);
+      });
+    });
+
+    document.querySelectorAll('.cancel-link').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        exitEditMode(this.dataset.id, true);
+      });
+    });
+
+    document.querySelectorAll('.update-btn').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var id = this.dataset.id;
+        document.getElementById('update_id').value = id;
+        document.getElementById('bankForm').submit();
+      });
+    });
+
+    document.querySelectorAll('.btn-danger-delete').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+
+    var id = this.dataset.id;
+    if (!confirm('Are you sure you want to delete this payee?')) return;
+
+    document.getElementById('update_id').value = id;
+
+    // ensure operation = delete
+    document.querySelector('input[name="operation"][value="delete"]').checked = true;
+
+    document.getElementById('bankForm').submit();
+  });
+});
+
+  });
+
+function disableAllRows() {
+  document.querySelectorAll('tr[id^="row-"]').forEach(tr => {
+    var pk = tr.id.slice(4);
+    var input = document.getElementById('name_' + pk);
+    if (input) {
+      input.disabled = true;
+      input.classList.remove('active-edit');
+      input.removeEventListener('focus', preventInputFocus);
+      input.blur();
+    }
+    var editLink = document.getElementById('edit-' + pk);
+    if (editLink) editLink.style.display = 'inline';
+    var updCan = document.getElementById('update-cancel-' + pk);
+    if (updCan) updCan.style.display = 'none';
+  });
+}
+
+function preventInputFocus(e) {
+  e.target.blur();
+}
+
+function enterEditMode(id) {
+  disableAllRows();
+  var input = document.getElementById('name_' + id);
+  if (input) {
+    input.disabled = false;
+    input.classList.add('active-edit');
+    input.dataset.original = input.value;
+    input.focus();
+  }
+  document.getElementById('edit-' + id).style.display = 'none';
+  document.getElementById('update-cancel-' + id).style.display = 'inline';
+
+  document.querySelectorAll('input.form-control.form-control-sm:not(.active-edit)').forEach(function(i) {
+    i.disabled = true;
+    i.addEventListener('focus', preventInputFocus);
+  });
+}
+
+function exitEditMode(id, restore) {
+  var input = document.getElementById('name_' + id);
+  if (input) {
+    if (restore && input.dataset.original !== undefined) {
+      input.value = input.dataset.original;
+    }
+    input.disabled = true;
+    input.classList.remove('active-edit');
+    input.removeEventListener('focus', preventInputFocus);
+  }
+  document.getElementById('edit-' + id).style.display = 'inline';
+  document.getElementById('update-cancel-' + id).style.display = 'none';
+
+  document.querySelectorAll('input.form-control.form-control-sm').forEach(function(i) {
+    i.disabled = true;
+    i.removeEventListener('focus', preventInputFocus);
+  });
+}
+
+document.addEventListener('focusin', function(e) {
+  if (!e.target.classList.contains('active-edit') &&
+      e.target.classList.contains('form-control-sm')) {
+    e.target.blur();
+  }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,453 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+<style>
+  
+</style>
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header"><h5>Doctor Master</h5></div>
+    <div class="form-body">
+      <form method="post" id="doctor-form" autocomplete="off">
+         <!-- Messages -->
+         {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="{{ operation }}">
+
+        <!-- Operation Radios -->
+        <div class="mb-3">
+          <label><strong>Select Option:</strong></label><br>
+          <label><input type="radio" name="operation_radio" value="add" {% if operation == 'add' %}checked{% endif %} onchange="window.location.href='?operation=add'"> Add</label>
+          <label class="ms-3"><input type="radio" name="operation_radio" value="modify" {% if operation == 'modify' %}checked{% endif %} onchange="window.location.href='?operation=modify'"> Modify</label>
+          <label class="ms-3"><input type="radio" name="operation_radio" value="delete" {% if operation == 'delete' %}checked{% endif %} onchange="window.location.href='?operation=delete'"> Delete</label>
+        </div>
+
+        {% if operation == 'add' %}
+        <div class="row mb-2">
+          <div class="col-md-3">
+            <label>Doctor Name:</label>
+            <input type="text" name="docname" class="form-control" maxlength="50" required>
+          </div>
+          <div class="col-md-3">
+            <label>Speciality:</label>
+            <select name="speciality" class="form-select" required>
+              <option value="">-- Select Speciality --</option>
+              {% for sp in specialities %}
+                <option value="{{ sp.sno }}">{{ sp.speciality }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label>Phone No:</label>
+            <input type="text"
+       name="phoneno"
+       class="form-control"
+       maxlength="10"
+       pattern="[6-9][0-9]{9}"
+       inputmode="numeric"
+       required>
+          </div>
+          <div class="col-md-3">
+            <label>Consultation Fee:</label>
+            <input type="number" name="consultfee" class="form-control" min="0" required oninput="if(this.value.length>5)this.value=this.value.slice(0,5);" onkeydown="['e','E','+','-'].includes(event.key) && event.preventDefault()">
+          </div>
+          <div class="col-md-3">
+            <label>IP Consultation Fee:</label>
+            <input type="number" name="ipconsultfee" class="form-control" min="0" oninput="if(this.value.length>5)this.value=this.value.slice(0,5);" onkeydown="['e','E','+','-'].includes(event.key) && event.preventDefault()">
+          </div>
+          <div class="col-md-3">
+            <label>Emergency Fee:</label>
+            <input type="number" name="emrfee" class="form-control" min="0" oninput="if(this.value.length>5)this.value=this.value.slice(0,5);" onkeydown="['e','E','+','-'].includes(event.key) && event.preventDefault()">
+          </div>
+          <div class="col-md-3">
+            <label>Revist Time:</label>
+            <input type="number" name="revisittime" class="form-control" min="0" oninput="if(this.value.length>2)this.value=this.value.slice(0,2);" onkeydown="['e','E','+','-'].includes(event.key) && event.preventDefault()">
+          </div>
+          <div class="col-md-3">
+            <label>Registration NO:</label>
+            <input type="text" name="regno" class="form-control" maxlength="15" required>
+          </div>
+          <div class="col-md-6">
+            <label>Qualification:</label>
+            <input type="text" name="qualification" class="form-control"  maxlength="50" required>
+          </div>
+          <div class="col-md-3 mt-3">
+            <button type="submit" class="btn btn-primary">Add</button>  
+            <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if operation == 'modify' or operation == 'delete' %}
+        <div class="row mb-2">
+          <div class="col-md-4">
+            <label>Doctor Name:</label>
+            <input type="text" name="docname" class="form-control" value="{{ request.GET.docname }}" maxlength="50">
+          </div>
+          <div class="col-md-2 mt-4">
+            <button type="submit" class="btn btn-secondary" name="search_btn">Search</button>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class='col-12'>
+          {% if doctors %}
+        <div class="table-responsive mt-3">
+          <table class="table table-bordered table-sm">
+            <thead class="table-light">
+              <tr>
+                {% if operation == 'modify' %}
+                  <th>Modify</th>
+                {% elif operation == 'delete' %}
+                  <th>Delete</th>
+                {% endif %}
+                <th>Code</th>
+                <th>Doctor Name</th>
+                <th>Qualification</th>
+                <th>Phone No</th>
+                <th>Consult Fee</th>
+                <th>IP Consult Fee</th>
+                {% if operation == 'modify' %}<th>Emergency Fee</th>{% endif %}
+                <th>Reg No</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in doctors %}
+              <tr>
+                {% if operation == 'modify' %}
+                <td class="text-center" width='10%'>
+                  <button type="button" class="btn1 edit-btn"
+                  data-id="{{ d.docid }}" id="edit-{{ d.docid }}">Edit</button>
+                  
+                  <span class="update-cancel" id="update-cancel-{{ d.docid }}" style="display:none;">
+                    <button type="button" class="btn1 btn-sm btn-success update-btn" data-id="{{ d.docid }}">Update</button>
+                    <button type="button" class="btn1 btn-sm btn-outline-secondary cancel-btn" data-id="{{ d.docid }}">Cancel</button>
+                  </span>
+                </td>
+                {% elif operation == 'delete' %}
+                <td>
+                  <button type="submit" class="btn1 btn-danger-delete delete-btn" name="delete_btn" value="{{ d.docid }}" onclick="return confirm('Delete {{ d.docname }}?')">Delete</button>
+                </td>
+                {% endif %}
+                <td>{{ d.docid }}</td>
+               <td width='15%'>
+  {% if operation == 'modify' %}
+    <input type="text" name="docname_{{ d.docid }}" 
+           value="{{ d.docname }}" 
+           data-original="{{ d.docname }}"
+           data-label="Doctor Name"
+           data-required="true"
+           class="form-control form-control-sm" 
+           disabled id="docname-{{ d.docid }}">
+  {% else %}
+    {{ d.docname }}
+  {% endif %}
+</td>
+<td>
+  {% if operation == 'modify' %}
+  <input type="text" name="qualification_{{ d.docid }}"
+         value="{{ d.qualification }}"
+         data-original="{{ d.qualification }}"
+         data-label="Qualification"
+         data-required="true"
+         class="form-control form-control-sm"
+         disabled id="qualification-{{ d.docid }}">
+  {% else %}
+    {{ d.qualification }}
+  {% endif %}
+</td>
+
+                <td>
+                  {% if operation == 'modify' %}
+                   <input type="text"
+       name="phoneno_{{ d.docid }}"
+       value="{{ d.phoneno }}"
+       data-original="{{ d.phoneno }}"
+       data-label="Phone No"
+       data-required="true"
+       maxlength="10"
+       pattern="[6-9][0-9]{9}"
+       inputmode="numeric"
+       class="form-control form-control-sm"
+       disabled
+       id="phoneno-{{ d.docid }}">
+                  {% else %}{{ d.phoneno }}{% endif %}
+                </td>
+                <td width='10%'>
+                  {% if operation == 'modify' %}
+                    <input type="number" name="consultfee_{{ d.docid }}" value="{{ d.consultfee }}" 
+                           data-original="{{ d.consultfee }}"
+                           data-label="Consult Fee"
+                           data-required="true"
+                           min="0" class="form-control form-control-sm" disabled id="consultfee-{{ d.docid }}" oninput="if(this.value.length>10)this.value=this.value.slice(0,10);">
+                  {% else %}{{ d.consultfee }}{% endif %}
+                </td>
+                <td width='10%'>
+                  {% if operation == 'modify' %}
+                    <input type="number" name="ipconsultfee_{{ d.docid }}" value="{{ d.ipconsultfee }}"
+                           data-original="{{ d.ipconsultfee }}"
+                           data-label="IP Consult Fee"
+                           min="0" class="form-control form-control-sm" disabled id="ipconsultfee-{{ d.docid }}" oninput="if(this.value.length>10)this.value=this.value.slice(0,10);">
+                  {% else %}{{ d.ipconsultfee }}{% endif %}
+                </td>
+                {% if operation == 'modify' %}
+                <td width='10%'>
+                  <input type="number" name="emrfee_{{ d.docid }}" value="{{ d.emrfee }}"
+                         data-original="{{ d.emrfee }}"
+                         data-label="Emergency Fee"
+                         min="0" class="form-control form-control-sm" disabled id="emrfee-{{ d.docid }}" oninput="if(this.value.length>10)this.value=this.value.slice(0,10);">
+                </td>
+                {% endif %}
+                
+<td>
+  {% if operation == 'modify' %}
+  <input type="text" name="regno_{{ d.docid }}"
+         value="{{ d.regno }}"
+         data-original="{{ d.regno }}"
+         data-label="Reg No"
+         data-required="true"
+         class="form-control form-control-sm"
+         disabled id="regno-{{ d.docid }}">
+  {% else %}
+    {{ d.regno }}
+  {% endif %}
+</td>
+
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+        </div>
+
+        <!-- Hidden field to carry update_btn value -->
+        <input type="hidden" name="update_btn" id="update_btn_value">
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+
+
+  
+const cancelBtn = document.getElementById("cancelBtn");
+
+if (cancelBtn) {
+    cancelBtn.addEventListener("click", function () {
+        window.location.href = "{% url 'DoctorMasterView' %}";
+    });
+}
+document.addEventListener('DOMContentLoaded', function () {
+
+    let activeRowId = null;
+    const originalValues = {};
+
+    function getFields(id) {
+        return [
+            'docname',
+            'phoneno',
+            'consultfee',
+            'ipconsultfee',
+            'emrfee',
+            'revisittime',
+            'regno',
+            'qualification'
+        ].map(f => document.getElementById(f + '-' + id))
+         .filter(el => el !== null);
+    }
+
+    function disableAllRows() {
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.style.display = 'inline';
+        });
+        document.querySelectorAll('.update-cancel').forEach(span => {
+            span.style.display = 'none';
+        });
+        document.querySelectorAll(
+            'input[id^="docname-"],' +
+            'input[id^="phoneno-"],' +
+            'input[id^="consultfee-"],' +
+            'input[id^="ipconsultfee-"],' +
+            'input[id^="emrfee-"],' +
+            'input[id^="revisittime-"],' +
+            'input[id^="regno-"],' +
+            'input[id^="qualification-"]'
+        ).forEach(input => {
+            input.disabled = true;
+        });
+        activeRowId = null;
+    }
+
+    function enterEditMode(id) {
+        disableAllRows();
+
+        originalValues[id] = {};
+        getFields(id).forEach(field => {
+            originalValues[id][field.id] = field.value;
+            field.disabled = false;
+        });
+
+        document.getElementById('edit-' + id).style.display = 'none';
+        document.getElementById('update-cancel-' + id).style.display = 'inline';
+
+        // ✅ Focus first field, cursor to end
+        const firstField = document.getElementById('docname-' + id);
+        if (firstField) {
+            firstField.focus();
+            const len = firstField.value.length;
+            firstField.setSelectionRange(len, len);
+        }
+
+        activeRowId = id;
+    }
+
+    function exitEditMode(id, restore = true) {
+        getFields(id).forEach(field => {
+            if (restore && originalValues[id]) {
+                field.value = originalValues[id][field.id];
+            }
+            field.disabled = true;
+        });
+        document.getElementById('edit-' + id).style.display = 'inline';
+        document.getElementById('update-cancel-' + id).style.display = 'none';
+        activeRowId = null;
+    }
+
+    // ── Edit ──────────────────────────────────────────────────────────────
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            enterEditMode(this.dataset.id);
+        });
+    });
+
+    // ── Cancel ────────────────────────────────────────────────────────────
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            exitEditMode(this.dataset.id, true);
+        });
+    });
+
+    // ── Update — validate required fields before submit ───────────────────
+    document.querySelectorAll('.update-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const id     = this.dataset.id;
+            const fields = getFields(id);
+
+            // Check only required fields (data-required="true")
+            for (const field of fields) {
+                if (field.dataset.required === 'true' && field.value.trim() === '') {
+                    const label = field.dataset.label || field.name;
+                    alert(label + ' cannot be empty.');
+                    field.focus();
+                    const len = field.value.length;
+                    field.setSelectionRange(len, len);
+                    return; // stop — don't submit
+                }
+            }
+
+            // All good — set hidden field and submit
+            document.getElementById('update_btn_value').value = id;
+            document.getElementById('doctor-form').submit();
+        });
+    });
+
+    // ── Click outside active row → cancel edit ────────────────────────────
+    document.addEventListener('click', function (e) {
+        if (!activeRowId) return;
+        const activeRow = document.getElementById('edit-' + activeRowId).closest('tr');
+        if (!activeRow.contains(e.target)) {
+            exitEditMode(activeRowId, true);
+        }
+    });
+
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const phoneFields = document.querySelectorAll(
+        'input[name="phoneno"], input[name^="phoneno_"]'
+    );
+
+    phoneFields.forEach(phoneField => {
+
+        phoneField.addEventListener("input", function () {
+            this.value = this.value
+                .replace(/[^0-9]/g, '')
+                .slice(0, 10);
+        });
+
+        phoneField.addEventListener("keydown", function (e) {
+            if (["e", "E", "+", "-", "."].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        let phoneAlertShown = false;
+
+        phoneField.addEventListener("focus", function () {
+            phoneAlertShown = false;
+        });
+
+        phoneField.addEventListener("blur", function () {
+            let phone = this.value.trim();
+            if (phone === "") return;
+            if (phoneAlertShown) return;
+
+            if (!/^[0-9]{10}$/.test(phone)) {
+                phoneAlertShown = true;
+                alert("❗ Phone number must be exactly 10 digits.");
+                this.value = "";
+                setTimeout(() => { this.focus(); }, 100);
+                return;
+            }
+            if (!/^[6-9]/.test(phone)) {
+                phoneAlertShown = true;
+                alert("❗ Enter valid Indian mobile number.");
+                this.value = "";
+                setTimeout(() => { this.focus(); }, 100);
+                return;
+            }
+            if (/^(\d)\1{9}$/.test(phone)) {
+                phoneAlertShown = true;
+                alert("❗ Invalid phone number.");
+                this.value = "";
+                setTimeout(() => { this.focus(); }, 100);
+                return;
+            }
+            const invalidNumbers = ["0123456789","1234567890","9876543210","0987654321"];
+            if (invalidNumbers.includes(phone)) {
+                phoneAlertShown = true;
+                alert("❗ Invalid phone number.");
+                this.value = "";
+                setTimeout(() => { this.focus(); }, 100);
+                return;
+            }
+        });
+    });
+});
+</script>
+
+<style>
+  .table th, .table td { text-align: left; }
+</style>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends 'hospApp/home.html' %}
+{% block content %}
+<div class="card p-4 shadow">
+  <h5>Home Page</h5>
+  <form method="POST">
+    {% csrf_token %}
+    <div>hii</div>
+   <div>Welcome to Home Page</div>
+  </form>
+</div>
+{% endblock %}

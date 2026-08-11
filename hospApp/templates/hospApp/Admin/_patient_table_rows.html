@@ -1,0 +1,42 @@
+<tbody>
+  {% for p in patients %}
+  <tr id="row-{{ p.id }}">
+
+    <td class="text-center">
+
+      {% if p.has_written_prescription %}
+          <a href="{% url 'edit_written_prescription' p.id %}"
+             class="btn btn-warning btn-sm">
+              ✏️ Edit Prescription
+          </a>
+
+      {% elif p.has_audio_prescription %}
+          <a href="{% url 'edit_audio_prescription' p.id %}"
+             class="btn btn-warning btn-sm">
+              🎤 Edit Audio
+          </a>
+
+      {% else %}
+          <button
+              class="btn btn-success btn-sm select-btn"
+              data-consult-id="{{ p.id }}"
+              {% comment %} data-url="{% url 'create_prescription' p.id %}" {% endcomment %}
+              data-name="{{ p.patname }}"
+              data-token="{{ p.tokenno }}"
+          >
+              Select
+          </button>
+      {% endif %}
+
+    </td>
+
+    <td>{{ p.uhid }}</td>
+    <td>{{ p.patname }}</td>
+    <td>{{ p.phone }}</td>
+    <td>{{ p.patid }}</td>
+    <td>{{ p.gender }}</td>
+    <td>{{ p.tokenno }}</td>
+
+  </tr>
+  {% endfor %}
+</tbody>

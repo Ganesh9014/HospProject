@@ -1,0 +1,938 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div>
+  <div class="card form-card">
+    <div class="form-header py-2">
+      <h6 class="mb-0">OP-Payments</h6>
+    </div>
+
+    <div class="card-body">
+    
+<form method="post"
+      action="{% url 'save_op_payment' %}"
+      id="OpPaymentForm"
+      data-due-field="#dueamt"
+      data-reason-field="#reason" autocomplete="off">
+
+        {% csrf_token %}
+
+        <!-- Row 1 -->
+        <fieldset class="custom-fieldset mb-3">
+  
+  <legend class="float-none w-auto px-1 fs-6 fw-bold">Patient Information</legend>
+
+  <div class="row mb-2">
+          <div class="col-md-4" style="display: none;">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Patient Type</label>
+              <select name="pattype" id="pattype"
+                      class="form-select form-select-sm">
+                <option selected>OP</option>
+                <option>Others</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="row mb-1">
+          
+<div class="col-md-4">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Towards</label>
+              <select name="Towards" id="Towards"
+                      class="form-select form-select-sm" required>
+                <option>--Select--</option>
+                <option>Consultation</option>
+                <option>Investigation</option>
+                <option>Procedures</option>
+              </select>
+              <button type="button" id="getBtn"
+                      class="btn btn-primary btn-sm"
+                      >
+                Get
+              </button>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="d-flex align-items-center gap-1">
+              <label class="form-label col-4 mb-0">UHID</label>
+              <input type="text" id="uhid" name="uhid"
+                     class="form-control form-control-sm"
+                     value="{{ patient.uhid|default:'' }}" required
+                      autocomplete=off>
+              
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Enter Bill No</label>
+             <input type="Number" id="billno"
+       name="billno"
+       class="form-control form-control-sm"
+       placeholder="Enter Bill No" onkeydown="['e','E','+','-'].includes(event.key) && event.preventDefault()">
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="row mb-1">
+          <div class="col-md-4">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Patient Name</label>
+              <input type="text" id="patname" name="patname"
+                     class="form-control form-control-sm"
+                     value="{{ patient.title }} {{ patient.patname }}"
+                     readonly>
+            </div>
+          </div>
+          <div class="col-md-4">
+  <div class="d-flex align-items-center">
+    
+    <label class="form-label col-4 mb-0">Age</label>
+
+    <input type="text" id="age"
+           class="form-control form-control-sm me-1"
+           value="{{ patient.age|default:'' }}" name="age"
+           readonly>
+
+    <select class="form-select form-select-sm me-1" disabled >
+      <option>{{ patient.agetype }}</option>
+    </select>
+
+    <input type="hidden" name="agetype"
+           value="{{ patient.agetype }}">
+
+    <!-- Gender -->
+    <input type="text" id="gender"
+           class="form-control form-control-sm"
+           value="{{ patient.gender|default:'' }}" name="gender"
+           readonly>
+  </div>
+</div>
+
+          <div class="col-md-4">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Phone No.</label>
+              <input type="text" id="phone"
+                     class="form-control form-control-sm"
+                     value="{{ patient.phone|default:'' }}" name="phone"
+                     readonly>
+            </div>
+          </div>
+
+          <div class="col-md-4" style="display: none;">
+            <div class="d-flex align-items-center" >
+              <label class="form-label col-4">OP Number</label>
+              <input type="text" id="opnumber"
+                     class="form-control form-control-sm"
+                     value="{{ patient.patid|default:'' }}"
+                     readonly>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="row mb-1">
+          <div class="col-md-4" style="display: none;">
+            <div class="d-flex align-items-center">
+              <label class="form-label col-4">Address</label>
+              <input type="text" id="address"
+                     class="form-control form-control-sm"
+                     value="{{ patient.address|default:'' }}" name="address"
+                     readonly>
+            </div>
+          </div>
+
+          
+        </div>
+
+        
+
+        
+
+
+
+
+</fieldset>
+<fieldset class="custom-fieldset mt-2">
+  <legend class="float-none w-auto px-1 fs-6 fw-bold">Due Bills Details</legend>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm text-center" id="dueBillsTable">
+  <thead class="table-light">
+    <tr>
+    
+      <th>Bill No</th>
+      <th>Created Dt</th>
+      <th>Total Amt</th>
+      <th>Paid Amt</th>
+      <th>Prev. Conc</th>
+      <th>Balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td colspan="7">No Data</td>
+    </tr>
+  </tbody>
+</table>
+
+  </div>
+</fieldset>
+
+<!-- ================= FIELDSET 1: Bill / Amount Summary ================= -->
+<fieldset class="custom-fieldset">
+  <legend class="float-none w-auto px-1 fs-6 fw-bold">Bill Amount Summary</legend>
+
+  <div class="row mb-1">
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Total</label>
+        <input type="text" id="total_amount" name="total_amount"
+               class="form-control form-control-sm"
+               value="0" readonly>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Prev Paid</label>
+        <input type="text" id="prev_paid" name="prev_paid"
+               class="form-control form-control-sm"
+               value="0" readonly>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Pre.Concession</label>
+        <input type="text" id="prev_concession" name="prev_concession"
+               class="form-control form-control-sm"
+               value="0" readonly>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-1">
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Balance</label>
+        <input type="text" id="balance" name="balance"
+               class="form-control form-control-sm"
+               value="0" readonly>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Pay Amount</label>
+        <input type="number" name="pay_amount"
+               class="form-control form-control-sm"
+               value="0" autocomplete="off" required inputmode="numeric"
+               pattern="[0-9]*" min=0
+               onkeydown="['e','E','+','-'].includes(event.key) && event.preventDefault()" readonly>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Due Amount</label>
+        <input type="number" name="dueamt" id="dueamt"
+               class="form-control form-control-sm"
+               value="0" autocomplete="off" required inputmode="numeric"
+               pattern="[0-9]*" min=0 readonly>
+      </div>
+    </div>
+  </div>
+</fieldset>
+
+
+<!-- ================= FIELDSET 2: Payment Entry Details ================= -->
+<fieldset class="custom-fieldset mt-2">
+  <legend class="float-none w-auto px-1 fs-6 fw-bold">Payment Details</legend>
+
+  <div class="row mb-1">
+
+    <!-- Cash Amount (always visible) -->
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Cash Amt</label>
+        <input type="number" id="cash_amt" name="cash_amt"
+               class="form-control form-control-sm" value="0" min="0"
+               onkeydown="['e','E','+','-'].includes(event.key)&&event.preventDefault()"
+               onblur="recalcOpSplit(true)">
+      </div>
+    </div>
+
+    <!-- + Online toggle -->
+    <div class="col-md-2 d-flex align-items-center">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="opOnlineChk"
+               onchange="toggleOpOnline(this.checked)">
+        <label class="form-check-label" for="opOnlineChk">+ Online</label>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Online Mode / Online Amt / Reference — own row -->
+  <div class="row mb-1">
+
+    <!-- Online Mode -->
+    <div class="col-md-4" id="opOnlineModeDiv" style="display:none;">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Online Mode</label>
+        <select id="op_online_mode" name="online_mode"
+                class="form-select form-select-sm"
+                onchange="updateOpOnlineLabel(); recalcOpSplit()">
+          <option value="">-- Select --</option>
+          {% for p in payee_list %}
+            {% if p.name|lower != "cash" %}
+              <option value="{{ p.name }}">{{ p.name }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Online Amount -->
+    <div class="col-md-4" id="opOnlineAmtDiv" style="display:none;">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Online Amt</label>
+        <input type="number" id="op_online_amt" name="online_amt"
+               class="form-control form-control-sm" value="0" min="0"
+               onkeydown="['e','E','+','-'].includes(event.key)&&event.preventDefault()"
+               onblur="recalcOpSplit(true)">
+      </div>
+    </div>
+
+    <!-- Online Details / Reference -->
+    <div class="col-md-4" id="opOnlineDetailsDiv" style="display:none;">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4" id="opOnlineDetailsLabel">Reference</label>
+        <input type="text" id="op_online_details" name="online_details"
+               class="form-control form-control-sm" maxlength="100">
+      </div>
+    </div>
+
+  </div>
+
+  <div class="row mb-2">
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Concession</label>
+        <input type="number" name="concession" id="concession"
+               class="form-control form-control-sm"
+               value="0" autocomplete="off" inputmode="numeric"
+               pattern="[0-9]*" min=0
+               onkeydown="['e','E','+','-'].includes(event.key) && event.preventDefault()"
+               onblur="recalcOpSplit(true)">
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="d-flex align-items-center">
+        <label class="form-label col-4">Conces Reason</label>
+        <input type="text" name="concession_reason" id="reason"
+               class="form-control form-control-sm" maxlength="50">
+      </div>
+    </div>
+  </div>
+
+  <!-- Usercode + buttons stay here -->
+</fieldset>
+
+        <!-- Bottom -->
+        <div class="row align-items-center mt-2">
+          <div class="col-md-2">
+            <input type="password" id="usercode"
+                   name="usercode"
+                   class="form-control form-control-sm"
+                   style="background-color: yellow;"
+                   placeholder="Enter User Code"
+                   required>
+          </div>
+
+          <div class="col-md-6 text-center">
+            <button type="submit"
+                    class="btn btn-success btn-sm me-2">
+              💾 Save
+            </button>
+            <button type="button"
+                    class="btn btn-secondary btn-sm"
+                    id="cancelBtn">
+              Cancel
+            </button>
+          </div>
+
+          <div class="col-md-6"></div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Styles -->
+<style>
+.form-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0;
+}
+
+.form-control, .form-select {
+  padding: .4rem .5rem;
+  border-radius: .45rem;
+  border: 1px solid black;
+  font-size: .68rem;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: blue;
+  background-color: #ffffff;
+}
+
+input[readonly], textarea[readonly] {
+  caret-color: transparent !important;
+  background-color: #f3f6fb;
+  color: #6b7280;
+}
+.custom-fieldset {
+  border: 1px solid #9ca3af;
+  border-radius: .5rem;
+  padding: 0rem 1rem ;
+}
+
+.custom-legend {
+  font-size: .8rem;
+  font-weight: 700;
+  padding: 0 .5rem;
+  color: #111827;
+}
+.card-body {
+  padding: 0rem 1rem;
+}
+</style>
+<style>
+.table-active {
+  --bs-table-bg-state: #1dc01dff;
+  
+}
+#dueBillsTable tbody tr:hover {
+  cursor: pointer;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("input[readonly], textarea[readonly], select[readonly]")
+    .forEach(el => el.setAttribute("tabindex", "-1"));
+});
+</script>
+
+<!-- ================= FULL JS ================= -->
+<script>
+/* ---------- Helpers ---------- */
+function formatDateTime(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleString("en-IN");
+}
+
+document.getElementById("getBtn").onclick = () => {
+  const towards = document.getElementById("Towards").value;
+  if (!towards || towards === "--Select--") {
+    alert("❗ Please select Towards before searching");
+    document.getElementById("Towards").focus();
+    return;
+  }
+  window.location.href = `/search-uhid/?return=OpPayment&towards=${encodeURIComponent(towards)}`;
+};
+
+function loadDueBills(towards, uhid, billno = null) {
+  const tbody = document.querySelector("#dueBillsTable tbody");
+  tbody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+
+  let url = `/ajax/get-bills/?uhid=${uhid}&towards=${towards}`;
+  if (billno) {
+      url += `&billno=${billno}`;
+  }
+
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      tbody.innerHTML = "";
+
+      if (!data.bills.length) {
+        tbody.innerHTML = "<tr><td colspan='6'>No Due Bills</td></tr>";
+        return;
+      }
+
+      data.bills.forEach(b => {
+        tbody.innerHTML += `
+          <tr class="due-row"
+              data-billno="${b.billno}"
+              data-total="${b.total}"
+              data-paid="${b.paid}"
+              data-conc="${b.concession}"
+              data-balance="${b.balance}">
+            <td>${b.billno}</td>
+            <td>${formatDateTime(b.created)}</td>
+            <td>${b.total}</td>
+            <td>${b.paid}</td>
+            <td>${b.concession}</td>
+            <td><b>${b.balance}</b></td>
+          </tr>`;
+      });
+
+      // Auto-select when billno is provided
+      if (billno) setTimeout(() => autoSelectBill(billno), 100);
+    });
+}
+
+
+/* ---------- Towards Change ---------- */
+document.getElementById("Towards").addEventListener("change",function(){
+  const uhid=document.getElementById("uhid").value;
+  if (!this.value || !uhid) return;
+  document.getElementById("billno").value="";
+  loadDueBills(this.value, uhid);
+});
+
+/* ---------- Row Click ---------- */
+document.addEventListener("click",function(e){
+  const row=e.target.closest(".due-row");
+  if (!row) return;
+
+  document.querySelectorAll(".due-row")
+    .forEach(r=>r.classList.remove("table-active"));
+
+  row.classList.add("table-active");
+
+  // ✅ Fill bill summary fields
+  document.getElementById('total_amount').value = row.dataset.total;
+  document.getElementById('prev_paid').value    = row.dataset.paid;
+  document.getElementById('prev_concession').value = row.dataset.conc;
+  document.getElementById('balance').value      = row.dataset.balance;
+  document.getElementById('billno').value       = row.dataset.billno;
+
+  // ✅ Reset split payment fields
+  document.getElementById('cash_amt').value        = 0;
+  document.getElementById('op_online_amt').value   = 0;
+  document.getElementById('op_online_mode').value  = '';
+  document.getElementById('op_online_details').value = '';
+  document.getElementById('opOnlineChk').checked   = false;
+  document.getElementById('concession').value      = 0;
+  document.querySelector('[name="concession_reason"]').value = '';
+  toggleOpOnline(false);
+
+  // ✅ Auto-fill cash_amt with the full balance by default
+  const bal = parseFloat(row.dataset.balance) || 0;
+  document.getElementById('cash_amt').value = bal;
+  document.querySelector('[name="pay_amount"]').value = bal;
+  document.getElementById('dueamt').value = 0;
+});
+
+/* ---------- Bill No Blur (MASTER LOGIC) ---------- */
+document.getElementById("billno").addEventListener("blur", function () {
+
+    const billno = this.value.trim();
+    if (!billno) return;
+
+    fetch(`/ajax/get-bill-type/?billno=${billno}`)
+        .then(r => r.json())
+        .then(data => {
+
+            if (!data.success) {
+                alert("❌ Invalid Bill Number");
+                window.location.reload();   // 🔄 FULL RESET
+                return;
+            }
+
+            // ✅ ALLOWED BILL TYPES ONLY
+            const allowedTypes = ["CONSULTATION", "INVESTIGATION", "PROCEDURE"];
+
+            if (!allowedTypes.includes(data.bill_type)) {
+                alert("❌ This Bill Number not valid");
+                window.location.reload();   // 🔄 FULL RESET
+                return;
+            }
+
+            // 🔹 Set UHID
+            document.getElementById("uhid").value = data.uhid;
+            lastValidatedUhid = data.uhid;
+
+            // 🔹 Load patient
+            fetch(`/ajax/get-patient-by-uhid/?uhid=${data.uhid}`)
+                .then(r => r.json())
+                .then(pdata => {
+
+                    if (!pdata.success) {
+                        alert("❌ Patient not found for this Bill");
+                        return;
+                    }
+
+                    const p = pdata.patient;
+                    patname.value = p.name;
+                    age.value = p.age;
+                    gender.value = p.gender;
+                    phone.value = p.phone;
+
+                    // 🔹 Decide Towards
+                    let towards = "";
+                    if (data.bill_type === "CONSULTATION") towards = "Consultation";
+                    if (data.bill_type === "INVESTIGATION") towards = "Investigation";
+                    if (data.bill_type === "PROCEDURE") towards = "Procedures";
+
+                    document.getElementById("Towards").value = towards;
+
+                    // 🔹 Load due bills
+                    loadDueBills(towards, data.uhid, billno);
+                });
+        });
+});
+
+function autoSelectBill(billno){
+  document.querySelectorAll(".due-row").forEach(r=>{
+    if (r.dataset.billno===billno) r.click();
+  });
+}
+
+
+/* ---------- UHID Blur Validation ---------- */
+/* ---------- UHID Blur Validation ---------- */
+let lastValidatedUhid = document.getElementById("uhid").value.trim(); // remember initial value
+
+document.getElementById("uhid").addEventListener("blur", function () {
+
+    const uhid = this.value.trim();
+    if (!uhid) return;
+
+    // ✅ Skip everything if UHID hasn't changed since last check
+    if (uhid === lastValidatedUhid) return;
+
+    fetch(`/ajax/get-patient-by-uhid/?uhid=${uhid}`)
+        .then(res => res.json())
+        .then(data => {
+
+            if (!data.success) {
+                alert("❌ Invalid UHID");
+
+                document.getElementById("uhid").value = "";
+                document.getElementById("patname").value = "";
+                document.getElementById("age").value = "";
+                document.getElementById("gender").value = "";
+                document.getElementById("phone").value = "";
+
+                document.getElementById("Towards").value = "";
+                document.getElementById("billno").value = "";
+                document.querySelector("#dueBillsTable tbody").innerHTML =
+                    `<tr><td colspan="6">No Data</td></tr>`;
+
+                lastValidatedUhid = "";
+                this.focus();
+                return;
+            }
+
+            const p = data.patient;
+
+            // ✅ Fill patient details
+            document.getElementById("uhid").value = p.uhid;
+            document.getElementById("patname").value = p.name;
+            document.getElementById("age").value = p.age;
+            document.getElementById("gender").value = p.gender;
+            document.getElementById("phone").value = p.phone;
+
+            // ✅ Reset Towards, billno, due bills table (only because UHID genuinely changed)
+            document.getElementById("Towards").value = "--Select--";
+            document.getElementById("billno").value = "";
+            document.querySelector("#dueBillsTable tbody").innerHTML =
+                `<tr><td colspan="6">No Data</td></tr>`;
+
+            // ✅ Reset all payment fields
+            document.getElementById("total_amount").value = "0";
+            document.getElementById("prev_paid").value = "0";
+            document.getElementById("prev_concession").value = "0";
+            document.getElementById("balance").value = "0";
+            document.getElementById("dueamt").value = "0";
+            document.querySelector('[name="pay_amount"]').value = "0";
+            document.querySelector('[name="concession"]').value = "0";
+            document.querySelector('[name="concession_reason"]').value = "";
+
+            // ✅ Reset split payment fields too
+            document.getElementById("cash_amt").value = "0";
+            document.getElementById("op_online_amt").value = "0";
+            document.getElementById("op_online_mode").value = "";
+            document.getElementById("op_online_details").value = "";
+            document.getElementById("opOnlineChk").checked = false;
+            toggleOpOnline(false);
+
+            lastValidatedUhid = p.uhid; // ✅ remember this as the current confirmed value
+        })
+        .catch(() => {
+            alert("❌ Server error while validating UHID");
+        });
+});
+</script>
+
+<script>
+/* ============================
+   SPLIT PAYMENT (Cash + Online) — SINGLE SOURCE OF TRUTH
+   for pay_amount / dueamt calculations
+============================ */
+
+function getNum(id) {
+    return parseFloat(document.getElementById(id).value || 0);
+}
+
+function toggleOpOnline(show) {
+    document.getElementById('opOnlineModeDiv').style.display    = show ? '' : 'none';
+    document.getElementById('opOnlineAmtDiv').style.display     = show ? '' : 'none';
+    document.getElementById('opOnlineDetailsDiv').style.display = 'none';
+    if (!show) {
+        document.getElementById('op_online_amt').value     = 0;
+        document.getElementById('op_online_mode').value   = '';
+        document.getElementById('op_online_details').value = '';
+        recalcOpSplit();
+    }
+}
+
+function updateOpOnlineLabel() {
+    const mode  = document.getElementById('op_online_mode').value.trim().toLowerCase();
+    const div   = document.getElementById('opOnlineDetailsDiv');
+    const label = document.getElementById('opOnlineDetailsLabel');
+    if (!mode) { div.style.display = 'none'; return; }
+
+    if      (mode === 'card')   label.innerText = 'Card Name';
+    else if (mode === 'upi')    label.innerText = 'UPI Number';
+    else if (mode === 'cheque') label.innerText = 'Cheque No';
+    else if (mode === 'neft')   label.innerText = 'NEFT Ref No';
+    else                        label.innerText = 'Reference';
+
+    div.style.display = '';
+}
+
+/* ── Alert-once flags: alert fires on first violation, not every keystroke ── */
+const _alertShown = { conc: false, cash: false, online: false };
+
+/**
+ * recalcOpSplit(withValidation)
+ *  withValidation = true  → always show alert (on blur / submit)
+ *  withValidation = false → show alert only ONCE per violation (on input)
+ *
+ * The _alertShown flag is cleared when the value returns to a valid range,
+ * so the alert can fire again if the user re-enters an invalid value.
+ */
+function recalcOpSplit(withValidation) {
+    const balance = parseFloat(document.getElementById('balance').value || 0);
+    let conc      = parseFloat(document.getElementById('concession').value || 0);
+    let cash      = parseFloat(document.getElementById('cash_amt').value || 0);
+    let online    = parseFloat(document.getElementById('op_online_amt').value || 0);
+
+    // ── 1. Clamp concession to balance ───────────────────────────────────────
+    if (conc < 0) conc = 0;
+    if (conc > balance) {
+        if (withValidation || !_alertShown.conc) {
+            alert(`❗ Concession (₹${conc.toFixed(2)}) cannot exceed Balance (₹${balance.toFixed(2)}).`);
+            _alertShown.conc = true;
+        }
+        conc = balance;
+        document.getElementById('concession').value = conc;
+    } else {
+        _alertShown.conc = false; // reset — value is valid again
+    }
+
+    const maxPayable = Math.max(balance - conc, 0);
+
+    // ── 2. Clamp cash to maxPayable ──────────────────────────────────────────
+    if (cash < 0) cash = 0;
+    if (cash > maxPayable) {
+        if (withValidation || !_alertShown.cash) {
+            alert(`❗ Cash Amount (₹${cash.toFixed(2)}) cannot exceed payable balance (₹${maxPayable.toFixed(2)}).`);
+            _alertShown.cash = true;
+        }
+        cash = maxPayable;
+        document.getElementById('cash_amt').value = cash;
+    } else {
+        _alertShown.cash = false; // reset — value is valid again
+    }
+
+    // ── 3. Clamp online to remaining after cash ───────────────────────────────
+    const remainingAfterCash = Math.max(maxPayable - cash, 0);
+    if (online < 0) online = 0;
+    if (online > remainingAfterCash) {
+        if (withValidation || !_alertShown.online) {
+            alert(`❗ Online Amount (₹${online.toFixed(2)}) cannot exceed remaining payable (₹${remainingAfterCash.toFixed(2)}).`);
+            _alertShown.online = true;
+        }
+        online = remainingAfterCash;
+        document.getElementById('op_online_amt').value = online;
+    } else {
+        _alertShown.online = false; // reset — value is valid again
+    }
+
+    // ── 4. Update summary fields ──────────────────────────────────────────────
+    const paid = parseFloat((cash + online).toFixed(2));
+    const due  = parseFloat(Math.max(balance - conc - paid, 0).toFixed(2));
+
+    document.querySelector('[name="pay_amount"]').value = paid;
+    document.getElementById('dueamt').value = due;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Live recalc on input — alert fires once per violation, then is suppressed
+    document.getElementById('cash_amt').addEventListener('input',      () => recalcOpSplit(false));
+    document.getElementById('op_online_amt').addEventListener('input', () => recalcOpSplit(false));
+    document.getElementById('concession').addEventListener('input',    () => recalcOpSplit(false));
+
+    document.getElementById('op_online_mode').addEventListener('change', function () {
+        updateOpOnlineLabel();
+        recalcOpSplit(false);
+    });
+});
+</script>
+
+<script>
+/* ============================
+   FORM SUBMIT — SINGLE HANDLER
+   (validation + AJAX save)
+============================ */
+
+document.getElementById("OpPaymentForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    // ── Re-run calculation with validation (clamps + alerts) ────────────────
+    recalcOpSplit(true);
+
+    const uhid       = document.getElementById("uhid").value.trim();
+    const billno     = document.getElementById("billno").value.trim();
+    const balance    = parseFloat(document.getElementById('balance').value || 0);
+    const payAmt     = parseFloat(document.querySelector('[name="pay_amount"]').value || 0);
+    const concAmt    = parseFloat(document.getElementById('concession').value || 0);
+    const concReason = document.querySelector('[name="concession_reason"]').value.trim();
+    const onlineChk  = document.getElementById('opOnlineChk').checked;
+    const onlineMode = document.getElementById('op_online_mode').value.trim();
+    const onlineAmt  = parseFloat(document.getElementById('op_online_amt').value || 0);
+    const cashAmt    = parseFloat(document.getElementById('cash_amt').value || 0);
+
+    if (!uhid) {
+        alert("❗ Please enter UHID");
+        document.getElementById('uhid').focus();
+        return;
+    }
+
+    if (!billno) {
+        alert("❗ Please select a Bill from the Due Bills table");
+        return;
+    }
+
+    if (balance <= 0) {
+        alert("❗ No balance due on this bill.");
+        return;
+    }
+
+    if (payAmt <= 0 && concAmt <= 0) {
+        alert("❗ Please enter a Cash/Online Amount or a Concession amount.");
+        document.getElementById('cash_amt').focus();
+        return;
+    }
+
+    if (concAmt > 0 && !concReason) {
+        alert("❗ Please enter a Concession Reason.");
+        document.querySelector('[name="concession_reason"]').focus();
+        return;
+    }
+
+    // Online checkbox is checked but no mode selected
+    if (onlineChk && !onlineMode) {
+        alert('❗ Please select an Online Payment Mode (CARD / NEFT / UPI …).');
+        document.getElementById('op_online_mode').focus();
+        return;
+    }
+
+    // Online checkbox is checked and mode selected but amount is 0
+    if (onlineChk && onlineMode && onlineAmt <= 0) {
+        alert('❗ Please enter an Online Amount.');
+        document.getElementById('op_online_amt').focus();
+        return;
+    }
+
+    // Online details (card name / UPI number / ref) required when mode is set
+    const onlineDetails = document.getElementById('op_online_details').value.trim();
+    if (onlineChk && onlineMode && !onlineDetails) {
+        const modeLabel = document.getElementById('opOnlineDetailsLabel').innerText;
+        alert(`❗ Please enter ${modeLabel}.`);
+        document.getElementById('op_online_details').focus();
+        return;
+    }
+
+    /* ============================
+       AJAX SAVE
+    ============================ */
+    fetch(this.action, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value,
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams(new FormData(this))
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (res.success) {
+
+            if (res.redirect_url) {
+                window.open(
+                    res.redirect_url,
+                    "ReceiptWindow",
+                    "width=900,height=650,left=200,top=100,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes"
+                );
+            }
+
+            // Reset form after save
+            this.reset();
+            document.querySelector("#dueBillsTable tbody").innerHTML =
+                `<tr><td colspan="6">No Data</td></tr>`;
+            toggleOpOnline(false);
+        } else {
+            alert(res.message || "❌ Failed to save payment");
+        }
+    })
+    .catch(() => {
+        alert("❌ Server error. Please try again.");
+    });
+});
+
+document.getElementById("cancelBtn").addEventListener("click", function () {
+    window.location.href = "{% url 'OpPayment' %}";
+});
+
+window.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const uhid = urlParams.get('uhid');
+    const towards = urlParams.get('towards');
+
+    // ✅ Clear URL immediately so refresh gives a fresh page
+    if (window.location.search) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (uhid && towards) {
+        const towardsSelect = document.getElementById("Towards");
+        towardsSelect.value = towards;
+        loadDueBills(towards, uhid);
+        lastValidatedUhid = uhid;
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("uhid").focus();
+});
+</script>
+{% endblock %}

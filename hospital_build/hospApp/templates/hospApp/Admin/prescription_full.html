@@ -1,0 +1,352 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid prescription-wrapper py-3">
+  <div class="card form-card shadow-sm">
+    <div class="card-header form-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Create Prescription (Handwritten + Audio)</h5>
+    </div>
+
+    <div class="card-body form-body">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-2">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <form id="prescriptionForm" method="POST" enctype="multipart/form-data" action="{% url 'create_full_prescription' %}">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="patient_name" class="form-label">Patient Name</label>
+          <input type="text" id="patient_name" name="patient_name" class="form-control" required maxlength="100" autocomplete="off"/>
+        </div>
+
+        <div class="mb-3">
+          <h6>🎤 Audio Prescription (optional)</h6>
+          <div class="d-flex gap-2 mb-2">
+            <button type="button" id="startRecord" class="btn btn-primary btn-sm">Start Recording</button>
+            <button type="button" id="stopRecord" class="btn btn-danger btn-sm" disabled>Stop</button>
+            <small class="text-muted align-self-center ms-2">Best in Chrome. HTTPS/localhost required.</small>
+          </div>
+
+          <audio id="audioPlayback" controls style="display:none; width:100%;"></audio>
+
+          <label class="form-label mt-2">Converted Text (editable) — this will be embedded into the saved A4 sheet</label>
+          <textarea id="convertedText" class="form-control" rows="4" name="audio_text" placeholder="Live transcription will appear here..."></textarea>
+
+          <input type="file" id="audioFileInput" name="audio" style="display:none;">
+        </div>
+
+        <hr>
+
+        <h6>✍️ Handwritten / Drawn Prescription (A4)</h6>
+
+        <div class="mb-3 d-flex justify-content-center">
+          <canvas id="prescriptionCanvas" class="w-100 prescription-canvas border" style="max-width:800px; background:white;"></canvas>
+        </div>
+
+        <div class="mb-3 no-print">
+          <div class="d-flex gap-2 align-items-center">
+            <div class="btn-group">
+              <button type="button" id="penBtn" class="btn btn-primary tool-btn">✏️ Pen</button>
+              <button type="button" id="eraserBtn" class="btn btn-outline-secondary tool-btn">🧽 Eraser</button>
+            </div>
+
+            <select id="colorPicker" class="form-select form-select-sm w-auto ms-2" onchange="setPenColor(this.value)">
+              <option value="black">Black</option>
+              <option value="blue">Blue</option>
+              <option value="red">Red</option>
+            </select>
+
+            <div class="btn-group ms-2">
+              <button type="button" onclick="undoStroke()" class="btn btn-warning tool-btn">↩️ Undo</button>
+              <button type="button" onclick="redoStroke()" class="btn btn-info tool-btn">↪️ Redo</button>
+              <button type="button" onclick="clearCanvas()" class="btn btn-secondary tool-btn">🗑️ Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" id="imageData" name="image">
+
+        <div class="mt-3 d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-outline-secondary" id="previewBtn">Preview (A4)</button>
+          <button type="submit" class="btn btn-success">💾 Save Prescription</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .prescription-wrapper { background: #f7f7f7; }
+  .prescription-canvas { touch-action: none; background:white; }
+  .tool-btn { padding: 0.35rem 0.75rem; font-size: 0.95rem; }
+
+  @page { size: A4 portrait; margin: 10mm; }
+  @media print {
+    .no-print { display: none !important; }
+    body { -webkit-print-color-adjust: exact; }
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<script>
+(function() {
+  // ---------- Canvas / SignaturePad ----------
+  const canvas = document.getElementById("prescriptionCanvas");
+  const signaturePad = new SignaturePad(canvas, { minWidth: 1, maxWidth: 3, penColor: "black", backgroundColor: "white" });
+
+  function resizeCanvas() {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const parentWidth = Math.min(canvas.parentElement.getBoundingClientRect().width, 800);
+    const cssWidth = parentWidth;
+    const cssHeight = Math.round(cssWidth * Math.SQRT2); // A4 ratio
+    canvas.style.width = cssWidth + "px";
+    canvas.style.height = cssHeight + "px";
+    canvas.width = Math.round(cssWidth * ratio);
+    canvas.height = Math.round(cssHeight * ratio);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio,0,0,ratio,0,0);
+  }
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
+
+  // Undo/Redo simple stacks
+  let undoStack = [], redoStack = [];
+  function saveState(){ try{ undoStack.push(signaturePad.toData()); if(undoStack.length>60) undoStack.shift(); }catch(e){} }
+  signaturePad.addEventListener('endStroke', ()=>{ saveState(); redoStack = []; });
+  saveState();
+  window.undoStroke = function(){ if(undoStack.length>1){ redoStack.push(undoStack.pop()); signaturePad.clear(); signaturePad.fromData(undoStack[undoStack.length-1]); } };
+  window.redoStroke = function(){ if(redoStack.length>0){ const s=redoStack.pop(); signaturePad.clear(); signaturePad.fromData(s); undoStack.push(s); } };
+  window.clearCanvas = function(){ signaturePad.clear(); undoStack=[]; redoStack=[]; saveState(); };
+
+  // Pen / eraser
+  const penBtn = document.getElementById('penBtn'), eraserBtn = document.getElementById('eraserBtn');
+  let currentColor = 'black';
+  function setPenMode(){ signaturePad.penColor = currentColor; signaturePad.minWidth=1; signaturePad.maxWidth=3; }
+  function setEraserMode(){ signaturePad.penColor = 'white'; signaturePad.minWidth=10; signaturePad.maxWidth=20; }
+  window.setPenColor = function(c){ currentColor = c; setPenMode(); signaturePad.penColor = c; };
+  penBtn.addEventListener('click', ()=>{ setPenMode(); penBtn.classList.add('active'); eraserBtn.classList.remove('active'); });
+  eraserBtn.addEventListener('click', ()=>{ setEraserMode(); eraserBtn.classList.add('active'); penBtn.classList.remove('active'); });
+
+  // ---------- Audio (MediaRecorder + WebSpeech) ----------
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  const hasMediaRecorder = !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  const startBtn = document.getElementById('startRecord'), stopBtn = document.getElementById('stopRecord');
+  const audioPlayback = document.getElementById('audioPlayback'), audioFileInput = document.getElementById('audioFileInput');
+  const convertedText = document.getElementById('convertedText');
+
+  let mediaRecorder=null, audioChunks=[], recognition=null, finalTranscript='';
+
+  if (!hasMediaRecorder) { startBtn.disabled = true; startBtn.textContent = 'Recording not supported'; }
+
+  startBtn.addEventListener('click', async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => { if (e.data && e.data.size>0) audioChunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type:'audio/webm' });
+        audioPlayback.src = URL.createObjectURL(audioBlob); audioPlayback.style.display='block';
+        const file = new File([audioBlob], `prescription-${Date.now()}.webm`, { type: 'audio/webm' });
+        const dt = new DataTransfer(); dt.items.add(file); audioFileInput.files = dt.files;
+      };
+      mediaRecorder.start();
+
+      if (SpeechRecognition) {
+        recognition = new SpeechRecognition(); recognition.continuous = true; recognition.interimResults = true; recognition.lang='en-US';
+        finalTranscript = '';
+        recognition.onresult = (event) => {
+          let interim = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + ' ';
+            else interim += event.results[i][0].transcript;
+          }
+          convertedText.value = (finalTranscript + interim).trim();
+        };
+        recognition.onerror = e => console.warn('Speech recognition error:', e);
+        recognition.onend = () => { convertedText.value = finalTranscript.trim(); };
+        try { recognition.start(); } catch(e) { console.warn(e); }
+      }
+
+      startBtn.disabled = true; stopBtn.disabled = false;
+    } catch (err) { alert('Could not start recording: ' + err.message); console.error(err); }
+  });
+
+  stopBtn.addEventListener('click', () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    if (recognition) { try{ recognition.stop(); }catch(e){console.warn(e);} }
+    if (finalTranscript) convertedText.value = finalTranscript.trim();
+    startBtn.disabled = false; stopBtn.disabled = true;
+  });
+
+  // ---------- Build combined A4 image at fixed DPI before submit ----------
+  // We'll create content area of 190mm x 277mm (printable area) at chosen DPI.
+  const DPI = 150; // change to 300 for higher quality but larger file size
+  const mmToPx = (mm) => Math.round(mm * DPI / 25.4);
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && n > 0) {
+        ctx.fillText(line, x, y);
+        line = words[n] + ' ';
+        y += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, x, y);
+    return y;
+  }
+
+  async function buildCombinedA4Image() {
+    // A4 printable area
+    const w_mm = 190, h_mm = 277;
+    const W = mmToPx(w_mm);
+    const H = mmToPx(h_mm);
+    const imgCanvas = document.createElement('canvas');
+    imgCanvas.width = W;
+    imgCanvas.height = H;
+    const ctx = imgCanvas.getContext('2d');
+
+    // White background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // Scale everything with DPI so we can draw using mm-based coordinates
+    // Convert mm to px for positioning:
+    const px = (mm) => mmToPx(mm);
+
+    // Header
+    ctx.fillStyle = '#000';
+    ctx.font = `${Math.round(DPI * 0.75 / 25.4)}px Arial`; // ~18px at 150 DPI
+    const patient = (document.getElementById('patient_name').value || '').trim();
+    const dateStr = new Date().toLocaleString();
+    const margin_mm = 12;
+    ctx.fillText('Patient: ' + patient, px(margin_mm), px(10));
+    ctx.font = `${Math.round(DPI * 0.5 / 25.4)}px Arial`;
+    const dateText = 'Date: ' + dateStr;
+    const dateW = ctx.measureText(dateText).width;
+    ctx.fillText(dateText, W - px(margin_mm) - dateW, px(10));
+
+    // Transcription box
+    const trans = (document.getElementById('convertedText').value || '').trim();
+    let ty_mm = 16;
+    if (trans) {
+      const boxX = px(margin_mm);
+      const boxY = px(16);
+      const boxW = W - px(margin_mm*2);
+      const boxH = px(45); // reserve about 45 mm height for transcription (adjust if needed)
+      ctx.fillStyle = '#f9f9f9';
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+      ctx.strokeStyle = '#ddd';
+      ctx.lineWidth = Math.max(1, Math.round(DPI * 0.15 / 25.4));
+      ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+      ctx.fillStyle = '#000';
+      ctx.font = `${Math.round(DPI * 0.45 / 25.4)}px Arial`;
+      const lineHeight = Math.round(DPI * 0.9 / 25.4);
+      const textX = boxX + Math.round(DPI * 2 / 25.4);
+      let textY = boxY + Math.round(DPI * 3 / 25.4);
+      wrapText(ctx, trans, textX, textY, boxW - Math.round(DPI * 4 / 25.4), lineHeight);
+      ty_mm += 55;
+    } else {
+      ty_mm += 4;
+    }
+
+    // Handwriting: use signaturePad dataURL (it has same visible CSS aspect ratio)
+    const sigDataUrl = signaturePad.toDataURL('image/png');
+    const img = await new Promise((resolve) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => resolve(null);
+      i.src = sigDataUrl;
+    });
+
+    if (img) {
+      // Fit the handwriting image into the remaining area
+      const remainingY_px = px(ty_mm);
+      const margin_px = px(margin_mm);
+      const maxImgW = W - margin_px*2;
+      const maxImgH = H - remainingY_px - margin_px;
+      // natural image size in px (dataURL has the same pixel density we created via signaturePad)
+      let drawW = img.width;
+      let drawH = img.height;
+      const scale = Math.min(maxImgW / drawW, maxImgH / drawH, 1);
+      drawW = Math.round(drawW * scale);
+      drawH = Math.round(drawH * scale);
+      const dx = Math.round((W - drawW) / 2);
+      const dy = remainingY_px;
+      ctx.drawImage(img, dx, dy, drawW, drawH);
+    }
+
+    return imgCanvas.toDataURL('image/png');
+  }
+
+  // Before submit: build combined A4 PNG (exact pixel dimensions) and set imageData
+  document.getElementById('prescriptionForm').addEventListener('submit', function(ev) {
+    ev.preventDefault();
+    if (!document.getElementById('patient_name').value.trim()) {
+      alert('Please enter patient name.');
+      return;
+    }
+    buildCombinedA4Image().then((dataURL) => {
+      document.getElementById('imageData').value = dataURL;
+      // now submit
+      ev.target.submit();
+    }).catch((err) => {
+      console.error('Failed to build combined image', err);
+      // fallback: submit form without combined image
+      ev.target.submit();
+    });
+  });
+
+  // Preview: open new window with the single-image A4 preview (width in mm)
+  document.getElementById('previewBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    buildCombinedA4Image().then((dataURL) => {
+      const w = window.open('', '_blank');
+      const html = `
+        <!doctype html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Prescription Preview</title>
+          <style>
+            @page { size: A4 portrait; margin: 10mm; }
+            html,body { margin:0; padding:0; height:100%; }
+            body { display:flex; justify-content:center; align-items:flex-start; background:#fff; }
+            .preview-img { width:190mm; height:auto; display:block; page-break-inside:avoid; -webkit-print-color-adjust:exact; }
+            @media print { body { margin:0; } .preview-img { width:190mm; } }
+          </style>
+        </head>
+        <body>
+          <img class="preview-img" src="${dataURL}" alt="Prescription preview">
+        </body>
+        </html>
+      `;
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    }).catch((err) => {
+      alert('Preview failed: ' + err.message);
+    });
+  });
+
+  // Expose signaturePad for debugging
+  window.signaturePad = signaturePad;
+})();
+</script>
+
+{% endblock %}

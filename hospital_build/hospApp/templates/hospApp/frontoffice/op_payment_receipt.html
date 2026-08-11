@@ -1,0 +1,387 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+<title>OP Payment Receipt</title>
+
+<style>
+* { box-sizing: border-box; font-family: Arial, sans-serif; }
+body { margin: 10px; background: #fff; }
+
+/* ================= WRAPPER ================= */
+.receipt-wrapper {
+    width: 210mm;
+    margin: auto;
+    border: 1px solid #b5c7d1;
+    padding: 10px 20px 30px 20px;
+    background: #fafcff;
+}
+
+/* ================= HEADER ================= */
+.header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid #c5d6e5;
+    padding-bottom: 6px;
+}
+
+.header-center {
+    text-align: center;
+}
+
+.header-center h2 {
+    margin: 0;
+    font-size: 19px;
+    color: #1b4d89;
+    text-transform: uppercase;
+}
+
+.header-center h4 {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: #444;
+}
+
+/* ================= TITLE ================= */
+.title-bar {
+    margin-top: 8px;
+    text-align: center;
+    font-weight: bold;
+    background: #1b4d89;
+    color: white;
+    padding: 4px 0;
+    border-radius: 3px;
+    font-size: 15px;
+}
+
+/* ================= INFO TABLE ================= */
+.table-info {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: fixed;
+    margin-top: 8px;
+}
+
+.table-info td {
+    padding: 1px 2px;
+}
+
+.label { font-weight: bold; color: #003366; width: 90px; }
+.colon { width: 8px; font-weight: bold; }
+.value { color: #222; word-break: break-word; }
+
+/* ================= MAIN TABLE ================= */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    border: 1px solid #c5d6e5;
+    padding: 6px;
+    font-size: 12px;
+}
+
+.table th {
+    background: #e6f0ff;
+    color: #003366;
+}
+
+/* ================= BARCODE ================= */
+svg { display: block; }
+
+.barcode-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.barcode-left svg,
+.barcode-right svg {
+    height: 40px;
+}
+
+/* ================= FOOTER ================= */
+.footer-row {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.footer-col {
+    flex: 1;
+    font-size: 12px;
+}
+
+.footer-col.info {
+    text-align: left;
+}
+
+.footer-col.barcode {
+    display: flex;
+    justify-content: center;
+}
+
+.footer-col.sign {
+    text-align: right;
+}
+
+/* SIGNATURE HEIGHT FIX */
+.signature-space {
+    height: 50px;
+}
+
+.signature-text {
+    font-weight: bold;
+}
+
+/* ================= PRINT ================= */
+.no-print {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.no-print button {
+    padding: 6px 14px;
+    background: #1b4d89;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+@media print {
+    @page { margin: 5mm; }
+
+    body { margin: 0; }
+
+    .receipt-wrapper {
+        width: 100% !important;
+        border: 1px solid #000 !important;
+    }
+
+    .header {
+        border-bottom: 1px solid black !important;
+    }
+
+    .table th {
+    
+        background: #ddd !important;
+    }
+
+    .title-bar {
+        color: #000 !important;
+    }
+
+    .no-print {
+        display: none;
+    }
+}
+
+/* ================= SECURITY ================= */
+body {
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+</style>
+</head>
+
+<body oncontextmenu="return false;">
+
+<div class="receipt-wrapper">
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-center">
+        <h2>{{ hospital.name }}</h2>
+        <h4>{{ hospital.address }}</h4>
+    </div>
+</div>
+
+<div class="title-bar">OP Payment Receipt</div>
+
+<!-- INFO -->
+<table class="table-info">
+<tr>
+    <td class="label">PT NAME</td><td class="colon">:</td>
+    <td class="value">
+        {{ patient.patname | upper }} .
+       <b>  {{ patient.age }}  / {{ patient.gender | upper }}</b>
+    </td>
+
+    <td class="label">DATE</td><td class="colon">:</td>
+    <td class="value">{{ consult.billdate|date:"d-m-Y H:i:s" }}</td>
+</tr>
+
+<tr>
+    <td class="label">UHID</td><td class="colon">:</td>
+    <td class="value">{{ patient.uhid }}</td>
+
+    <td class="label">PHONE</td><td class="colon">:</td>
+    <td class="value">{{ patient.phone }}</td>
+</tr>
+<tr>
+    <td class="label">RECORD NO</td><td class="colon">:</td>
+    <td class="value">{{ consult.billno }}</td>
+     <td class="label">BILL NO</td><td class="colon">:</td>
+    <td class="value">{{ consult.invbillno }}</td>
+</tr>
+
+<tr>
+ 
+<td colspan="6">
+    <div class="barcode-row">
+        <div class="barcode-left">
+            <svg id="barcode-bill"></svg>
+        </div>
+        <div class="barcode-right">
+            <svg id="barcode-uhid"></svg>
+        </div>
+    </div>
+</td>
+</tr>
+</table>
+
+<!-- PAYMENT TABLE -->
+<table class="table">
+<thead>
+<tr>
+    <th width="50">S.No</th>
+    <th>Towards</th>
+    <th>In Words</th>
+    <th width="120" align="right">Amount</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+    <td align="center">1</td>
+    <td align="center">Paid Amount</td>
+    <td align="center">{{ inwords | upper }} RUPEES ONLY</td>
+    <td align="right"> {{ consult.patamt | floatformat:2}}</td>
+</tr>
+</tbody>
+</table>
+
+<!-- FOOTER -->
+<div class="footer-row">
+
+    <div class="footer-col info">
+        <table>
+            <tr>
+                <td class="label">Payment Mode</td>
+                <td>: {{ consult.paymentmode|default:"Cash"|upper }}</td>
+            </tr>
+            <tr>
+                <td class="label">Billed User</td>
+                <td>: {{ consult.updatedby|upper }}</td>
+            </tr>
+            <tr>
+                <td class="label">Print User</td>
+                <td>: {{ consult.updatedby|upper }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer-col barcode">
+        <div id="qrcode-bill"></div>
+    </div>
+
+    <div class="footer-col sign">
+        <div class="signature-space"></div>
+        <div class="signature-text">Signature</div>
+    </div>
+
+</div>
+
+<!-- BUTTONS -->
+<div class="no-print">
+    <button onclick="window.print()">Print</button>
+    <button onclick="window.close()">Close</button>
+</div>
+
+</div>
+<script src="{% static 'js/jsbarcode.min.js' %}"></script>
+<script src="{% static 'js/qrcode.min.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    var billNo = "{{ consult.invbillno|escapejs }}";
+    var uhid   = "{{ consult.uhid|escapejs }}";
+
+    JsBarcode("#barcode-bill", billNo, {
+        format: "CODE128",
+        width: 1,
+        height: 28,
+        displayValue: false
+    });
+
+    JsBarcode("#barcode-uhid", uhid, {
+        format: "CODE128",
+        width: 1,
+        height: 28,
+        displayValue: false
+    });
+
+    new QRCode(document.getElementById("qrcode-bill"), {
+        text: billNo,
+        width: 55,
+        height: 55
+    });
+});
+
+/* AUTO CLOSE AFTER PRINT */
+window.onafterprint = function () {
+    window.close();
+};
+
+/* BLOCK COPY / RIGHT CLICK */
+document.addEventListener("keydown", function(e) {
+    if (e.ctrlKey && ["c","v","x","a","u"].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+    }
+});
+
+document.addEventListener("copy", function(e) {
+    e.preventDefault();
+});
+
+document.addEventListener("contextmenu", function(e) {
+    e.preventDefault();
+});
+</script>
+{% if is_cancelled %}
+<style>
+.receipt-wrapper::before,
+.print-wrapper::before {
+    content: "CANCELLED";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 96px;
+    font-weight: 900;
+    color: rgba(220, 38, 38, 0.18);
+    letter-spacing: 8px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 9999;
+    font-family: Arial, sans-serif;
+}
+@media print {
+    .receipt-wrapper::before,
+    .print-wrapper::before {
+        position: fixed;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: rgba(220, 38, 38, 0.18) !important;
+    }
+}
+</style>
+{% endif %}
+</body>
+</html>

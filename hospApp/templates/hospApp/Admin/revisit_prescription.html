@@ -1,0 +1,190 @@
+{% extends "hospApp/admin/base_blank.html" %}
+{% load static %}
+{% block content %}
+
+<form id="prescriptionForm"
+      method="POST"
+      action="{% url 'revisit_prescription' consult.id %}">
+{% csrf_token %}
+
+<div class="prescription-container">
+
+  <!-- ================= HEADER ================= -->
+  <div class="prescription-header">
+
+    <div class="patient-info">
+      <div><strong>Name:</strong> {{ consult.patname |upper}}</div>
+      <div><strong>UHID:</strong> {{ consult.uhid }}</div>
+      <div><strong>Gender:</strong> {{ consult.gender |upper}}</div>
+      <div><strong>Phone:</strong> {{ consult.phone }}</div>
+    </div>
+
+    <!-- ================= VITALS (INSIDE FORM ✅) ================= -->
+    <table class="vitals-table">
+      <tr>
+        <td>TEMP</td>
+        <td><input name="temp" id="temp" value="{{ prescription.temp|default_if_none:'' }}" maxlength="7" autocomplete="off"></td>
+
+        <td>BP</td>
+        <td><input name="bp" id="bp" value="{{ prescription.bp|default_if_none:'' }}" maxlength="7"autocomplete="off"></td>
+
+        <td>PR</td>
+        <td><input name="pr" id="pr" value="{{ prescription.pr|default_if_none:'' }}" maxlength="7"autocomplete="off"></td>
+
+        <td>SPO2</td>
+        <td><input name="spo2" id="spo2" value="{{ prescription.spo2|default_if_none:'' }}" maxlength="7" autocomplete="off"></td>
+
+        <td>WT</td>
+        <td><input name="weight" id="weight" value="{{ prescription.weight|default_if_none:'' }}" maxlength="7" autocomplete="off"></td>
+      </tr>
+    </table>
+
+  </div>
+
+  <!-- ================= MAIN ================= -->
+  <div class="prescription-main-card">
+
+    <!-- REQUIRED HIDDEN -->
+    <input type="hidden" name="image" id="imageData">
+    <input type="hidden" name="stroke_data" id="strokeData">
+
+    <div class="canvas-with-toolbar">
+
+      <!-- TOOLBAR -->
+      <div class="toolbar vertical-toolbar no-print">
+
+        <button type="button" id="penBtn" class="tool-btn pen-btn">✏️</button>
+        <button type="button" id="eraserBtn" class="tool-btn eraser-btn">🧽</button>
+
+        <select id="colorPicker" class="color-picker">
+          <option value="black">⚫</option>
+          <option value="blue">🔵</option>
+          <option value="red">🔴</option>
+          <option value="green">🟢</option>
+        </select>
+
+        <select id="widthPicker" class="width-picker">
+          <option value="0.5">Thin</option>
+          <option value="1" selected>Normal</option>
+          <option value="2">Thick</option>
+          <option value="3">Bold</option>
+          <option value="5">Extra</option>
+        </select>
+
+        <button type="button" onclick="undoStroke()" class="tool-btn undo-btn">↩</button>
+        <button type="button" onclick="redoStroke()" class="tool-btn redo-btn">↪</button>
+        <button type="button" onclick="clearCanvas()" class="tool-btn clear-btn">🗑</button>
+
+        <button type="button" class="save-btn" onclick="savePrescription()">💾</button>
+      </div>
+
+      <!-- CANVAS -->
+      <div class="canvas-wrapper">
+        <canvas id="prescriptionCanvas"></canvas>
+      </div>
+
+    </div>
+  </div>
+</div>
+</form>
+
+<!-- ================= STYLES ================= -->
+<style>
+.prescription-container { max-width:900px; margin:auto; padding:2px; }
+.prescription-header { background:#f0f7ff; border:1px solid #d3e4ff; padding:4px; border-radius:6px; margin-bottom:8px; }
+.patient-info { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
+.vitals-table { width:100%; margin-top:8px; font-size:13px; }
+.vitals-table input { width:70px; border:none; border-bottom:1px dotted #000; }
+.prescription-main-card { border:1px solid #ccc; padding:12px; background:#fff; border-radius:6px; }
+.canvas-with-toolbar { display:flex; }
+.vertical-toolbar { display:flex; flex-direction:column; gap:10px; background:#eef3f8; padding:8px; border:1px solid #444; border-right:none; border-radius:6px 0 0 6px; min-width:60px; }
+.tool-btn,.save-btn { width:42px; height:42px; border-radius:5px; border:none; cursor:pointer; }
+.pen-btn{background:#007bff;color:#fff;}
+.eraser-btn{background:#dc3545;color:#fff;}
+.undo-btn{background:#ffc107;}
+.redo-btn{background:#17a2b8;color:#fff;}
+.clear-btn{background:#6c757d;color:#fff;}
+.save-btn{background:#28a745;color:#fff;}
+.color-picker,.width-picker{width:45px;padding:3px;border-radius:5px;border:1px solid #ccc;font-size:12px;text-align:center;}
+.canvas-wrapper{flex:1;border:1px solid #444;border-left:none;border-radius:0 6px 6px 0;}
+#prescriptionCanvas{width:100%; height: calc(100vh - 130px);background:white;touch-action:none;}
+
+@media print{.no-print{display:none;}}
+</style>
+
+<!-- ================= CANVAS LOGIC ================= -->
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<script>
+const canvas = document.getElementById("prescriptionCanvas");
+const ctx = canvas.getContext("2d");
+const signaturePad = new SignaturePad(canvas,{minWidth:0.8,maxWidth:1});
+
+function resizeCanvas(){
+  const ratio = Math.max(window.devicePixelRatio||1,1);
+  canvas.width = canvas.offsetWidth*ratio;
+  canvas.height = canvas.offsetHeight*ratio;
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+}
+resizeCanvas();
+window.addEventListener("resize",resizeCanvas);
+
+{% if prescription.stroke_data %}
+signaturePad.fromData(JSON.parse('{{ prescription.stroke_data|escapejs }}'));
+{% endif %}
+
+document.getElementById("penBtn").onclick=()=>{signaturePad.penColor="black";};
+document.getElementById("eraserBtn").onclick=()=>{signaturePad.penColor="white";signaturePad.minWidth=10;signaturePad.maxWidth=15;};
+document.getElementById("colorPicker").onchange=e=>signaturePad.penColor=e.target.value;
+document.getElementById("widthPicker").onchange=e=>{
+  const w=parseFloat(e.target.value);
+  signaturePad.minWidth=w*0.8; signaturePad.maxWidth=w*1.2;
+};
+
+function savePrescription(){
+
+    document.getElementById("imageData").value =
+        signaturePad.toDataURL("image/png");
+
+    document.getElementById("strokeData").value =
+        JSON.stringify(signaturePad.toData());
+
+    const form = document.getElementById("prescriptionForm");
+
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-CSRFToken": document.querySelector(
+                "#prescriptionForm input[name='csrfmiddlewaretoken']"
+            ).value
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.status === "success") {
+
+            window.open(
+                data.print_url,
+                "_blank",
+                "width=900,height=650,left=200,top=100,scrollbars=yes,resizable=yes"
+            );
+
+            window.close();
+
+        } else {
+            alert(data.message || "Save failed");
+        }
+
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Server error");
+    });
+}
+</script>
+
+{% endblock %}

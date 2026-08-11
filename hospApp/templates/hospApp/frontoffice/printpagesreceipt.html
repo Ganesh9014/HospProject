@@ -1,0 +1,316 @@
+
+<html>
+<head>
+<title>print page reciept</title>
+
+<style>
+/* === YOUR SAME CSS (UNCHANGED) === */
+* { box-sizing: border-box; font-family: Arial, sans-serif; }
+body { margin: 10px; background: #fff; }
+/* (CSS OMITTED HERE FOR BREVITY — USE EXACT SAME CSS YOU SHARED) */
+.receipt-wrapper {
+    width: 210mm;
+    margin: auto;
+    border: 1px solid #b5c7d1;
+    padding: 10px 20px 30px 20px;
+    background: #fafcff;
+}
+
+/* ================= HEADER (MATCHED) ================= */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #c5d6e5;
+    padding-bottom: 6px;
+}
+
+.header-center {
+    flex: 1;
+    text-align: center;
+}
+
+.header-center h2 {
+    margin: 0;
+    font-size: 19px;
+    color: #1b4d89;
+    text-transform: uppercase;
+}
+
+.header-center h4 {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: #444;
+}
+
+/* ================= TITLE ================= */
+.title-bar {
+    margin-top: 8px;
+    text-align: center;
+    font-weight: bold;
+    background: #1b4d89;
+    color: white;
+    padding: 4px 0;
+    border-radius: 3px;
+    font-size: 15px;
+}
+
+/* ================= INFO TABLE ================= */
+.table-info {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: fixed;
+}
+
+.table-info td { padding: 4px; vertical-align: top; }
+
+.label { font-weight: bold; color: #003366; width: 90px; }
+.colon { width: 8px; font-weight: bold; }
+.value { color: #222; word-break: break-word; }
+
+/* ================= TABLE ================= */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.table th, .table td {
+    border: 1px solid #c5d6e5;
+    padding: 6px;
+    font-size: 12px;
+}
+
+.table th {
+    background: #e6f0ff;
+    color: #003366;
+}
+
+/* ================= BARCODE ================= */
+svg { display: block; }
+
+.barcode-row-cell {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.barcode-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.barcode-left,
+.barcode-right {
+    flex: 0 0 auto;
+}
+
+.barcode-left svg,
+.barcode-right svg {
+    width: 100%;
+    height: 40px;
+}
+
+/* ================= FOOTER ================= */
+.footer-row {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.footer-col {
+    flex: 1;
+    font-size: 12px;
+}
+
+.footer-col.info {
+    text-align: left;
+}
+
+.footer-col.barcode {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.footer-col.sign {
+    text-align: right;
+    font-weight: bold;
+}
+
+/* ================= PRINT ================= */
+.no-print {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.no-print button {
+    padding: 6px 14px;
+    background: #1b4d89;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+@media print { .no-print { display:none; } }
+</style>
+</head>
+
+<body>
+
+<div class="receipt-wrapper">
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-center">
+        <h2>{{ hospital.name }}</h2>
+        <h4>{{ hospital.address }}</h4>
+    </div>
+</div>
+
+<div class="title-bar">OP Payment Receipt</div>
+
+<!-- PATIENT INFO -->
+<table class="table-info">
+<tr>
+    <td class="label">Patient</td><td class="colon">:</td>
+    <td class="value">
+        {{ consult.patname }} / <b>{{ consult.age }}/{{ consult.gender }}</b>
+    </td>
+
+    <td class="label">Date</td><td class="colon">:</td>
+    <td class="value">{{ consult.billdate|date:"d-m-Y H:i:s" }}</td>
+</tr>
+
+<tr>
+    <td class="label">UHID</td><td class="colon">:</td>
+    <td class="value">{{ consult.uhid }}</td>
+
+    <td class="label">Phone</td><td class="colon">:</td>
+    <td class="value">{{ consult.phone }}</td>
+</tr>
+
+<tr>
+    <td class="label">Bill No</td><td class="colon">:</td>
+    <td class="value">{{ consult.billno }}</td>
+
+    <td class="label">Receipt No</td><td class="colon">:</td>
+    <td class="value">{{ consult.invbillno }}</td>
+</tr>
+
+<!-- BARCODES -->
+<tr>
+<td colspan="6" class="barcode-row-cell">
+    <div class="barcode-row">
+        <div class="barcode-left">
+            <svg id="barcode-bill"></svg>
+        </div>
+        <div class="barcode-right">
+            <svg id="barcode-uhid"></svg>
+        </div>
+    </div>
+</td>
+</tr>
+</table>
+
+<!-- ITEM TABLE -->
+<table class="table">
+<thead>
+<tr>
+    <th>S.No</th>
+    <th>{{ consult.towords }}</th>
+    <th>Amount</th>
+</tr>
+</thead>
+<tbody>
+{% for row in items %}
+<tr>
+    <td align="center">{{ forloop.counter }}</td>
+    <td>{{ row.name }}</td>
+    <td align="right">₹ {{ row.amount }}</td>
+</tr>
+{% endfor %}
+<tr>
+    <th colspan="2" align="right">Total</th>
+    <th align="right">₹ {{ consult.totalamt }}</th>
+</tr>
+</tbody>
+</table>
+
+
+<!-- FOOTER -->
+<div class="footer-row">
+    <div class="footer-col info">
+        <table>
+            <tr>
+                <td class="label">Payment Mode</td>
+                <td>: {{ consult.paymentmode|default:"Cash" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Billed User</td>
+                <td>: {{ consult.updatedby }}</td>
+            </tr>
+            <tr>
+                <td class="label">Print User</td>
+                <td>: {{ consult.updatedby }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer-col barcode">
+        <div id="qrcode-bill"></div>
+    </div>
+
+    <div class="footer-col sign">
+        Signature
+    </div>
+</div>
+
+<div class="no-print">
+    <button onclick="window.print()">Print</button>
+    <button onclick="window.close()">Close</button>
+</div>
+
+</div>
+
+<!-- BARCODE + QR -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    var billNo = "{{ consult.invbillno|escapejs }}";
+    var uhid   = "{{ consult.uhid|escapejs }}";
+
+    JsBarcode("#barcode-bill", billNo, {
+        format: "CODE128",
+        width: 1,
+        height: 28,
+        displayValue: false
+    });
+
+    JsBarcode("#barcode-uhid", uhid, {
+        format: "CODE128",
+        width: 1,
+        height: 28,
+        displayValue: false
+    });
+
+    new QRCode(document.getElementById("qrcode-bill"), {
+        text: billNo,
+        width: 55,
+        height: 55
+    });
+});
+
+window.onafterprint = function () {
+    window.close();
+};
+</script>
+
+</body>
+</html>

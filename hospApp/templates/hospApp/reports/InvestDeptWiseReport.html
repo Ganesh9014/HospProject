@@ -1,0 +1,256 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+
+    <div class="form-header py-2">
+      <h6> Investigation Report   </h6>
+    </div>
+
+    <div class="card-body">
+  <form method="GET" action="{% url 'InvestDeptWiseReportResult' %}" onsubmit="openReportPopup(event)" id="userwiseForm">
+          {% csrf_token %}
+        
+<fieldset class="custom-fieldset mb-3">
+        <legend class="custom-legend mb-4">
+  <span class="legend-text">Investigation Report</span>
+</legend>
+
+   
+ 
+
+
+
+
+
+
+<div class="row mt-4">
+          <div class="col-md-6 mt-3">
+  <div class="d-flex align-items-center">
+    <label class="form-label rpt-label">Department</label>
+    <div class="position-relative flex-grow-1">
+      <input type="text" id="department" class="form-control form-control-sm"
+        placeholder="Type to search department..." autocomplete="off">
+      <ul id="departmentSuggestions" class="list-group suggestion-list"></ul>
+      <input type="hidden" id="dept_id" name="dept_id">
+      <input type="hidden" id="dept_name" name="dept_name">
+    </div>
+  </div>
+</div>
+        </div>
+
+
+
+
+
+<div class="row align-items-center mt-4">
+          <div class="col-md-3">
+            
+          </div>
+
+          <div class="col-md-4 text-center">
+           <button type="submit" class="btn btn-success btn-sm">
+        📊Submit
+      </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="cancelBtn">Clear</button>
+          </div>
+        </div>
+
+
+  
+  </div>
+  </form>
+</div>
+</div>
+</div>
+</div>
+<style>
+  
+.custom-fieldset {
+  border: 1px solid #9ca3af;
+  border-radius: .5rem;
+  padding: .45rem 1rem 1rem;
+}
+
+.custom-legend {
+  font-size: .9rem;
+  font-weight: 700;
+  padding: 0 .5rem;
+  color: green;
+}
+.legend-text {
+  font-size: .8rem;
+  font-weight: 700;
+  display: inline-block;          /* important */
+  border-bottom: 2px solid #111827;
+  line-height: 1.2;
+}
+
+
+
+.suggestion-list {
+    display: none;
+    max-height: 200px;
+    overflow-y: auto;
+    position: absolute;
+    top: 100%;        
+    left: 0;          
+    width: 100%;
+    z-index: 9999;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.suggestion-list .list-group-item {
+    cursor: pointer;
+    padding: 0px;
+    font-size: 13px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.suggestion-list .list-group-item:hover,
+.suggestion-list .list-group-item.active-item {
+    background-color: #0d6efd;
+    color: #fff;
+}
+</style>
+
+
+
+<script>
+const deptInput = document.getElementById("department");
+const deptList  = document.getElementById("departmentSuggestions");
+const deptId    = document.getElementById("dept_id");
+const deptName  = document.getElementById("dept_name");
+
+let deptIndex = -1;
+let deptTimer = null;
+
+// 🔍 Fetch
+deptInput.addEventListener("input", function () {
+    const q = this.value.trim();
+    deptIndex = -1;
+
+    clearTimeout(deptTimer);
+
+    if (q.length < 1) {
+        hideDept();
+        return;
+    }
+
+    deptTimer = setTimeout(() => {
+        fetch(`/search-department/?q=${encodeURIComponent(q)}`)
+            .then(res => res.json())
+            .then(data => renderDept(data.results))
+            .catch(() => hideDept());
+    }, 300);
+});
+
+// 🧾 Render
+function renderDept(results) {
+    deptList.innerHTML = "";
+    deptIndex = -1;
+
+    if (results.length === 0) {
+        hideDept();
+        return;
+    }
+
+    results.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "list-group-item";
+        li.textContent = item.name;
+        li.dataset.id = item.id;
+        li.dataset.name = item.name;
+
+        li.addEventListener("mousedown", function (e) {
+            e.preventDefault();
+            selectDept(item.id, item.name);
+        });
+
+        deptList.appendChild(li);
+    });
+
+    deptList.style.display = "block";
+}
+
+// ⌨ Keyboard
+deptInput.addEventListener("keydown", function (e) {
+    const items = deptList.querySelectorAll(".list-group-item");
+
+    if (e.key === "ArrowDown") {
+        e.preventDefault();
+        deptIndex = (deptIndex + 1) % items.length;
+        highlightDept(items);
+    }
+    else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        deptIndex = (deptIndex - 1 + items.length) % items.length;
+        highlightDept(items);
+    }
+    else if (e.key === "Enter") {
+        e.preventDefault();
+        if (deptIndex >= 0) {
+            const item = items[deptIndex];
+            selectDept(item.dataset.id, item.dataset.name);
+        }
+    }
+    else if (e.key === "Tab") {
+        if (deptIndex >= 0) {
+            e.preventDefault();
+            const item = items[deptIndex];
+            selectDept(item.dataset.id, item.dataset.name);
+        }
+    }
+});
+
+// 🎯 Highlight
+function highlightDept(items) {
+    items.forEach(i => i.classList.remove("active-item"));
+    if (items[deptIndex]) {
+        items[deptIndex].classList.add("active-item");
+    }
+}
+
+// ✅ Select
+function selectDept(id, name) {
+    deptId.value = id;
+    deptName.value = name;
+    deptInput.value = name;
+    hideDept();
+}
+
+// ❌ Hide
+function hideDept() {
+    deptList.style.display = "none";
+    deptList.innerHTML = "";
+    deptIndex = -1;
+}
+function openReportPopup(event) {
+    event.preventDefault(); // stop normal submit
+
+    const form = document.getElementById("userwiseForm");
+
+    // Build query string manually
+    const params = new URLSearchParams(new FormData(form)).toString();
+
+    const url = form.action + "?" + params;
+
+    window.open(
+        url,
+        "InvestigationReport",
+        "width=900,height=650,left=200,top=100," +
+        "menubar=no,toolbar=no,location=no,status=no," +
+        "scrollbars=yes,resizable=yes"
+    );
+}
+</script>
+
+{% endblock %}

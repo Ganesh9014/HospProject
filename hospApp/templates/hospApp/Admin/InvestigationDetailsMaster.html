@@ -1,0 +1,285 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+
+
+/* Suggestion dropdown */
+.suggestion-list {
+  display: none;
+  max-height: 100px;
+  overflow-y: auto;
+  z-index: 1200;
+  background: #ffffff;
+  position: absolute;
+  width: 100%;
+  left: 0;
+  top: 100%;
+  border-radius: 0 0 .5rem .5rem;
+  border: 1px solid #d1d9ee;
+  border-top: none;
+  box-shadow: 0 14px 30px rgba(15,23,42,0.18);
+}
+
+/* Suggestion items */
+.suggestion-list .list-group-item {
+  position: relative;
+  display: block;
+  padding: .45rem .7rem;
+  font-size: .75rem;
+  color: #111827;
+  border: none;
+  border-bottom: 1px solid #edf0fb;
+  cursor: pointer;
+  background: transparent;
+}
+
+.suggestion-list .list-group-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-list .list-group-item:hover,
+.suggestion-list .list-group-item:focus {
+  background: #eef3ff;
+  color: #1d4ed8;
+}
+
+</style>
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Investigation Details Master</h5>
+    </div>
+
+    <div class="form-body">
+      <form method="POST"  autocomplete="off">
+        {% csrf_token %}
+
+       {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+
+        <!-- Operation Selection -->
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label>
+              <input type="radio" name="operation" value="add" onchange="window.location.href='?operation=add';">
+              Add
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="modify" onchange="window.location.href='?operation=modify';">
+              Modify
+            </label>
+             <label class="ms-3">
+              <input type="radio" name="operation" value="delete" onchange="window.location.href='?operation=delete';">
+              Delete
+            </label>
+            
+          </div>
+        </div>
+
+       <div class="row">
+            
+              <!-- Investigation Name -->
+           <div id="inv-field" class="col-md-5 mb-3 position-relative">
+  <div class="d-flex align-items-center w-100">
+    <label class="form-label col-3">Investigation</label>
+
+    <div class="position-relative w-100">
+      <input type="text"
+             name="invname"
+             id="invname"
+             class="form-control"
+             placeholder="Enter Investigation Name"
+             autocomplete="off">
+             <input type="hidden" name="inv_id" id="inv_id">
+
+
+      <!-- Suggestions -->
+      <div id="invSuggestions" class="suggestion-list list-group"></div>
+    </div>
+  </div>
+
+   
+</div>
+<div class="col-md-6">
+    <button type="submit" class="btn btn-success">Add</button>
+   
+  </div>
+          </div>
+
+ 
+
+          
+</div>
+
+<div class="row mt-4">
+  <div class="col-12">
+    <table class="table table-bordered table-sm d-none" id="investigationTable">
+      <thead class="table-light">
+        <tr>
+          <th>Test Name</th>
+           <th>Result</th>
+          <th>Normal Range</th>
+    
+         
+        </tr>
+      </thead>
+      <tbody id="investigationTableBody"></tbody>
+    </table>
+  </div>
+</div>
+<div class="row mt-2 d-none" id="methodRow">
+  <div class="col-12">
+    <strong>Method:</strong> <span id="methodText"></span>
+  </div>
+</div>
+
+
+      </form>
+
+      
+    </div>
+  </div>
+</div>
+<script>
+const invInput = document.getElementById("invname");
+const suggestionBox = document.getElementById("invSuggestions");
+
+let debounceTimer = null;
+
+/* 🔹 Load table after selection */
+function loadInvestigationTable(invId) {
+  fetch(`/get-investigation-details/?inv_id=${invId}`)
+    .then(res => res.json())
+    .then(data => {
+      const table = document.getElementById("investigationTable");
+      const tbody = document.getElementById("investigationTableBody");
+      const methodRow = document.getElementById("methodRow");
+      const methodText = document.getElementById("methodText");
+
+      tbody.innerHTML = "";
+      methodRow.classList.add("d-none");
+
+      if (!data.tests || data.tests.length === 0) {
+        table.classList.add("d-none");
+        return;
+      }
+
+      let lastHeader = "";
+
+      data.tests.forEach(row => {
+
+        /* 🔹 HEADER ROW */
+        if (row.header && row.header !== lastHeader) {
+          const headerTr = document.createElement("tr");
+          headerTr.innerHTML = `
+            <td><strong>${row.header}</strong></td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+          `;
+          tbody.appendChild(headerTr);
+          lastHeader = row.header;
+        }
+
+        /* 🔹 TEST ROW */
+        if (row.test) {
+          const tr = document.createElement("tr");
+
+          tr.innerHTML = `
+            <td style="padding-left:5px;">
+              ${row.test}
+              <input type="hidden" name="test_id[]" value="${row.sno}">
+            </td>
+            <td>
+              <input type="text"
+                     name="result[]"
+                     class="form-control form-control-sm">
+            </td>
+           <td style="white-space: pre-line;">
+  ${(row.normal || "")
+    .replace(new RegExp(`(${row.units})`, "g"), `$1\n`)
+    .trim()}
+</td>
+
+            
+          `;
+
+          tbody.appendChild(tr);
+        }
+
+        /* 🔹 METHOD (last non-empty wins) */
+        if (row.method) {
+          methodText.textContent = row.method;
+          methodRow.classList.remove("d-none");
+        }
+      });
+
+      table.classList.remove("d-none");
+    });
+}
+
+
+invInput.addEventListener("input", function () {
+  const query = this.value.trim();
+  clearTimeout(debounceTimer);
+
+  if (query.length < 1) {
+    suggestionBox.style.display = "none";
+    suggestionBox.innerHTML = "";
+    return;
+  }
+
+  debounceTimer = setTimeout(() => {
+    fetch(`/search-investigation/?q=${encodeURIComponent(query)}`)
+      .then(res => res.json())
+      .then(data => {
+        suggestionBox.innerHTML = "";
+
+        if (!data.results || data.results.length === 0) {
+          suggestionBox.style.display = "none";
+          return;
+        }
+
+        data.results.forEach(item => {
+          const el = document.createElement("button");
+          el.type = "button";
+          el.className = "list-group-item";
+          el.textContent = item.invname;
+
+          /* ✅ CLICK HANDLER */
+          el.addEventListener("click", () => {
+            invInput.value = item.invname;
+            document.getElementById("inv_id").value = item.inv_id;
+
+            suggestionBox.style.display = "none";
+
+            loadInvestigationTable(item.inv_id);
+          });
+
+          suggestionBox.appendChild(el);
+        });
+
+        suggestionBox.style.display = "block";
+      });
+  }, 300);
+});
+
+/* Hide suggestions on outside click */
+document.addEventListener("click", function (e) {
+  if (!invInput.contains(e.target) && !suggestionBox.contains(e.target)) {
+    suggestionBox.style.display = "none";
+  }
+});
+</script>
+
+{% endblock %}

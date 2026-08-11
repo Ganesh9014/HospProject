@@ -1,0 +1,71 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container mt-4">
+    <h3>📝 Edit Prescription (Testing Mode)</h3>
+    <p><strong>Patient:</strong> {{ prescription.patient_name }}</p>
+
+    <div class="border p-3">
+        <canvas id="testCanvas" style="width:100%; height:600px; background:#fff; border:1px solid #000;"></canvas>
+    </div>
+
+    <button class="btn btn-success mt-2" onclick="saveChanges()">Save Changes</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<script>
+const canvas = document.getElementById("testCanvas");
+const ctx = canvas.getContext("2d");
+
+// Resize for HD drawing
+function resizeCanvas() {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    ctx.scale(ratio, ratio);
+}
+resizeCanvas();
+
+let signaturePad = new SignaturePad(canvas, {
+    backgroundColor: "white",
+    penColor: "black",
+    minWidth: 1,
+    maxWidth: 3
+});
+
+// -------------------------------------------------------
+// ⭐ LOAD EXISTING STROKES FROM DATABASE
+// -------------------------------------------------------
+let savedStrokes = {{ prescription.stroke_data|safe }};  
+
+if (savedStrokes) {
+    signaturePad.fromData(savedStrokes);
+}
+
+
+{% comment %} // OPTIONAL: SHOW SAVED IMAGE BEHIND THE CANVAS
+let imgURL = "{{ prescription.image.url }}";
+let img = new Image();
+img.src = imgURL;
+
+img.onload = function() {
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+}; {% endcomment %}
+
+// -------------------------------------------------------
+// SAVE BACK (For Testing)
+// -------------------------------------------------------
+function saveChanges() {
+    const strokeJSON = JSON.stringify(signaturePad.toData());
+    const imgData = signaturePad.toDataURL('image/png');
+
+    console.log("Stroke Data:", strokeJSON);
+    console.log("Image Data:", imgData);
+
+    alert("Check browser console for saved data!");
+}
+</script>
+
+{% endblock %}

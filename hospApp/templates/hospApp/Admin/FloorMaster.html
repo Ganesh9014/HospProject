@@ -1,0 +1,362 @@
+{% extends 'hospApp/home.html' %}
+{% load static %}
+{% block content %}
+{% comment %} <style>
+  .form-control {
+    font-size: 0.7rem;
+  }
+  .table>:not(caption)>*>* {
+    padding: 0px;
+  }
+  .table th {
+    font-size: 0.75rem;
+  }
+  .table td {
+    font-size: 0.7rem;
+  }
+  .table-responsive {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .form-control:disabled {
+    background-color: white;
+  }
+  
+
+</style> {% endcomment %}
+
+<div class="container-fluid">
+  <div class="card form-card">
+    <div class="form-header">
+      <h5>Floor Master</h5>
+    </div>
+
+    <div class="form-body">
+      <form method="POST" id="floorForm" autocomplete="off">
+        {% csrf_token %}
+
+        {% if messages %}
+<script>
+  {% for msg in messages %}
+    alert("{{ msg|escapejs }}");
+  {% endfor %}
+</script>
+{% endif %}
+
+
+        <!-- Operation Selection -->
+        <div class="row mb-3">
+          <div class="col-md-6 col-lg-4">
+            <label><strong>Select Operation:</strong></label><br>
+            <label>
+              <input type="radio" name="operation" value="add" onchange="window.location.href='?operation=add';">
+              Add
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="modify" onchange="window.location.href='?operation=modify';">
+              Modify
+            </label>
+            <label class="ms-3">
+              <input type="radio" name="operation" value="delete" onchange="window.location.href='?operation=delete';">
+              Delete
+            </label>
+          </div>
+        </div>
+
+        <!-- Dynamic Fields -->
+        <div id="fields-section" style="display:none;">
+          <div class="row">
+            <div id="floorno-field" class="col-md-6 col-lg-4 mb-2">
+              <label for="floorno">Floor Number:</label>
+              <input type="text" name="floorno" id="floorno" class="form-control"
+                     placeholder="Enter Floor Number" value="{{ search_term }}" oninput="if(this.value.length>30)this.value=this.value.slice(0,30);"
+>
+            </div>
+
+            <div class="col-md-4 mb-2 d-flex align-items-end">
+                 <div id="search-btn"  style="display:none;">
+              <label>&nbsp;</label><br>
+              <button type="button" class="btn btn-info me-2" onclick="doFloorSearch()">Search</button>
+            </div>
+
+            <div id="action-btn"  style="display:none;">
+              <label>&nbsp;</label><br>
+              <button type="submit" class="btn btn-primary" id="submit-btn">Submit</button>
+            </div>
+            </div>
+
+
+           
+          </div>
+        </div>
+
+        <input type="hidden" name="search_term" id="search_term" value="{{ search_term|default:'' }}"/>
+
+        <!-- Table Section -->
+        <div id="table-section" class="row" style="display:none;">
+          <div class="col-8">
+            <h6 class="mb-1"><strong>Existing Floors</strong></h6>
+            <div class="table-responsive">
+              <table class="table table-bordered table-s">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 10%;">Floor Id</th>
+                    <th>Floor No</th>
+                    <th>Remarks</th>
+                    <th>Order No</th>
+                    {% if operation == 'modify' %}
+                      <th style="width: 15%;">Modify</th>
+                    {% elif operation == 'delete' %}
+                      <th style="width: 15%;">Delete</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if floors %}
+                    {% for f in floors %}
+                    <tr id="row-{{ f.pk }}">
+                      <td>{{f.floorid}}</td>
+                      <td>
+                        <input type="text" name="floorno_{{ f.pk }}" id="floorno_{{ f.pk }}" class="form-control form-control-sm"
+                               value="{{ f.floorno }}" {% if operation == 'modify' %}disabled{% endif %} maxlength="30">
+                      </td>
+                      <td>
+                        <input type="text" name="remarks_{{ f.pk }}" id="remarks_{{ f.pk }}" class="form-control form-control-sm"
+                               value="{{ f.remarks }}" {% if operation == 'modify' %}disabled{% endif %} maxlength="150">
+                      </td>
+                      <td>
+                        <input type="number" name="orderno_{{ f.pk }}" id="orderno_{{ f.pk }}" class="form-control form-control-sm"
+                               value="{{ f.orderno }}" oninput="if(this.value.length > 5) this.value = this.value.slice(0, 5);" {% if operation == 'modify' %}disabled{% endif %} >
+                      </td>
+
+                      {% if operation == 'modify' %}
+                        <td class="text-center">
+                          <a href="#" class="edit-link" data-id="{{ f.pk }}" id="edit-{{ f.pk }}">Edit</a>
+                          <span id="update-cancel-{{ f.pk }}" style="display:none;">
+                            <a href="#" class="update-link text-success" data-id="{{ f.pk }}">Update</a>
+                            &nbsp;|&nbsp;
+                            <a href="#" class="cancel-link text-danger" data-id="{{ f.pk }}">Cancel</a>
+                          </span>
+                        </td>
+                      {% elif operation == 'delete' %}
+                        <td class="text-center">
+                          <a href="#" class="delete-link text-danger" data-id="{{ f.pk }}">Delete</a>
+                        </td>
+                      {% endif %}
+                    </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="{% if operation in 'modify delete' %}5{% else %}4{% endif %}" class="text-center">
+                        {% if operation == 'add' %}
+                          No floors found.
+                        {% elif operation == 'modify' %}
+                          {% if searched %}
+                            No matching floors found.
+                          {% else %}
+                            Enter a floor number and click Search.
+                          {% endif %}
+                        {% elif operation == 'delete' %}
+                          No floors found to delete.
+                        {% else %}
+                          Select an operation to show records.
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" name="update_id" id="update_id" value="" />
+      </form>
+
+      {% if not operation %}
+        <form method="POST">
+          {% csrf_token %}
+          <div class="row">
+            <div id="floorno-field" class="col-md-6 col-lg-4">
+              <label for="floorno">Floor Number:</label>
+              <input type="text" name="floorno" id="floorno" class="form-control" placeholder="Enter Floor Number" maxlength="30"/>
+            </div>
+            <div class="col-md-6 col-lg-4 mt-3">
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+ 
+
+  function doFloorSearch() {
+    var name = document.getElementById('floorno').value || '';
+    var op = document.querySelector('input[name="operation"]:checked');
+    var operation = op ? op.value : 'add';
+    window.location.href = '?operation=' + encodeURIComponent(operation) + '&search=' + encodeURIComponent(name);
+  }
+
+  function toggleFields(action) {
+    const floornoField = document.getElementById('floorno-field');
+    const searchBtn = document.getElementById('search-btn');
+    const actionBtn = document.getElementById('action-btn');
+    const fieldSection = document.getElementById('fields-section');
+    const tableSection = document.getElementById('table-section');
+    const submitBtn = document.getElementById('submit-btn');
+
+    fieldSection.style.display = 'block';
+    floornoField.style.display = 'none';
+    searchBtn.style.display = 'none';
+    actionBtn.style.display = 'none';
+    tableSection.style.display = 'none';
+
+    if (action === 'add') {
+      floornoField.style.display = 'block';
+      actionBtn.style.display = 'block';
+      searchBtn.style.display = 'block';
+      submitBtn.innerText = 'Add';
+      tableSection.style.display = 'block';
+    } else if (action === 'modify') {
+      floornoField.style.display = 'block';
+      searchBtn.style.display = 'block';
+      submitBtn.innerText = 'Modify';
+      tableSection.style.display = 'block';
+    } else if (action === 'delete') {
+      floornoField.style.display = 'block';
+      searchBtn.style.display = 'block';
+      submitBtn.innerText = 'Delete';
+      tableSection.style.display = 'block';
+    } else {
+      fieldSection.style.display = 'none';
+      tableSection.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var currentOp = "{{ operation|default:'' }}";
+    if (currentOp) {
+      var ele = document.querySelector('input[name="operation"][value="' + currentOp + '"]');
+      if (ele) ele.checked = true;
+    }
+    toggleFields(currentOp);
+
+    document.querySelectorAll('.edit-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        enterEditMode(link.dataset.id);
+      });
+    });
+
+    document.querySelectorAll('.cancel-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        exitEditMode(link.dataset.id, true);
+      });
+    });
+
+    document.querySelectorAll('.update-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        var id = link.dataset.id;
+        document.getElementById('update_id').value = id;
+        document.getElementById('floorForm').submit();
+      });
+    });
+
+    document.querySelectorAll('.delete-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        var id = link.dataset.id;
+        if (!confirm('Are you sure you want to delete this floor?')) return;
+        document.getElementById('update_id').value = id;
+        document.querySelector('input[name="operation"][value="delete"]').checked = true;
+        document.getElementById('floorForm').submit();
+      });
+    });
+  });
+
+  function disableAllRows() {
+  document.querySelectorAll('tr[id^="row-"]').forEach(tr => {
+    const pk = tr.id.slice(4);
+    ['floorno_', 'remarks_', 'orderno_'].forEach(prefix => {
+      const input = document.getElementById(prefix + pk);
+      if (input) {
+        input.disabled = true;
+        input.classList.remove('active-edit');
+        input.removeEventListener('focus', preventInputFocus);
+        input.blur();
+      }
+    });
+    const editLink = document.getElementById('edit-' + pk);
+    if (editLink) editLink.style.display = 'inline';
+    const upd = document.getElementById('update-cancel-' + pk);
+    if (upd) upd.style.display = 'none';
+  });
+}
+
+// Prevent focusing on non-editable inputs
+function preventInputFocus(e) {
+  e.target.blur();
+}
+
+// Updated enterEditMode to ensure only one editable row at a time
+function enterEditMode(id) {
+  disableAllRows();
+  ['floorno_', 'remarks_', 'orderno_'].forEach(prefix => {
+    const input = document.getElementById(prefix + id);
+    if (input) {
+      input.disabled = false;
+      input.classList.add('active-edit');
+      input.dataset.original = input.value;
+    }
+  });
+  document.getElementById('edit-' + id).style.display = 'none';
+  document.getElementById('update-cancel-' + id).style.display = 'inline';
+
+  // Prevent focusing on other inputs
+  document.querySelectorAll('input.form-control.form-control-sm:not(.active-edit)').forEach(i => {
+    i.disabled = true;
+    i.addEventListener('focus', preventInputFocus);
+  });
+}
+
+// Ensure all rows are locked again after updating/cancelling
+function exitEditMode(id, restore) {
+  ['floorno_', 'remarks_', 'orderno_'].forEach(prefix => {
+    const input = document.getElementById(prefix + id);
+    if (input) {
+      if (restore && input.dataset.original !== undefined) {
+        input.value = input.dataset.original;
+      }
+      input.disabled = true;
+      input.classList.remove('active-edit');
+      input.removeEventListener('focus', preventInputFocus);
+    }
+  });
+  document.getElementById('edit-' + id).style.display = 'inline';
+  document.getElementById('update-cancel-' + id).style.display = 'none';
+
+  // Prevent focusing on other inputs
+  document.querySelectorAll('input.form-control.form-control-sm').forEach(i => {
+    i.disabled = true;
+    i.removeEventListener('focus', preventInputFocus);
+  });
+}
+
+// Add keyboard trap for Enter/Tab key to prevent accidental editing on other fields
+document.addEventListener('focusin', function(e) {
+  if (!e.target.classList.contains('active-edit') &&
+      e.target.classList.contains('form-control-sm')) {
+    e.target.blur();
+  }
+});
+
+
+  
+</script>
+{% endblock %}
