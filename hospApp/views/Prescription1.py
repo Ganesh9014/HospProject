@@ -6,7 +6,11 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from hospApp.models import Prescription1    # <-- FIXED
 
-pytesseract.pytesseract.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract.exe"
+import os
+
+if os.name == 'nt' and os.path.exists(r"C:/Program Files/Tesseract-OCR/tesseract.exe"):
+    pytesseract.pytesseract.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract.exe"
+
 from django.contrib.auth.decorators import login_required
 
 @login_required(login_url='login')
