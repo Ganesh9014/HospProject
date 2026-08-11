@@ -2,23 +2,41 @@ from django.utils import timezone
 from django.conf import settings
 from django.shortcuts import redirect
 from django.contrib.auth import logout
+from django.http import HttpResponse
+from django.core.management import call_command
+
+_auto_migrated = False
+
+class AutoMigrateMiddleware:
+    """
+    Ensures database migrations and seed data run automatically if tables are missing.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        global _auto_migrated
+        if not _auto_migrated:
+            _auto_migrated = True
+            try:
+                call_command('setup_db')
+            except Exception as e:
+                print("Auto-migrate warning:", e)
+        return self.get_response(request)
 
 
 class AutoLogoutMiddleware:
     """
     Logs out users after a period of inactivity.
     """
-
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # Skip anonymous users
         if not request.user.is_authenticated:
             return self.get_response(request)
 
         timeout = getattr(settings, 'AUTO_LOGOUT_DELAY', 500)
-
         last_activity = request.session.get('last_activity')
 
         if last_activity:
@@ -33,10 +51,6 @@ class AutoLogoutMiddleware:
 
         request.session['last_activity'] = timezone.now().isoformat()
         return self.get_response(request)
-
-
-# hospApp/middleware.py — add this new middleware
-from django.http import HttpResponse
 
 
 class NoCacheMiddleware:
