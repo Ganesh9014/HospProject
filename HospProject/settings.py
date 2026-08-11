@@ -62,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -98,29 +99,57 @@ WSGI_APPLICATION = 'HospProject.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-DB_USER = os.environ.get('DB_USER', '').strip()
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '').strip()
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-db_config = {
-    'ENGINE': 'mssql',
-    'NAME': os.environ.get('DB_NAME', 'hospitalDatabase'),
-    'HOST': os.environ.get('DB_HOST', 'LAPTOP-DCKF2NF6\\SQLEXPRESS'),
-    'PORT': os.environ.get('DB_PORT', ''),
-    'OPTIONS': {
-        'driver': os.environ.get('DB_DRIVER', 'ODBC Driver 17 for SQL Server'),
-    },
-}
-
-if DB_USER:
-    db_config['USER'] = DB_USER
-    db_config['PASSWORD'] = DB_PASSWORD
-    db_config['OPTIONS']['trusted_connection'] = 'no'
+if DATABASE_URL:
+    try:
+        import dj_database_url
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
+        }
+    except ImportError:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 else:
-    db_config['OPTIONS']['trusted_connection'] = 'yes'
+    DB_USER = os.environ.get('DB_USER', '').strip()
+    DB_PASSWORD = os.environ.get('DB_PASSWORD', '').strip()
 
-DATABASES = {
-    'default': db_config
-}
+    if os.environ.get('DB_ENGINE') == 'mssql' or os.environ.get('DB_HOST') or not os.environ.get('RENDER'):
+        db_config = {
+            'ENGINE': 'mssql',
+            'NAME': os.environ.get('DB_NAME', 'hospitalDatabase'),
+            'HOST': os.environ.get('DB_HOST', 'LAPTOP-DCKF2NF6\\SQLEXPRESS'),
+            'PORT': os.environ.get('DB_PORT', ''),
+            'OPTIONS': {
+                'driver': os.environ.get('DB_DRIVER', 'ODBC Driver 17 for SQL Server'),
+            },
+        }
+
+        if DB_USER:
+            db_config['USER'] = DB_USER
+            db_config['PASSWORD'] = DB_PASSWORD
+            db_config['OPTIONS']['trusted_connection'] = 'no'
+        else:
+            db_config['OPTIONS']['trusted_connection'] = 'yes'
+
+        DATABASES = {
+            'default': db_config
+        }
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 
 

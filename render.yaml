@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: hosp-project
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn HospProject.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hosp-db
+          property: connectionString
+
+databases:
+  - name: hosp-db
+    databaseName: hospitaldb
+    user: hospuser
