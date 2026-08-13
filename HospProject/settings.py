@@ -43,6 +43,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-0(95#3j!c%bc0s+v22(+5
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://*.railway.app,https://*.up.railway.app,http://localhost:8000,http://127.0.0.1:8000').split(',')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
 
@@ -62,7 +64,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'hospApp.middleware.AutoMigrateMiddleware',
+    
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -100,7 +102,7 @@ WSGI_APPLICATION = 'HospProject.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_URL = os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL') or os.environ.get('MYSQL_URL')
 
 if DATABASE_URL:
     try:
@@ -120,37 +122,54 @@ if DATABASE_URL:
             }
         }
 else:
-    DB_USER = os.environ.get('DB_USER', '').strip()
+    DB_ENGINE = os.environ.get('DB_ENGINE', 'mysql').strip().lower()
+    DB_NAME = os.environ.get('DB_NAME', 'hospitalDatabase_v2').strip()
+    DB_USER = os.environ.get('DB_USER', 'root').strip()
     DB_PASSWORD = os.environ.get('DB_PASSWORD', '').strip()
+    DB_HOST = os.environ.get('DB_HOST', 'localhost').strip()
+    DB_PORT = os.environ.get('DB_PORT', '3306').strip()
 
-    if os.environ.get('DB_ENGINE') == 'mssql' or os.environ.get('DB_HOST') or not os.environ.get('RENDER'):
+    if DB_ENGINE == 'mssql':
         db_config = {
             'ENGINE': 'mssql',
-            'NAME': os.environ.get('DB_NAME', 'hospitalDatabase'),
-            'HOST': os.environ.get('DB_HOST', 'LAPTOP-DCKF2NF6\\SQLEXPRESS'),
-            'PORT': os.environ.get('DB_PORT', ''),
+            'NAME': DB_NAME,
+            'HOST': DB_HOST,
+            'PORT': DB_PORT,
             'OPTIONS': {
                 'driver': os.environ.get('DB_DRIVER', 'ODBC Driver 17 for SQL Server'),
             },
         }
-
         if DB_USER:
             db_config['USER'] = DB_USER
             db_config['PASSWORD'] = DB_PASSWORD
             db_config['OPTIONS']['trusted_connection'] = 'no'
         else:
             db_config['OPTIONS']['trusted_connection'] = 'yes'
-
-        DATABASES = {
-            'default': db_config
+    elif DB_ENGINE == 'mysql' or DB_HOST or not os.environ.get('RENDER'):
+        db_config = {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': DB_NAME,
+            'USER': DB_USER,
+            'PASSWORD': DB_PASSWORD,
+            'HOST': DB_HOST if DB_HOST else '127.0.0.1',
+            'PORT': DB_PORT if DB_PORT else '3306',
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'charset': 'utf8mb4',
+            },
         }
     else:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
+        db_config = {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
+
+    DATABASES = {
+        'default': db_config
+    }
+
+
+
 
 
 

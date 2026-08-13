@@ -61,14 +61,13 @@ The **Hospital Management System** is an enterprise-grade web application engine
 - **Web Framework:** Django (Python 3.10, 3.11, or 3.12)
 - **WSGI Production Server:** `Waitress` (Production multi-threaded server for Windows)
 - **Static & Media File Handler:** `WhiteNoise`
-- **Database Engine:** Microsoft SQL Server (2019, 2022, or SQL Server Express)
-- **Database Connector:** `mssql-django` with `pyodbc`
-- **Driver:** Microsoft ODBC Driver 17 or 18 for SQL Server
+- **Database Engine:** MySQL Server (or MariaDB)
+- **Database Connector:** `mysqlclient` / `pymysql` (`django.db.backends.mysql`)
 
 ### Server Prerequisites
 1. **Python (v3.10+)**: Download from python.org. Ensure **"Add Python to PATH"** is selected during installation.
-2. **Microsoft SQL Server**: Installed and running (Instance name e.g., `LOCALHOST\SQLEXPRESS`).
-3. **Microsoft ODBC Driver 17 or 18 for SQL Server**: Required for Python to talk to SQL Server.
+2. **MySQL Server**: Installed and running (Port 3306).
+
 4. **SQL Server Management Studio (SSMS)**: Recommended for database operations.
 
 ---

@@ -22,7 +22,8 @@ class Migration(migrations.Migration):
         # mssql-django cannot alter IntegerField → AutoField directly.
         # If id_pk is already an IDENTITY column in SQL Server, this is safe to skip.
         migrations.RunSQL(
-            sql="-- skip: mssql does not support AlterField IntegerField to AutoField",
+            sql="SELECT 1;",
             reverse_sql=migrations.RunSQL.noop,
         ),
+
     ]
