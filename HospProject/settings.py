@@ -102,7 +102,15 @@ WSGI_APPLICATION = 'HospProject.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-DATABASE_URL = os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL') or os.environ.get('MYSQL_URL')
+DATABASE_URL = (
+    os.environ.get('DATABASE_URL') or 
+    os.environ.get('POSTGRES_URL') or 
+    os.environ.get('MYSQL_URL') or 
+    os.environ.get('MYSQL_PUBLIC_URL') or 
+    os.environ.get('POSTGRESQL_URL')
+)
+
+IS_CLOUD = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER') or os.environ.get('HEROKU_APP_NAME')
 
 if DATABASE_URL:
     try:
@@ -121,12 +129,12 @@ if DATABASE_URL:
                 'NAME': BASE_DIR / 'db.sqlite3',
             }
         }
-else:
+elif os.environ.get('DB_HOST') and os.environ.get('DB_HOST') not in ('localhost', '127.0.0.1'):
     DB_ENGINE = os.environ.get('DB_ENGINE', 'mysql').strip().lower()
     DB_NAME = os.environ.get('DB_NAME', 'hospitalDatabase_v2').strip()
-    DB_USER = os.environ.get('DB_USER', 'root').strip()
+    DB_USER = os.environ.get('DB_USER', '').strip()
     DB_PASSWORD = os.environ.get('DB_PASSWORD', '').strip()
-    DB_HOST = os.environ.get('DB_HOST', 'localhost').strip()
+    DB_HOST = os.environ.get('DB_HOST').strip()
     DB_PORT = os.environ.get('DB_PORT', '3306').strip()
 
     if DB_ENGINE == 'mssql':
@@ -145,27 +153,46 @@ else:
             db_config['OPTIONS']['trusted_connection'] = 'no'
         else:
             db_config['OPTIONS']['trusted_connection'] = 'yes'
-    elif DB_ENGINE == 'mysql' or DB_HOST or not os.environ.get('RENDER'):
+    else:
         db_config = {
             'ENGINE': 'django.db.backends.mysql',
             'NAME': DB_NAME,
             'USER': DB_USER,
             'PASSWORD': DB_PASSWORD,
-            'HOST': DB_HOST if DB_HOST else '127.0.0.1',
-            'PORT': DB_PORT if DB_PORT else '3306',
+            'HOST': DB_HOST,
+            'PORT': DB_PORT,
             'OPTIONS': {
                 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
                 'charset': 'utf8mb4',
             },
         }
-    else:
-        db_config = {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
 
     DATABASES = {
         'default': db_config
+    }
+elif not IS_CLOUD and (os.environ.get('DB_ENGINE') == 'mysql' or os.path.exists('C:\\Program Files\\MySQL')):
+    # Local development with local MySQL
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ.get('DB_NAME', 'hospitalDatabase_v2').strip(),
+            'USER': os.environ.get('DB_USER', 'root').strip(),
+            'PASSWORD': os.environ.get('DB_PASSWORD', '').strip(),
+            'HOST': os.environ.get('DB_HOST', '127.0.0.1').strip(),
+            'PORT': os.environ.get('DB_PORT', '3306').strip(),
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'charset': 'utf8mb4',
+            },
+        }
+    }
+else:
+    # Default cloud / lightweight fallback to SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
 
 
