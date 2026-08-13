@@ -51,11 +51,14 @@ MASTER_TABLES = [
 
 def get_identity_tables(cursor):
     """Retrieve tables that have identity columns in SQL Server"""
-    cursor.execute("""
-        SELECT OBJECT_NAME(object_id) AS TableName
-        FROM sys.identity_columns
-    """)
-    return {row[0].lower() for row in cursor.fetchall()}
+    try:
+        cursor.execute("""
+            SELECT OBJECT_NAME(object_id) AS TableName
+            FROM sys.identity_columns
+        """)
+        return {row[0].lower() for row in cursor.fetchall()}
+    except Exception:
+        return set()
 
 def dump_sql():
     sql_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hospital_db.sql')
@@ -86,8 +89,9 @@ def dump_sql():
             
             actual_table_name = db_tables[table_key.lower()]
             
+            qn = connection.ops.quote_name
             # Select all rows
-            cursor.execute(f"SELECT * FROM [{actual_table_name}]")
+            cursor.execute(f"SELECT * FROM {qn(actual_table_name)}")
             rows = cursor.fetchall()
             
             if not rows:
@@ -101,7 +105,7 @@ def dump_sql():
             
             has_identity = actual_table_name.lower() in identity_tables
             if has_identity:
-                lines.append(f"SET IDENTITY_INSERT [{actual_table_name}] ON;")
+                lines.append(f"SET IDENTITY_INSERT {qn(actual_table_name)} ON;")
             
             for row in rows:
                 values_formatted = []
@@ -117,12 +121,12 @@ def dump_sql():
                         val_str = str(val).replace("'", "''")
                         values_formatted.append(f"'{val_str}'")
                 
-                cols_str = ", ".join([f"[{col}]" for col in columns])
+                cols_str = ", ".join([qn(col) for col in columns])
                 vals_str = ", ".join(values_formatted)
-                lines.append(f"INSERT INTO [{actual_table_name}] ({cols_str}) VALUES ({vals_str});")
+                lines.append(f"INSERT INTO {qn(actual_table_name)} ({cols_str}) VALUES ({vals_str});")
             
             if has_identity:
-                lines.append(f"SET IDENTITY_INSERT [{actual_table_name}] OFF;")
+                lines.append(f"SET IDENTITY_INSERT {qn(actual_table_name)} OFF;")
             
             lines.append("") # blank line between tables
             print(f"[OK] Dumped {len(rows)} rows from '{actual_table_name}'")
