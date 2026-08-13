@@ -22,7 +22,7 @@ class RolePermissionMiddleware:
         if path == '':
             return self.get_response(request)
 
-        if any(path.startswith(p) for p in PUBLIC_PREFIXES):
+        if any(path_lower.startswith(p) for p in PUBLIC_PREFIXES):
             return self.get_response(request)
 
         # =====================================================
@@ -52,6 +52,10 @@ class RolePermissionMiddleware:
         if not perm or not perm.mainrole:
             logout(request)
             return redirect('/')
+
+        # Full admin / ALL permission bypass -> allow access to all admin pages
+        if perm.permission == 'ALL' or (perm.mainrole and perm.mainrole.mainrole == 'yes') or request.user.username == 'admin':
+            return self.get_response(request)
 
         # URLs this user is allowed to access (both sidebar pages and header pages)
         allowed_urls = {
