@@ -30,29 +30,32 @@ def login_view(request):
             password = form.cleaned_data['password']
             remember_me = request.POST.get('remember_me')
 
-            try:
-                user = Tbluserpermission.objects.get(
-                    username=username,
-                    password=password,
-                    isactive=True
-                )
-            except Tbluserpermission.DoesNotExist:
+            user = Tbluserpermission.objects.filter(
+                username__iexact=username,
+                isactive=True
+            ).first()
+
+            if not user or (user.password != password and not check_password(password, user.password)):
                 messages.error(request, "Invalid username or password.")
                 return redirect('login')
 
             Login.objects.create(
                 user=user,
-                name=user.empname,
+                name=user.empname or username,
                 logintime=timezone.now()
             )
 
             request.session['username'] = user.username
-            request.session['empname'] = getattr(user, 'empname', '')
+            request.session['empname'] = getattr(user, 'empname', '') or user.username
             request.session['role_id'] = getattr(user.mainrole, 'roleid', None)
             request.session['role_name'] = getattr(user.mainrole, 'rolename', None)
 
             UserModel = get_user_model()
             django_user, _ = UserModel.objects.get_or_create(username=user.username)
+            if user.username.lower() == 'admin':
+                django_user.is_staff = True
+                django_user.is_superuser = True
+                django_user.save()
             django_login(request, django_user)
 
             response = redirect('home')

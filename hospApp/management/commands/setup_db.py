@@ -67,7 +67,7 @@ class Command(BaseCommand):
         )
 
         # Ensure Admin user exists and has AdminRole attached
-        admin_user, created = Tbluserpermission.objects.get_or_create(
+        admin_user, _ = Tbluserpermission.objects.get_or_create(
             username='admin',
             defaults={
                 'password': 'admin',
@@ -80,9 +80,12 @@ class Command(BaseCommand):
                 'mainrole': admin_role
             }
         )
-        if not created:
-            admin_user.mainrole = admin_role
-            admin_user.isactive = True
-            admin_user.save()
+        admin_user.password = 'admin'
+        admin_user.permission = 'ALL'
+        admin_user.isactive = True
+        admin_user.app_permission = True
+        admin_user.mainrole = admin_role
+        admin_user.save()
+        self.stdout.write(self.style.SUCCESS("Enforced default admin user credentials (admin / admin)."))
 
         self.stdout.write(self.style.SUCCESS("Database setup & role permission seeding completed successfully!"))
