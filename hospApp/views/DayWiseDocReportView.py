@@ -20,7 +20,7 @@ from hospApp.models import (
 @login_required(login_url='login')
 def DayWiseDocReportView(request):
     doctor = DoctorMaster.objects.all().order_by('docname')
-    return render(request, 'hospApp/Reports/DaywiseDocReport.html', {'doctor': doctor})
+    return render(request, 'hospApp/reports/DaywiseDocReport.html', {'doctor': doctor})
 
 
 @login_required(login_url='login')
@@ -33,7 +33,7 @@ def DayWiseDocReportResult(request):
     hospital = HospitalMaster.objects.filter(active='a').first()
 
     if not from_date or not to_date:
-        return render(request, "hospApp/Reports/DaywiseDocReport.html")
+        return render(request, "hospApp/reports/DaywiseDocReport.html")
 
     fd = timezone.make_aware(datetime.strptime(from_date, "%Y-%m-%d"))
     td = timezone.make_aware(datetime.strptime(to_date, "%Y-%m-%d")) + timedelta(days=1)
@@ -346,7 +346,7 @@ def DayWiseDocReportResult(request):
     # FINAL TOTAL
     grand_total = consultation_total + procedure_total + investigation_total - cancellation_total - refund_total
 
-    return render(request, "hospApp/Reports/DaywiseDocReportResult.html", {
+    return render(request, "hospApp/reports/DaywiseDocReportResult.html", {
         "consultation_data": consultation_data,
         "procedure_data": procedure_data,
         "investigation_data": investigation_data,

@@ -209,7 +209,7 @@ def op_report(request):
             "casetype": casetype_map.get(c.uhid, "-"),  # ✅ fetched from DoctorConsultation
         })
 
-    return render(request, 'hospApp/admin/op_report.html', {
+    return render(request, 'hospApp/Admin/op_report.html', {
         'data': data,
         'from_date': from_date,
         'to_date': to_date,
@@ -229,7 +229,7 @@ def login_reports(request):
         logintime__lt=end
     ).order_by('logintime')
 
-    return render(request, 'hospApp/admin/login_reports.html', {
+    return render(request, 'hospApp/Admin/login_reports.html', {
         'data': data,
         'today': today
     })
@@ -259,7 +259,7 @@ def Investigation_details(request):
         latest_date=Max('generateddate')
     ).order_by('-latest_date')
 
-    return render(request, 'hospApp/admin/Investigation_details_home.html', {
+    return render(request, 'hospApp/Admin/Investigation_details_home.html', {
         'data': data,
         'today': today
     })
@@ -286,7 +286,7 @@ def procedure_details(request):
         latest_date=Max('createddate')
     ).order_by('-latest_date')
 
-    return render(request, 'hospApp/admin/procedure_details_home.html', {
+    return render(request, 'hospApp/Admin/procedure_details_home.html', {
         'data': data,
         'today': today
     })
