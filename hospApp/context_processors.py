@@ -1,5 +1,5 @@
 from hospApp.models import Tbluserpermission
-from hospApp.models.menus import MainMenu
+from hospApp.models.menus import MainMenu, SubMenu
 
 
 def menus_processor(request):
