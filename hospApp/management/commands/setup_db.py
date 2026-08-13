@@ -1,16 +1,39 @@
+import os
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
 from django.db import connection
 
 class Command(BaseCommand):
-    help = "Run migrations and seed default admin user and roles"
+    help = "Run migrations and seed default admin user, roles, and initial data"
 
     def handle(self, *args, **options):
         self.stdout.write("Running migrations...")
         call_command('migrate', interactive=False)
         self.stdout.write("Migrations completed.")
 
-        from hospApp.models import Tbluserpermission, tblRoles, Employee
+        from hospApp.models import Tbluserpermission, tblRoles, Employee, MainMenu
+
+        # Check if database is empty and needs initial seeding from hospital_db.sql
+        try:
+            if not MainMenu.objects.exists():
+                self.stdout.write("Seeding initial menus, roles, and master data from hospital_db.sql...")
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                sql_file = os.path.join(base_dir, 'hospital_db.sql')
+                if os.path.exists(sql_file):
+                    with open(sql_file, 'r', encoding='utf-8') as f:
+                        sql_content = f.read()
+                    
+                    with connection.cursor() as cursor:
+                        for statement in sql_content.split(';'):
+                            stmt = statement.strip()
+                            if stmt and not stmt.startswith('--') and not stmt.upper().startswith(('BEGIN', 'COMMIT', 'SET NOCOUNT')):
+                                try:
+                                    cursor.execute(stmt)
+                                except Exception as e:
+                                    pass
+                    self.stdout.write(self.style.SUCCESS("hospital_db.sql data imported successfully!"))
+        except Exception as e:
+            self.stdout.write(f"Seed note: {e}")
 
         if not tblRoles.objects.filter(roleid=1).exists():
             tblRoles.objects.create(
