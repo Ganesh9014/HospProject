@@ -48,7 +48,8 @@ def generate_empid():
     from hospApp.models import HospitalMaster, Employee
 
     hospital = HospitalMaster.objects.first()
-    initial = hospital.initial.upper()   # 'sh'
+    initial = hospital.initial if hospital and getattr(hospital, 'initial', None) else 'MH'
+    initial = initial.upper()
 
     last_emp = (
         Employee.objects
@@ -58,9 +59,12 @@ def generate_empid():
     )
 
     if last_emp:
-        last_number = int(last_emp.emp_id.replace(initial, ''))
-        next_number = last_number + 1
+        try:
+            last_number = int(last_emp.emp_id.replace(initial, ''))
+            next_number = last_number + 1
+        except ValueError:
+            next_number = 1
     else:
         next_number = 1
 
-    return f"{initial}{next_number:02d}"   # sh0001, sh1000
+    return f"{initial}{next_number:02d}"

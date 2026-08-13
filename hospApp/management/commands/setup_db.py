@@ -52,6 +52,14 @@ class Command(BaseCommand):
             admin_role.header_pages.set(all_submenus)
             self.stdout.write(self.style.SUCCESS(f"Assigned {len(all_submenus)} submenus to AdminRole."))
 
+        from hospApp.models import HospitalMaster
+        if not HospitalMaster.objects.exists():
+            HospitalMaster.objects.create(
+                initial='MH',
+                active='a'
+            )
+            self.stdout.write("Created default HospitalMaster record.")
+
         # Ensure Admin employee exists
         emp, _ = Employee.objects.get_or_create(
             id=1,
