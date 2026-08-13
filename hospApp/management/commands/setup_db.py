@@ -11,12 +11,12 @@ class Command(BaseCommand):
         call_command('migrate', interactive=False)
         self.stdout.write("Migrations completed.")
 
-        from hospApp.models import Tbluserpermission, tblRoles, Employee, MainMenu
+        from hospApp.models import Tbluserpermission, tblRoles, Employee, MainMenu, SubMenu
 
         # Check if database is empty and needs initial seeding from hospital_db.sql
         try:
-            if not MainMenu.objects.exists():
-                self.stdout.write("Seeding initial menus, roles, and master data from hospital_db.sql...")
+            if SubMenu.objects.count() < 10 or not tblRoles.objects.filter(roleid=1).exists():
+                self.stdout.write("Seeding initial menus, submenus, and permissions from hospital_db.sql...")
                 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
                 sql_file = os.path.join(base_dir, 'hospital_db.sql')
                 if os.path.exists(sql_file):
@@ -35,42 +35,54 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(f"Seed note: {e}")
 
-        if not tblRoles.objects.filter(roleid=1).exists():
-            tblRoles.objects.create(
-                roleid=1,
-                rolename='AdminRole',
-                mainrole='yes',
-                rolepages='Admin,Front Office,OP,Lab,Reports,Registration,Consultation'
-            )
-            self.stdout.write("Created default AdminRole.")
+        # Ensure AdminRole exists
+        admin_role, _ = tblRoles.objects.get_or_create(
+            roleid=1,
+            defaults={
+                'rolename': 'AdminRole',
+                'mainrole': 'yes',
+                'rolepages': 'Admin,Front Office,OP,Lab,Reports,Registration,Consultation'
+            }
+        )
 
-        if not Employee.objects.filter(id=1).exists():
-            Employee.objects.create(
-                id=1,
-                emp_id='MH01',
-                emp_name='Admin',
-                designation='AdminRole',
-                age=28,
-                doj='2026-01-01',
-                address='Hospital',
-                phone=9999999999
-            )
-            self.stdout.write("Created default Admin employee.")
+        # Assign all submenus to AdminRole pages and header_pages so menus appear in sidebar
+        all_submenus = list(SubMenu.objects.all())
+        if all_submenus:
+            admin_role.pages.set(all_submenus)
+            admin_role.header_pages.set(all_submenus)
+            self.stdout.write(self.style.SUCCESS(f"Assigned {len(all_submenus)} submenus to AdminRole."))
 
-        if not Tbluserpermission.objects.filter(username='admin').exists():
-            role = tblRoles.objects.get(roleid=1)
-            emp = Employee.objects.get(id=1)
-            Tbluserpermission.objects.create(
-                username='admin',
-                password='admin',
-                permission='ALL',
-                isactive=True,
-                app_permission=True,
-                emp=emp,
-                empname='Admin',
-                empdesig='AdminRole',
-                mainrole=role
-            )
-            self.stdout.write("Created default admin user (username: admin, password: admin).")
+        # Ensure Admin employee exists
+        emp, _ = Employee.objects.get_or_create(
+            id=1,
+            defaults={
+                'emp_id': 'MH01',
+                'emp_name': 'Admin',
+                'designation': 'AdminRole',
+                'age': 28,
+                'doj': '2026-01-01',
+                'address': 'Hospital',
+                'phone': 9999999999
+            }
+        )
 
-        self.stdout.write(self.style.SUCCESS("Database setup & seeding completed successfully!"))
+        # Ensure Admin user exists and has AdminRole attached
+        admin_user, created = Tbluserpermission.objects.get_or_create(
+            username='admin',
+            defaults={
+                'password': 'admin',
+                'permission': 'ALL',
+                'isactive': True,
+                'app_permission': True,
+                'emp': emp,
+                'empname': 'Admin',
+                'empdesig': 'AdminRole',
+                'mainrole': admin_role
+            }
+        )
+        if not created:
+            admin_user.mainrole = admin_role
+            admin_user.isactive = True
+            admin_user.save()
+
+        self.stdout.write(self.style.SUCCESS("Database setup & role permission seeding completed successfully!"))
