@@ -733,7 +733,7 @@ footer {
     {% for menu in menus %}
     <div class="accordion-item bg-dark border-0">
       <h2 class="accordion-header" id="heading{{ menu.id }}">
-        <button class="accordion-button collapsed" type="button"
+        <button class="accordion-button {% if not menu.open %}collapsed{% endif %}" type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#collapse{{ menu.id }}"
                 aria-expanded="{{ menu.open|yesno:'true,false' }}"
@@ -765,7 +765,7 @@ footer {
       {% for menu in menus %}
       <div class="accordion-item">
         <h2 class="accordion-header" id="headingMobile{{ menu.id }}">
-          <button class="accordion-button collapsed" type="button"
+          <button class="accordion-button {% if not menu.open %}collapsed{% endif %}" type="button"
                   data-bs-toggle="collapse"
                   data-bs-target="#collapseMobile{{ menu.id }}"
                   aria-expanded="{{ menu.open|yesno:'true,false' }}"

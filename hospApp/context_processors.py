@@ -10,6 +10,7 @@ def menus_processor(request):
         return {'menus': []}
 
     session_username = request.session.get('username') or request.user.username
+    current_path = request.path.rstrip('/')
 
     perm = (
         Tbluserpermission.objects
@@ -30,14 +31,24 @@ def menus_processor(request):
 
     for menu in MainMenu.objects.prefetch_related('sublinks').order_by('display_order'):
         if is_full_admin:
-            allowed = menu.sublinks.all().order_by('display_order')
+            allowed = list(menu.sublinks.all().order_by('display_order'))
         elif role:
-            allowed = menu.sublinks.filter(roles=role).order_by('display_order')
+            allowed = list(menu.sublinks.filter(roles=role).order_by('display_order'))
         else:
-            allowed = SubMenu.objects.none()
+            allowed = []
 
-        menu.sublinks_filtered = allowed
-        if allowed.exists():
+        if allowed:
+            menu_open = False
+            for sub in allowed:
+                sub_path = (sub.url or '').rstrip('/')
+                if current_path and sub_path and (current_path == sub_path or current_path.startswith(sub_path + '/')):
+                    sub.is_active = True
+                    menu_open = True
+                else:
+                    sub.is_active = False
+
+            menu.sublinks_filtered = allowed
+            menu.open = menu_open
             menus.append(menu)
 
     return {'menus': menus}
@@ -57,21 +68,10 @@ def header_links_processor(request):
         .first()
     )
 
-    is_full_admin = (
-        session_username.lower() == 'admin' or 
-        request.user.username.lower() == 'admin' or 
-        (perm and perm.permission == 'ALL') or 
-        (perm and perm.mainrole and getattr(perm.mainrole, 'mainrole', None) == 'yes')
-    )
-
-    if is_full_admin:
-        return {'header_links': SubMenu.objects.filter(is_header=True).order_by('display_order')}
-
-    if not perm or not perm.mainrole:
-        return {'header_links': []}
-
-    role = perm.mainrole
-    header_links = role.header_pages.all().order_by('display_order')
+    if perm and perm.mainrole:
+        header_links = list(perm.mainrole.header_pages.all().order_by('display_order'))
+    else:
+        header_links = []
 
     return {'header_links': header_links}
 
