@@ -6,15 +6,14 @@ def menus_processor(request):
     """
     Inject role-based sidebar menus into all templates
     """
-
-    # Not logged in → no menus
     if not request.user.is_authenticated:
         return {'menus': []}
 
-    # Get user's role
+    session_username = request.session.get('username') or request.user.username
+
     perm = (
         Tbluserpermission.objects
-        .filter(username=request.user.username, isactive=True)
+        .filter(username__iexact=session_username, isactive=True)
         .select_related('mainrole')
         .first()
     )
@@ -22,35 +21,51 @@ def menus_processor(request):
     role = perm.mainrole if perm else None
     menus = []
 
-    if role:
-        for menu in MainMenu.objects.prefetch_related('sublinks').order_by('display_order'):
+    is_full_admin = (
+        session_username.lower() == 'admin' or 
+        request.user.username.lower() == 'admin' or 
+        (perm and perm.permission == 'ALL') or 
+        (role and getattr(role, 'mainrole', None) == 'yes')
+    )
+
+    for menu in MainMenu.objects.prefetch_related('sublinks').order_by('display_order'):
+        if is_full_admin:
+            allowed = menu.sublinks.all().order_by('display_order')
+        elif role:
             allowed = menu.sublinks.filter(roles=role).order_by('display_order')
+        else:
+            allowed = SubMenu.objects.none()
 
-            # Always attach filtered sublinks
-            menu.sublinks_filtered = allowed
-
-            if allowed.exists():
-                menus.append(menu)
+        menu.sublinks_filtered = allowed
+        if allowed.exists():
+            menus.append(menu)
 
     return {'menus': menus}
-from hospApp.models import Tbluserpermission
-
-
-from hospApp.models import Tbluserpermission
-from hospApp.models.menus import SubMenu
 
 
 def header_links_processor(request):
     if not request.user.is_authenticated:
         return {'header_links': []}
 
+    session_username = request.session.get('username') or request.user.username
+
     perm = (
         Tbluserpermission.objects
-        .filter(username=request.user.username, isactive=True)
+        .filter(username__iexact=session_username, isactive=True)
         .select_related('mainrole')
         .prefetch_related('mainrole__header_pages')
         .first()
     )
+
+    is_full_admin = (
+        session_username.lower() == 'admin' or 
+        request.user.username.lower() == 'admin' or 
+        (perm and perm.permission == 'ALL') or 
+        (perm and perm.mainrole and getattr(perm.mainrole, 'mainrole', None) == 'yes')
+    )
+
+    if is_full_admin:
+        return {'header_links': SubMenu.objects.filter(is_header=True).order_by('display_order')}
 
     if not perm or not perm.mainrole:
         return {'header_links': []}
